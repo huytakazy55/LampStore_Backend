@@ -11,6 +11,6 @@ namespace LampStoreProjects.Data
         {
         }
 
-        public new DbSet<User> Users { get; set; }
+        public new DbSet<User>? Users { get; set; }
     }
 }
