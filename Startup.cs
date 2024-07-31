@@ -6,7 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using LampStoreProjects.Data;
-using LampStoreProjects.Services;
+using LampStoreProjects.Repositories;
 
 public class Startup
 {
@@ -26,7 +26,7 @@ public class Startup
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
-        services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IAccountRepository, AccountRepository>();
 
         services.AddControllers();
 

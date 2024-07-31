@@ -7,7 +7,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 using LampStoreProjects.Models;
-using LampStoreProjects.Services;
+using LampStoreProjects.Repositories;
 
 
 namespace LampStoreProjects.Controllers
@@ -18,39 +18,40 @@ namespace LampStoreProjects.Controllers
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConfiguration _configuration;
-        private readonly IAuthService _authService;
+        private readonly IAccountRepository _accountRepository;
 
-        public AccountController(UserManager<ApplicationUser> userManager, IConfiguration configuration, IAuthService authService)
+        public AccountController(UserManager<ApplicationUser> userManager, IConfiguration configuration, IAccountRepository accountRepository)
         {
             _userManager = userManager;
             _configuration = configuration;
-            _authService = authService;
+            _accountRepository = accountRepository;
         }
 
-        [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginModel model)
+        [HttpPost("SignIn")]
+        public async Task<IActionResult> SignIn(SignInModel signInModel)
         {
-            var user = await _userManager.FindByNameAsync(model.Username);
-            if (user == null || !(await _userManager.CheckPasswordAsync(user, model.Password)))
-            {
-                return Unauthorized("không đúng tài khoản mật khẩu!");
-            }
+            var result = await _accountRepository.SignInAsync(signInModel);
 
-            var token = GenerateJwtToken(user);
-            return Ok(new { Token = token });
-        }
-
-        [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterModel model)
-        {
-            var result = await _authService.RegisterAsync(model);
-            if (!result.Succeeded)
+            if (string.IsNullOrEmpty(result))
             {
-                return BadRequest(result.Errors);
+                return Unauthorized();
             }
 
             return Ok(result);
         }
+
+        [HttpPost("SignUp")]
+        public async Task<IActionResult> SignUp(SignUpModel signUpModel)
+        {
+            var result = await _accountRepository.SignUpAsync(signUpModel);
+            if (result.Succeeded)
+            {
+                return Ok(result.Succeeded);
+            }
+
+            return StatusCode(500);
+        }
+
         [Authorize]
         [HttpGet("profile")]
         public async Task<IActionResult> GetProfile()
@@ -70,26 +71,6 @@ namespace LampStoreProjects.Controllers
             };
 
             return Ok(profile);
-        }
-        private string GenerateJwtToken(ApplicationUser user)
-        {
-            var claims = new[]
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, user.UserName),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-            };
-
-            var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var token = new JwtSecurityToken(
-                issuer: null,
-                audience: null,
-                claims: claims,
-                expires: DateTime.UtcNow.AddHours(1),
-                signingCredentials: creds);
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 }
