@@ -38,6 +38,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
+builder.Services.AddScoped<ILampRepository, LampRepository>();
+
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+        options.JsonSerializerOptions.WriteIndented = true;
+    });
 
 builder.Services.AddControllers();
 builder.Services.AddAuthorization();
@@ -50,11 +58,10 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// Cấu hình middleware HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
-    // Kích hoạt Swagger trong môi trường phát triển
+
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
