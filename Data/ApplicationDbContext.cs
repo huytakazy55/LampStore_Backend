@@ -12,8 +12,9 @@ namespace LampStoreProjects.Data
         }
 
         public new DbSet<User>? Users { get; set; }
-        public DbSet<LampModel>? Lamps { get; set; }
+        public DbSet<Lamp>? Lamps { get; set; }
         public DbSet<LampImage>? LampImages { get; set; }
+        public DbSet<Category>? Categories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -21,9 +22,9 @@ namespace LampStoreProjects.Data
 
             // Configuring relationships
             modelBuilder.Entity<LampImage>()
-                .HasOne(li => li.LampModel)
+                .HasOne(li => li.Lamp)
                 .WithMany(l => l.Images)
-                .HasForeignKey(li => li.LampModelId);
+                .HasForeignKey(li => li.LampId);
         }
     }
 }

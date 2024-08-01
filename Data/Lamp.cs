@@ -1,13 +1,12 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
+using LampStoreProjects.Models;
 
-namespace MyApiNetCore6.Data
+namespace LampStoreProjects.Data
 {
     [Table("Lamp")]
-    public class LampModel
+    public class Lamp
     {
         [Key]
         public int Id { get; set; }
@@ -27,30 +26,14 @@ namespace MyApiNetCore6.Data
         [Required]
         public int Quantity { get; set; }
 
-        [MaxLength(50)]
-        public string? Category { get; set; }
+        [ForeignKey("Category")]
+        public int CategoryId { get; set; }
+        public Category Category { get; set; }
 
         public DateTime DateAdded { get; set; } = DateTime.Now;
 
         public bool IsAvailable { get; set; } = true;
         
-        [JsonIgnore]
         public ICollection<LampImage> Images { get; set; } = new List<LampImage>();
-    }
-
-    [Table("LampImage")]
-    public class LampImage
-    {
-        [Key]
-        public int Id { get; set; }
-
-        [Required]
-        public string? ImagePath { get; set; }
-
-        public int LampModelId { get; set; }
-
-        [ForeignKey("LampModelId")]
-        [JsonIgnore]
-        public LampModel? LampModel { get; set; }
     }
 }

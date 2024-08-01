@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using LampStoreProjects.Models;
 
 namespace LampStoreProjects.Models
 {
@@ -23,8 +24,9 @@ namespace LampStoreProjects.Models
         [Required]
         public int Quantity { get; set; }
 
-        [MaxLength(50)]
-        public string? Category { get; set; }
+        public int CategoryId { get; set; }
+
+        public CategoryModel? Category { get; set; }
 
         public DateTime DateAdded { get; set; } = DateTime.Now;
 
@@ -38,7 +40,7 @@ namespace LampStoreProjects.Models
         public int Id { get; set; }
 
         [Required]
-        public string? ImagePath { get; set; }  // Lưu đường dẫn tới ảnh
+        public string? ImagePath { get; set; }
 
         public int LampModelId { get; set; }
 

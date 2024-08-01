@@ -90,29 +90,7 @@ namespace LampStoreProjects.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("LampStoreProjects.Models.LampImage", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
-
-                    b.Property<string>("ImagePath")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("LampModelId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LampModelId");
-
-                    b.ToTable("LampImages");
-                });
-
-            modelBuilder.Entity("LampStoreProjects.Models.LampModel", b =>
+            modelBuilder.Entity("LampStoreProjects.Data.Lamp", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -147,7 +125,30 @@ namespace LampStoreProjects.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Lamps");
+                    b.ToTable("Lamp");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.LampImage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<string>("ImagePath")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("LampId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LampId");
+
+                    b.ToTable("LampImage");
                 });
 
             modelBuilder.Entity("LampStoreProjects.Models.User", b =>
@@ -308,15 +309,15 @@ namespace LampStoreProjects.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("LampStoreProjects.Models.LampImage", b =>
+            modelBuilder.Entity("LampStoreProjects.Data.LampImage", b =>
                 {
-                    b.HasOne("LampStoreProjects.Models.LampModel", "LampModel")
+                    b.HasOne("LampStoreProjects.Data.Lamp", "Lamp")
                         .WithMany("Images")
-                        .HasForeignKey("LampModelId")
+                        .HasForeignKey("LampId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("LampModel");
+                    b.Navigation("Lamp");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -370,7 +371,7 @@ namespace LampStoreProjects.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("LampStoreProjects.Models.LampModel", b =>
+            modelBuilder.Entity("LampStoreProjects.Data.Lamp", b =>
                 {
                     b.Navigation("Images");
                 });

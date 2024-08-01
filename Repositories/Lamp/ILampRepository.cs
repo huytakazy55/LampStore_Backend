@@ -1,4 +1,6 @@
 using LampStoreProjects.Models;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace LampStoreProjects.Repositories
 {
@@ -6,8 +8,8 @@ namespace LampStoreProjects.Repositories
     {
         Task<IEnumerable<LampModel>> GetAllLampsAsync();
         Task<LampModel> GetLampByIdAsync(int id);
-        Task<LampModel> AddLampAsync(LampModel lamp);
-        Task<LampModel> UpdateLampAsync(LampModel lamp);
+        Task<LampModel> AddLampAsync(LampModel lampModel);
+        Task<LampModel> UpdateLampAsync(LampModel lampModel);
         Task DeleteLampAsync(int id);
     }
 }

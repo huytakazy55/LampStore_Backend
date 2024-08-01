@@ -3,9 +3,10 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using LampStoreProjects.Models;
 
-namespace LampStoreProjects.Models
+namespace LampStoreProjects.Data
 {
-    public class CategoryModel
+    [Table("Category")]
+    public class Category
     {
         [Key]
         public int Id { get; set; }
