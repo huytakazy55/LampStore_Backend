@@ -20,11 +20,17 @@ namespace LampStoreProjects.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configuring relationships
             modelBuilder.Entity<LampImage>()
                 .HasOne(li => li.Lamp)
                 .WithMany(l => l.Images)
-                .HasForeignKey(li => li.LampId);
+                .HasForeignKey(li => li.LampId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Lamp>()
+                .HasOne(l => l.Category)
+                .WithMany(c => c.Lamps)
+                .HasForeignKey(l => l.CategoryId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

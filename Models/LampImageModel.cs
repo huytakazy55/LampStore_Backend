@@ -1,19 +1,19 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using LampStoreProjects.Models;
 
 namespace LampStoreProjects.Models
 {
-    public class CategoryModel
+    public class LampImageModel
     {
-        [Key]
         public int Id { get; set; }
 
-        [MaxLength(100)]
         [Required]
-        public string? Name { get; set; }
+        public string? ImagePath { get; set; }
 
-        public string? Description { get; set; }
+        public int LampModelId { get; set; }
+
+        public LampModel? LampModel { get; set; }
     }
 }

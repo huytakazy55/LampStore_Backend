@@ -26,24 +26,10 @@ namespace LampStoreProjects.Models
 
         public int CategoryId { get; set; }
 
-        public CategoryModel? Category { get; set; }
-
         public DateTime DateAdded { get; set; } = DateTime.Now;
 
         public bool IsAvailable { get; set; } = true;
 
-        public ICollection<LampImage> Images { get; set; } = new List<LampImage>();
-    }
-
-    public class LampImage
-    {
-        public int Id { get; set; }
-
-        [Required]
-        public string? ImagePath { get; set; }
-
-        public int LampModelId { get; set; }
-
-        public LampModel? LampModel { get; set; }
+        public ICollection<LampImageModel> Images { get; set; } = new List<LampImageModel>();
     }
 }

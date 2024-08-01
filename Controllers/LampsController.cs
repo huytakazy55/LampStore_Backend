@@ -1,5 +1,6 @@
 using LampStoreProjects.Models;
 using LampStoreProjects.Repositories;
+using LampStoreProjects.Data;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -14,10 +15,12 @@ namespace LampStoreProjects.Controllers
     public class LampsController : ControllerBase
     {
         private readonly ILampRepository _lampRepository;
+        private readonly ApplicationDbContext _context;
 
-        public LampsController(ILampRepository lampRepository)
+        public LampsController(ILampRepository lampRepository, ApplicationDbContext context)
         {
             _lampRepository = lampRepository;
+            _context = context;
         }
 
         [HttpGet]
@@ -88,13 +91,12 @@ namespace LampStoreProjects.Controllers
                 var lampImage = new LampImage
                 {
                     ImagePath = filePath,
-                    LampModelId = lamp.Id
+                    LampId = lampId
                 };
 
-                lamp.Images.Add(lampImage);
+                _context.LampImages.Add(lampImage);
             }
-
-            await _lampRepository.UpdateLampAsync(lamp);
+            await _context.SaveChangesAsync();
 
             return Ok();
         }

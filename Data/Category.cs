@@ -1,22 +1,21 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using LampStoreProjects.Models;
+using System.Text.Json.Serialization;
 
 namespace LampStoreProjects.Data
 {
-    [Table("Category")]
     public class Category
     {
-        [Key]
         public int Id { get; set; }
 
         [MaxLength(100)]
         [Required]
         public string? Name { get; set; }
 
+        [MaxLength(1000)]
         public string? Description { get; set; }
 
-        public ICollection<LampModel> Lamps { get; set; } = new List<LampModel>();
+        [JsonIgnore]
+        public ICollection<Lamp> Lamps { get; set; } = new List<Lamp>();
     }
 }

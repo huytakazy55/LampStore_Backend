@@ -6,6 +6,8 @@ public class ApplicationMapper : Profile
 {
     public ApplicationMapper()
     {
-        CreateMap<Lamp, LampModel>().ReverseMap();
+        CreateMap<LampModel, Lamp>().ReverseMap();
+        CreateMap<LampImageModel, LampImage>().ReverseMap();
+        CreateMap<CategoryModel, Category>().ReverseMap();
     }
 }

@@ -12,7 +12,7 @@ namespace LampStoreProjects.Data
 
         [Required]
         [MaxLength(200)]
-        public string ImagePath { get; set; }
+        public string? ImagePath { get; set; }
 
         public int LampId { get; set; }
         
