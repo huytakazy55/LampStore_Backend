@@ -16,12 +16,14 @@ namespace LampStoreProjects.Controllers
     [Route("api/[controller]")]
     public class AccountController : ControllerBase
     {
+        private readonly ILogger<AccountController> _logger;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConfiguration _configuration;
         private readonly IAccountRepository _accountRepository;
 
-        public AccountController(UserManager<ApplicationUser> userManager, IConfiguration configuration, IAccountRepository accountRepository)
+        public AccountController(ILogger<AccountController> logger, UserManager<ApplicationUser> userManager, IConfiguration configuration, IAccountRepository accountRepository)
         {
+            _logger = logger;
             _userManager = userManager;
             _configuration = configuration;
             _accountRepository = accountRepository;
@@ -30,26 +32,43 @@ namespace LampStoreProjects.Controllers
         [HttpPost("SignIn")]
         public async Task<IActionResult> SignIn(SignInModel signInModel)
         {
-            var result = await _accountRepository.SignInAsync(signInModel);
-
-            if (string.IsNullOrEmpty(result))
+            try
             {
-                return Unauthorized();
+                var result = await _accountRepository.SignInAsync(signInModel);
+
+                if (string.IsNullOrEmpty(result))
+                {
+                    return Unauthorized();
+                }
+
+                return Ok(result);
             }
-
-            return Ok(result);
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return StatusCode(500, "Internal server error.");
+            }
         }
-
         [HttpPost("SignUp")]
         public async Task<IActionResult> SignUp(SignUpModel signUpModel)
         {
-            var result = await _accountRepository.SignUpAsync(signUpModel);
-            if (result.Succeeded)
+            try
             {
-                return Ok(result.Succeeded);
-            }
+                var result = await _accountRepository.SignUpAsync(signUpModel);
 
-            return StatusCode(500);
+                if (result.Succeeded)
+                {
+                    return Ok(new { Message = "User registered successfully." });
+                }
+
+                var errors = result.Errors.Select(e => e.Description);
+                return BadRequest(new { Errors = errors });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while signing up.");
+                return StatusCode(500, "Internal server error. Please try again later.");
+            }
         }
 
         [Authorize]
@@ -57,6 +76,9 @@ namespace LampStoreProjects.Controllers
         public async Task<IActionResult> GetProfile()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            Console.WriteLine(userId);
+
             var user = await _userManager.FindByIdAsync(userId);
 
             if (user == null)
@@ -67,7 +89,7 @@ namespace LampStoreProjects.Controllers
             var profile = new ProfileDto
             {
                 Username = user.UserName,
-                Email = user.Email
+                Email = user.Email,
             };
 
             return Ok(profile);

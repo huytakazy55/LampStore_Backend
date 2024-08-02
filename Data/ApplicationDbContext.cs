@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using LampStoreProjects.Models;
 
 namespace LampStoreProjects.Data
 {
@@ -10,8 +9,6 @@ namespace LampStoreProjects.Data
             : base(options)
         {
         }
-
-        public new DbSet<User>? Users { get; set; }
         public DbSet<Lamp>? Lamps { get; set; }
         public DbSet<LampImage>? LampImages { get; set; }
         public DbSet<Category>? Categories { get; set; }
@@ -24,7 +21,7 @@ namespace LampStoreProjects.Data
                 .HasOne(li => li.Lamp)
                 .WithMany(l => l.Images)
                 .HasForeignKey(li => li.LampId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Lamp>()
                 .HasOne(l => l.Category)

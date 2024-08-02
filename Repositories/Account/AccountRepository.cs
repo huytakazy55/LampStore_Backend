@@ -22,7 +22,6 @@ namespace LampStoreProjects.Repositories
 			this.signInManager = signInManager;
 			this.configuration = configuration;
 			this.roleManager = roleManager;
-
 		}
 
 		public async Task<string> SignInAsync(SignInModel model)
@@ -46,8 +45,11 @@ namespace LampStoreProjects.Repositories
 				new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
 			};
 
+			var userEmail = await userManager.GetEmailAsync(user);
+			authClaims.Add(new Claim(ClaimTypes.Email, userEmail.ToString()));
+
 			var userRoles = await userManager.GetRolesAsync(user);
-			foreach(var role in userRoles)
+			foreach (var role in userRoles)
 			{
 				authClaims.Add(new Claim(ClaimTypes.Role, role.ToString()));
 			}
@@ -57,7 +59,7 @@ namespace LampStoreProjects.Repositories
 			var token = new JwtSecurityToken(
 				issuer: configuration["JWT:ValidIssuer"],
 				audience: configuration["JWT:ValidAudience"],
-				expires: DateTime.Now.AddMinutes(20),
+				expires: DateTime.Now.AddMinutes(60),
 				claims: authClaims,
 				signingCredentials: new SigningCredentials(authenKey, SecurityAlgorithms.HmacSha512Signature)
 			);
@@ -70,7 +72,9 @@ namespace LampStoreProjects.Repositories
 			var user = new ApplicationUser
 			{
 				FullName = model.FullName,
-				UserName = model.Username
+				UserName = model.Username,
+				Email = model.Email,
+				PhoneNumber = model.PhoneNumber
 			};
 
 			var result = await userManager.CreateAsync(user, model.Password);

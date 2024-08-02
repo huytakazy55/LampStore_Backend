@@ -93,7 +93,6 @@ namespace LampStoreProjects.Controllers
                     ImagePath = filePath,
                     LampId = lampId
                 };
-
                 _context.LampImages.Add(lampImage);
             }
             await _context.SaveChangesAsync();

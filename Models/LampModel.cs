@@ -24,7 +24,7 @@ namespace LampStoreProjects.Models
         [Required]
         public int Quantity { get; set; }
 
-        public int CategoryId { get; set; }
+        public int? CategoryId { get; set; }
 
         public DateTime DateAdded { get; set; } = DateTime.Now;
 

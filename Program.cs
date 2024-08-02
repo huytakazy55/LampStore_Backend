@@ -30,7 +30,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
         };
     });
-    
+
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<ILampRepository, LampRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
@@ -43,7 +43,6 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.WriteIndented = true;
     });
 
-builder.Services.AddControllers();
 builder.Services.AddAuthorization();
 // Thêm Swagger dịch vụ
 builder.Services.AddEndpointsApiExplorer();
@@ -62,7 +61,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "LampStore API v1");
-        c.RoutePrefix = string.Empty; // Đặt Swagger UI ở gốc URL
+        c.RoutePrefix = string.Empty;
     });
 }
 else
