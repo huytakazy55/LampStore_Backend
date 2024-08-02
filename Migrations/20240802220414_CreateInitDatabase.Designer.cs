@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LampStoreProjects.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20240801225031_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20240802220414_CreateInitDatabase")]
+    partial class CreateInitDatabase
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -92,6 +92,51 @@ namespace LampStoreProjects.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("LampStoreProjects.Data.Cart", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Carts");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.CartItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<int>("CartId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CartId");
+
+                    b.HasIndex("ProductId")
+                        .IsUnique();
+
+                    b.ToTable("CartItems");
+                });
+
             modelBuilder.Entity("LampStoreProjects.Data.Category", b =>
                 {
                     b.Property<int>("Id")
@@ -114,7 +159,108 @@ namespace LampStoreProjects.Migrations
                     b.ToTable("Categories");
                 });
 
-            modelBuilder.Entity("LampStoreProjects.Data.Lamp", b =>
+            modelBuilder.Entity("LampStoreProjects.Data.CheckIn", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<DateTime>("CheckInDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Location")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("CheckIns");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.Delivery", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<DateTime>("DeliveryDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeliveryStatus")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("OrderId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.ToTable("Deliveries");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.Order", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<DateTime>("OrderDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Orders");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.OrderItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<int>("OrderId")
+                        .HasColumnType("int");
+
+                    b.Property<double>("Price")
+                        .HasColumnType("float");
+
+                    b.Property<int?>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("OrderItems");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.Product", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -150,10 +296,10 @@ namespace LampStoreProjects.Migrations
 
                     b.HasIndex("CategoryId");
 
-                    b.ToTable("Lamps");
+                    b.ToTable("Products");
                 });
 
-            modelBuilder.Entity("LampStoreProjects.Data.LampImage", b =>
+            modelBuilder.Entity("LampStoreProjects.Data.ProductImage", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -166,14 +312,14 @@ namespace LampStoreProjects.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<int>("LampId")
+                    b.Property<int>("ProductId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("LampId");
+                    b.HasIndex("ProductId");
 
-                    b.ToTable("LampImage");
+                    b.ToTable("ProductImage");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -309,25 +455,103 @@ namespace LampStoreProjects.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("LampStoreProjects.Data.Lamp", b =>
+            modelBuilder.Entity("LampStoreProjects.Data.Cart", b =>
+                {
+                    b.HasOne("ApplicationUser", "User")
+                        .WithMany("Carts")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.CartItem", b =>
+                {
+                    b.HasOne("LampStoreProjects.Data.Cart", "Cart")
+                        .WithMany("CartItems")
+                        .HasForeignKey("CartId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LampStoreProjects.Data.Product", "Product")
+                        .WithOne("CartItem")
+                        .HasForeignKey("LampStoreProjects.Data.CartItem", "ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Cart");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.CheckIn", b =>
+                {
+                    b.HasOne("ApplicationUser", "User")
+                        .WithMany("CheckIns")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.Delivery", b =>
+                {
+                    b.HasOne("LampStoreProjects.Data.Order", "Order")
+                        .WithMany("Deliveries")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.Order", b =>
+                {
+                    b.HasOne("ApplicationUser", "User")
+                        .WithMany("Orders")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.OrderItem", b =>
+                {
+                    b.HasOne("LampStoreProjects.Data.Order", "Order")
+                        .WithMany("OrderItems")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LampStoreProjects.Data.Product", "Product")
+                        .WithMany("OrderItems")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.Product", b =>
                 {
                     b.HasOne("LampStoreProjects.Data.Category", "Category")
-                        .WithMany("Lamps")
+                        .WithMany("Products")
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Category");
                 });
 
-            modelBuilder.Entity("LampStoreProjects.Data.LampImage", b =>
+            modelBuilder.Entity("LampStoreProjects.Data.ProductImage", b =>
                 {
-                    b.HasOne("LampStoreProjects.Data.Lamp", "Lamp")
+                    b.HasOne("LampStoreProjects.Data.Product", "Product")
                         .WithMany("Images")
-                        .HasForeignKey("LampId")
+                        .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Lamp");
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -381,14 +605,39 @@ namespace LampStoreProjects.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("LampStoreProjects.Data.Category", b =>
+            modelBuilder.Entity("ApplicationUser", b =>
                 {
-                    b.Navigation("Lamps");
+                    b.Navigation("Carts");
+
+                    b.Navigation("CheckIns");
+
+                    b.Navigation("Orders");
                 });
 
-            modelBuilder.Entity("LampStoreProjects.Data.Lamp", b =>
+            modelBuilder.Entity("LampStoreProjects.Data.Cart", b =>
                 {
+                    b.Navigation("CartItems");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.Category", b =>
+                {
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.Order", b =>
+                {
+                    b.Navigation("Deliveries");
+
+                    b.Navigation("OrderItems");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.Product", b =>
+                {
+                    b.Navigation("CartItem");
+
                     b.Navigation("Images");
+
+                    b.Navigation("OrderItems");
                 });
 #pragma warning restore 612, 618
         }

@@ -4,8 +4,8 @@ using System.Text.Json.Serialization;
 
 namespace LampStoreProjects.Data
 {
-    [Table("LampImage")]
-    public class LampImage
+    [Table("ProductImage")]
+    public class ProductImage
     {
         [Key]
         public int Id { get; set; }
@@ -14,10 +14,10 @@ namespace LampStoreProjects.Data
         [MaxLength(200)]
         public string? ImagePath { get; set; }
 
-        public int LampId { get; set; }
-        
-        [ForeignKey("LampId")]
+        public int ProductId { get; set; }
+
+        [ForeignKey("ProductId")]
         [JsonIgnore]
-        public Lamp Lamp { get; set; }
+        public Product? Product { get; set; }
     }
 }

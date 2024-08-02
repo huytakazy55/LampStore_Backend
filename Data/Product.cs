@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace LampStoreProjects.Data
 {
-    public class Lamp
+    public class Product
     {
         public int Id { get; set; }
 
@@ -31,6 +31,8 @@ namespace LampStoreProjects.Data
 
         public bool IsAvailable { get; set; } = true;
 
-        public ICollection<LampImage> Images { get; set; } = new List<LampImage>();
+        public ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();
+        public CartItem? CartItem { get; set; }
+        public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
     }
 }

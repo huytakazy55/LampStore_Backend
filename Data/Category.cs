@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json.Serialization;
 
 namespace LampStoreProjects.Data
 {
@@ -14,8 +13,6 @@ namespace LampStoreProjects.Data
 
         [MaxLength(1000)]
         public string? Description { get; set; }
-
-        [JsonIgnore]
-        public ICollection<Lamp> Lamps { get; set; } = new List<Lamp>();
+        public ICollection<Product> Products { get; set; } = new List<Product>();
     }
 }

@@ -88,7 +88,7 @@ namespace LampStoreProjects.Controllers
 
             var profile = new ProfileDto
             {
-                Username = user.UserName,
+                UserName = user.UserName,
                 Email = user.Email,
             };
 

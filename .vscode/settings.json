@@ -1,8 +1,5 @@
 {
-    "omnisharp.enableRoslynAnalyzers": true,
-    "omnisharp.enableEditorConfigSupport": true,
-    "omnisharp.enableMsBuildLoadProjectsOnDemand": true,
-    "csharp.suppressHiddenDiagnostics": false,
+    "omnisharp.path": "latest",
     "csharp.format.enable": true,
     "editor.formatOnSave": true
 }

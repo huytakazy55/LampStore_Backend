@@ -5,7 +5,7 @@ using LampStoreProjects.Models;
 
 namespace LampStoreProjects.Models
 {
-    public class LampModel
+    public class ProductModel
     {
         public int Id { get; set; }
 
@@ -30,6 +30,6 @@ namespace LampStoreProjects.Models
 
         public bool IsAvailable { get; set; } = true;
 
-        public ICollection<LampImageModel> Images { get; set; } = new List<LampImageModel>();
+        public ICollection<ProductImageModel> Images { get; set; } = new List<ProductImageModel>();
     }
 }
