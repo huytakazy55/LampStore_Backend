@@ -15,5 +15,6 @@ public class ApplicationMapper : Profile
         CreateMap<DeliveryModel, Delivery>().ReverseMap();
         CreateMap<OrderModel, Order>().ReverseMap();
         CreateMap<OrderItemModel, OrderItem>().ReverseMap();
+        CreateMap<UserProfileModel, UserProfile>().ReverseMap();
     }
 }

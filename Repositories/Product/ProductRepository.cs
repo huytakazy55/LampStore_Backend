@@ -20,20 +20,20 @@ namespace LampStoreProjects.Repositories
 
         public async Task<IEnumerable<ProductModel>> GetAllProductAsync()
         {
-            var products = await _context.Products.Include(l => l.Images).ToListAsync();
+            var products = await _context.Products!.Include(l => l.Images).ToListAsync();
             return _mapper.Map<IEnumerable<ProductModel>>(products);
         }
 
         public async Task<ProductModel> GetProductByIdAsync(int id)
         {
-            var product = await _context.Products.Include(l => l.Images).FirstOrDefaultAsync(l => l.Id == id);
+            var product = await _context.Products!.Include(l => l.Images).FirstOrDefaultAsync(l => l.Id == id);
             return _mapper.Map<ProductModel>(product);
         }
 
         public async Task<ProductModel> AddProductAsync(ProductModel ProductModel)
         {
             var product = _mapper.Map<Product>(ProductModel);
-            _context.Products.Add(product);
+            _context.Products!.Add(product);
             await _context.SaveChangesAsync();
             return _mapper.Map<ProductModel>(product);
         }
@@ -41,14 +41,14 @@ namespace LampStoreProjects.Repositories
         public async Task<ProductModel> UpdateProductAsync(ProductModel ProductModel)
         {
             var product = _mapper.Map<Product>(ProductModel);
-            _context.Products.Update(product);
+            _context.Products!.Update(product);
             await _context.SaveChangesAsync();
             return _mapper.Map<ProductModel>(product);
         }
 
         public async Task DeleteProductAsync(int id)
         {
-            var product = await _context.Products.FindAsync(id);
+            var product = await _context.Products!.FindAsync(id);
             if (product != null)
             {
                 _context.Products.Remove(product);

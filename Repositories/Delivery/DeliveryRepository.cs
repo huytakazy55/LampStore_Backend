@@ -20,33 +20,33 @@ namespace LampStoreProjects.Repositories
 
         public async Task<IEnumerable<DeliveryModel>> GetAllAsync()
         {
-            var Deliveries = await _context.Deliveries.ToListAsync();
+            var Deliveries = await _context.Deliveries!.ToListAsync();
             return _mapper.Map<IEnumerable<DeliveryModel>>(Deliveries);
         }
 
         public async Task<DeliveryModel> GetByIdAsync(int id)
         {
-            var Delivery = await _context.Deliveries.FindAsync(id);
+            var Delivery = await _context.Deliveries!.FindAsync(id);
             return _mapper.Map<DeliveryModel>(Delivery);
         }
 
         public async Task AddAsync(DeliveryModel DeliveryModel)
         {
             var Delivery = _mapper.Map<Delivery>(DeliveryModel);
-            _context.Deliveries.Add(Delivery);
+            _context.Deliveries!.Add(Delivery);
             await _context.SaveChangesAsync();
         }
 
         public async Task UpdateAsync(DeliveryModel DeliveryModel)
         {
             var Delivery = _mapper.Map<Delivery>(DeliveryModel);
-            _context.Deliveries.Update(Delivery);
+            _context.Deliveries!.Update(Delivery);
             await _context.SaveChangesAsync();
         }
 
         public async Task DeleteAsync(int id)
         {
-            var Delivery = await _context.Deliveries.FindAsync(id);
+            var Delivery = await _context.Deliveries!.FindAsync(id);
             if (Delivery != null)
             {
                 _context.Deliveries.Remove(Delivery);

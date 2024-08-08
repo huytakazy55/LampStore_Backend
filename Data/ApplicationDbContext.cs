@@ -1,3 +1,4 @@
+using AutoMapper;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,6 +19,7 @@ namespace LampStoreProjects.Data
         public DbSet<CartItem>? CartItems { get; set; }
         public DbSet<Delivery>? Deliveries { get; set; }
         public DbSet<CheckIn>? CheckIns { get; set; }
+        public DbSet<UserProfile>? UserProfiles { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -82,6 +84,13 @@ namespace LampStoreProjects.Data
                 .WithMany(o => o.OrderItems)
                 .HasForeignKey(l => l.ProductId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<UserProfile>()
+                .HasOne(up => up.User) // Thuộc tính điều hướng từ UserProfile đến ApplicationUser
+                .WithMany() // Không cần thuộc tính điều hướng ngược
+                .HasForeignKey(up => up.UserName) // Sử dụng UserName làm khóa ngoại
+                .OnDelete(DeleteBehavior.Cascade);
+
         }
     }
 }

@@ -1,11 +1,16 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using LampStoreProjects.Models;
+using System.Security.Claims;
 
 namespace LampStoreProjects.Repositories
 {
     public interface IAccountRepository
     {
-        public Task<IdentityResult> SignUpAsync(SignUpModel model);
-        public Task<string> SignInAsync(SignInModel model);
+        Task<IdentityResult> SignUpAsync(SignUpModel model);
+        Task<string> SignInAsync(SignInModel model);
+
+        // Task<UserProfileModel> GetUserProfileAsync(ClaimsPrincipal userPrincipal);
+
+        Task LogoutAsync(ClaimsPrincipal userPrincipal);
     }
 }

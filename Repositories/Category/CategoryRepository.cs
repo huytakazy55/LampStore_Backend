@@ -20,33 +20,33 @@ namespace LampStoreProjects.Repositories
 
         public async Task<IEnumerable<CategoryModel>> GetAllAsync()
         {
-            var categories = await _context.Categories.ToListAsync();
+            var categories = await _context.Categories!.ToListAsync();
             return _mapper.Map<IEnumerable<CategoryModel>>(categories);
         }
 
         public async Task<CategoryModel> GetByIdAsync(int id)
         {
-            var category = await _context.Categories.FindAsync(id);
+            var category = await _context.Categories!.FindAsync(id);
             return _mapper.Map<CategoryModel>(category);
         }
 
         public async Task AddAsync(CategoryModel categoryModel)
         {
             var category = _mapper.Map<Category>(categoryModel);
-            _context.Categories.Add(category);
+            _context.Categories!.Add(category);
             await _context.SaveChangesAsync();
         }
 
         public async Task UpdateAsync(CategoryModel categoryModel)
         {
             var category = _mapper.Map<Category>(categoryModel);
-            _context.Categories.Update(category);
+            _context.Categories!.Update(category);
             await _context.SaveChangesAsync();
         }
 
         public async Task DeleteAsync(int id)
         {
-            var category = await _context.Categories.FindAsync(id);
+            var category = await _context.Categories!.FindAsync(id);
             if (category != null)
             {
                 _context.Categories.Remove(category);

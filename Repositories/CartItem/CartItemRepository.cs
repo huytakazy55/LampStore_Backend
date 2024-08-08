@@ -20,33 +20,33 @@ namespace LampStoreProjects.Repositories
 
         public async Task<IEnumerable<CartItemModel>> GetAllAsync()
         {
-            var CartItem = await _context.CartItems.ToListAsync();
+            var CartItem = await _context.CartItems!.ToListAsync();
             return _mapper.Map<IEnumerable<CartItemModel>>(CartItem);
         }
 
         public async Task<CartItemModel> GetByIdAsync(int id)
         {
-            var CartItem = await _context.CartItems.FindAsync(id);
+            var CartItem = await _context.CartItems!.FindAsync(id);
             return _mapper.Map<CartItemModel>(CartItem);
         }
 
         public async Task AddAsync(CartItemModel CartItemModel)
         {
             var CartItem = _mapper.Map<CartItem>(CartItemModel);
-            _context.CartItems.Add(CartItem);
+            _context.CartItems!.Add(CartItem);
             await _context.SaveChangesAsync();
         }
 
         public async Task UpdateAsync(CartItemModel CartItemModel)
         {
             var CartItem = _mapper.Map<CartItem>(CartItemModel);
-            _context.CartItems.Update(CartItem);
+            _context.CartItems!.Update(CartItem);
             await _context.SaveChangesAsync();
         }
 
         public async Task DeleteAsync(int id)
         {
-            var CartItem = await _context.CartItems.FindAsync(id);
+            var CartItem = await _context.CartItems!.FindAsync(id);
             if (CartItem != null)
             {
                 _context.CartItems.Remove(CartItem);

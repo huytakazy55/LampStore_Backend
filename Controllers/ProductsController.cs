@@ -95,7 +95,7 @@ namespace LampStoreProjects.Controllers
                         ImagePath = filePath,
                         ProductId = productId
                     };
-                    _context.ProductImages.Add(productImage);
+                    _context.ProductImages!.Add(productImage);
                 }
                 await _context.SaveChangesAsync();
 

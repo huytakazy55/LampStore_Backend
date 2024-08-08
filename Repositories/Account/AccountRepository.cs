@@ -12,21 +12,19 @@ namespace LampStoreProjects.Repositories
 	public class AccountRepository : IAccountRepository
 	{
 		private readonly UserManager<ApplicationUser> userManager;
-		private readonly SignInManager<ApplicationUser> signInManager;
 		private readonly IConfiguration configuration;
 		private readonly RoleManager<IdentityRole> roleManager;
 
-		public AccountRepository(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IConfiguration configuration, RoleManager<IdentityRole> roleManager)
+		public AccountRepository(UserManager<ApplicationUser> userManager, IConfiguration configuration, RoleManager<IdentityRole> roleManager)
 		{
 			this.userManager = userManager;
-			this.signInManager = signInManager;
 			this.configuration = configuration;
 			this.roleManager = roleManager;
 		}
 
 		public async Task<string> SignInAsync(SignInModel model)
 		{
-			var user = await userManager.FindByNameAsync(model.Username);
+			var user = await userManager.FindByIdAsync(model.Username);
 			var passwordValid = await userManager.CheckPasswordAsync(user, model.Password);
 
 			if (user == null || !passwordValid)
@@ -41,7 +39,7 @@ namespace LampStoreProjects.Repositories
 
 			var authClaims = new List<Claim>
 			{
-				new Claim(ClaimTypes.Name, model.Username),
+				new Claim(ClaimTypes.UserData, model.Username),
 				new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
 			};
 
@@ -71,10 +69,7 @@ namespace LampStoreProjects.Repositories
 		{
 			var user = new ApplicationUser
 			{
-				FullName = model.FullName,
-				UserName = model.Username,
-				Email = model.Email,
-				PhoneNumber = model.PhoneNumber
+				UserName = model.Username
 			};
 
 			var result = await userManager.CreateAsync(user, model.Password);
@@ -89,6 +84,35 @@ namespace LampStoreProjects.Repositories
 				await userManager.AddToRoleAsync(user, AppRole.Customer);
 			}
 			return result;
+		}
+
+		// public async Task<UserProfileModel> GetUserProfileAsync(ClaimsPrincipal userPrincipal)
+		// {
+		// 	var userName = userPrincipal.Identity!.Name;
+
+		// 	if (string.IsNullOrEmpty(userName))
+		// 	{
+		// 		return null;
+		// 	}
+
+		// 	// Lấy hồ sơ người dùng từ bảng Profiles
+		// 	var userProfile = await userProfileRepository.GetProfileByUserIdAsync(userName);
+
+		// 	if (userProfile == null)
+		// 	{
+		// 		return null;
+		// 	}
+
+		// 	return userProfile;
+		// }
+
+		public async Task LogoutAsync(ClaimsPrincipal userPrincipal)
+		{
+			var user = await userManager.GetUserAsync(userPrincipal);
+			if (user != null)
+			{
+				await userManager.UpdateSecurityStampAsync(user);
+			}
 		}
 	}
 }

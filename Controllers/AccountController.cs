@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using LampStoreProjects.Models;
 using LampStoreProjects.Repositories;
+using Microsoft.AspNetCore.Authentication;
 
 
 namespace LampStoreProjects.Controllers
@@ -71,28 +72,29 @@ namespace LampStoreProjects.Controllers
             }
         }
 
+        // [HttpGet("profile")]
+        // public async Task<IActionResult> GetProfile()
+        // {
+        //     // Lấy thông tin người dùng từ ClaimsPrincipal
+        //     var userPrincipal = HttpContext.User;
+
+        //     // Gọi phương thức GetUserProfileAsync để lấy hồ sơ người dùng
+        //     var profile = await _accountRepository.GetUserProfileAsync(userPrincipal);
+
+        //     if (profile == null)
+        //     {
+        //         return NotFound(new { message = "User profile not found." });
+        //     }
+
+        //     return Ok(profile);
+        // }
+
+        [HttpPost("logout")]
         [Authorize]
-        [HttpGet("profile")]
-        public async Task<IActionResult> GetProfile()
+        public async Task<IActionResult> Logout()
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            Console.WriteLine(userId);
-
-            var user = await _userManager.FindByIdAsync(userId);
-
-            if (user == null)
-            {
-                return NotFound("User not found");
-            }
-
-            var profile = new ProfileDto
-            {
-                UserName = user.UserName,
-                Email = user.Email,
-            };
-
-            return Ok(profile);
+            await _accountRepository.LogoutAsync(User);
+            return Ok(new { Message = "Logout successful" });
         }
     }
 }
