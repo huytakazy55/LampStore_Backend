@@ -86,9 +86,9 @@ namespace LampStoreProjects.Data
                 .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<UserProfile>()
-                .HasOne(up => up.User) // Thuộc tính điều hướng từ UserProfile đến ApplicationUser
-                .WithMany() // Không cần thuộc tính điều hướng ngược
-                .HasForeignKey(up => up.UserName) // Sử dụng UserName làm khóa ngoại
+                .HasOne(up => up.User)
+                .WithOne()
+                .HasForeignKey<UserProfile>(up => up.UserName)
                 .OnDelete(DeleteBehavior.Cascade);
 
         }
