@@ -44,21 +44,6 @@ namespace LampStoreProjects.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task<UserProfileModel> GetProfileByUserIdAsync(string userName)
-        {
-            return await _context.UserProfiles!
-                .Where(p => p.UserName == userName)
-                .Select(p => new UserProfileModel
-                {
-                    FullName = p.FullName,
-                    Email = p.Email,
-                    PhoneNumber = p.PhoneNumber,
-                    Address = p.Andress,
-                    ProfileAvatar = p.ProfileAvatar
-                })
-                .FirstOrDefaultAsync();
-        }
-
         public async Task DeleteAsync(int id)
         {
             var UserProfile = await _context.UserProfiles!.FindAsync(id);

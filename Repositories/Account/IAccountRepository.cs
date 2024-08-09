@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using LampStoreProjects.Models;
 using System.Security.Claims;
+using LampStoreProjects.Data;
 
 namespace LampStoreProjects.Repositories
 {
@@ -9,8 +10,9 @@ namespace LampStoreProjects.Repositories
         Task<IdentityResult> SignUpAsync(SignUpModel model);
         Task<string> SignInAsync(SignInModel model);
 
-        // Task<UserProfileModel> GetUserProfileAsync(ClaimsPrincipal userPrincipal);
+        Task<UserProfile> GetUserProfileAsync(string userId);
 
-        Task LogoutAsync(ClaimsPrincipal userPrincipal);
+        Task LogoutAsync(string userId);
+
     }
 }

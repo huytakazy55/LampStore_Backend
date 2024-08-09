@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using LampStoreProjects.Models;
 using LampStoreProjects.Repositories;
 using Microsoft.AspNetCore.Authentication;
+using LampStoreProjects.Data;
 
 
 namespace LampStoreProjects.Controllers
@@ -72,29 +73,49 @@ namespace LampStoreProjects.Controllers
             }
         }
 
-        // [HttpGet("profile")]
-        // public async Task<IActionResult> GetProfile()
-        // {
-        //     // Lấy thông tin người dùng từ ClaimsPrincipal
-        //     var userPrincipal = HttpContext.User;
-
-        //     // Gọi phương thức GetUserProfileAsync để lấy hồ sơ người dùng
-        //     var profile = await _accountRepository.GetUserProfileAsync(userPrincipal);
-
-        //     if (profile == null)
-        //     {
-        //         return NotFound(new { message = "User profile not found." });
-        //     }
-
-        //     return Ok(profile);
-        // }
-
-        [HttpPost("logout")]
         [Authorize]
+        [HttpGet("profile")]
+        public async Task<IActionResult> GetProfile([FromServices] IUserProfileRepository userProfileRepository)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            var profile = await _accountRepository.GetUserProfileAsync(userId);
+
+            if (profile == null)
+            {
+                return NotFound("Profile not found");
+            }
+
+            return Ok(profile);
+        }
+
+        [Authorize]
+        [HttpPost("Logout")]
         public async Task<IActionResult> Logout()
         {
-            await _accountRepository.LogoutAsync(User);
-            return Ok(new { Message = "Logout successful" });
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized();
+                }
+
+                await _accountRepository.LogoutAsync(userId);
+
+                return Ok("Logged out successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while logging out.");
+                return StatusCode(500, "Internal server error.");
+            }
         }
     }
 }

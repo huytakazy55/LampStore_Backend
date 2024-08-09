@@ -88,7 +88,7 @@ namespace LampStoreProjects.Data
             modelBuilder.Entity<UserProfile>()
                 .HasOne(up => up.User)
                 .WithOne()
-                .HasForeignKey<UserProfile>(up => up.UserName)
+                .HasForeignKey<UserProfile>(up => up.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
         }

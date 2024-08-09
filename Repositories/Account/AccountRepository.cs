@@ -6,6 +6,7 @@ using LampStoreProjects.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.EntityFrameworkCore;
 
 namespace LampStoreProjects.Repositories
 {
@@ -14,55 +15,81 @@ namespace LampStoreProjects.Repositories
 		private readonly UserManager<ApplicationUser> userManager;
 		private readonly IConfiguration configuration;
 		private readonly RoleManager<IdentityRole> roleManager;
+		private readonly ApplicationDbContext context;
 
-		public AccountRepository(UserManager<ApplicationUser> userManager, IConfiguration configuration, RoleManager<IdentityRole> roleManager)
+		public AccountRepository(UserManager<ApplicationUser> userManager, IConfiguration configuration, RoleManager<IdentityRole> roleManager, ApplicationDbContext context)
 		{
 			this.userManager = userManager;
 			this.configuration = configuration;
 			this.roleManager = roleManager;
+			this.context = context;
 		}
 
 		public async Task<string> SignInAsync(SignInModel model)
 		{
-			var user = await userManager.FindByIdAsync(model.Username);
-			var passwordValid = await userManager.CheckPasswordAsync(user, model.Password);
-
-			if (user == null || !passwordValid)
+			if (string.IsNullOrEmpty(model.Username) || string.IsNullOrEmpty(model.Password))
 			{
 				return string.Empty;
 			}
 
-			if (string.IsNullOrEmpty(model.Username) || model.Password == null)
+			var user = await userManager.FindByNameAsync(model.Username);
+			if (user == null || !await userManager.CheckPasswordAsync(user, model.Password))
 			{
 				return string.Empty;
 			}
 
 			var authClaims = new List<Claim>
 			{
+				new Claim(ClaimTypes.NameIdentifier, user.Id),
 				new Claim(ClaimTypes.UserData, model.Username),
 				new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
 			};
 
-			var userEmail = await userManager.GetEmailAsync(user);
-			authClaims.Add(new Claim(ClaimTypes.Email, userEmail.ToString()));
-
 			var userRoles = await userManager.GetRolesAsync(user);
 			foreach (var role in userRoles)
 			{
-				authClaims.Add(new Claim(ClaimTypes.Role, role.ToString()));
+				authClaims.Add(new Claim(ClaimTypes.Role, role));
 			}
 
-			var authenKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["JWT:Secret"]));
+			var authenKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Secret"]));
+			var tokenHandler = new JwtSecurityTokenHandler();
+			var tokenDescriptor = new SecurityTokenDescriptor
+			{
+				Subject = new ClaimsIdentity(authClaims),
+				Expires = DateTime.UtcNow.AddMinutes(60),
+				NotBefore = DateTime.UtcNow,
+				SigningCredentials = new SigningCredentials(authenKey, SecurityAlgorithms.HmacSha512Signature),
+				Issuer = configuration["Jwt:Issuer"],
+				Audience = configuration["Jwt:Audience"]
+			};
 
-			var token = new JwtSecurityToken(
-				issuer: configuration["JWT:ValidIssuer"],
-				audience: configuration["JWT:ValidAudience"],
-				expires: DateTime.Now.AddMinutes(60),
-				claims: authClaims,
-				signingCredentials: new SigningCredentials(authenKey, SecurityAlgorithms.HmacSha512Signature)
-			);
+			var token = tokenHandler.CreateToken(tokenDescriptor);
+			var tokenString = tokenHandler.WriteToken(token);
 
-			return new JwtSecurityTokenHandler().WriteToken(token);
+			// Xóa tất cả các token cũ của người dùng trước khi thêm token mới
+			var existingTokens = await context.UserTokens
+				.Where(t => t.UserId == user.Id && t.LoginProvider == "JWT" && t.Name == "AccessToken")
+				.ToListAsync();
+
+			if (existingTokens.Any())
+			{
+				// Xóa tất cả các token cũ
+				context.UserTokens.RemoveRange(existingTokens);
+			}
+
+			// Thêm token mới
+			var userToken = new IdentityUserToken<string>
+			{
+				UserId = user.Id,
+				LoginProvider = "JWT",
+				Name = "AccessToken",
+				Value = tokenString
+			};
+
+			await context.UserTokens.AddAsync(userToken);
+			await context.SaveChangesAsync();
+
+			return tokenString;
 		}
 
 		public async Task<IdentityResult> SignUpAsync(SignUpModel model)
@@ -86,33 +113,21 @@ namespace LampStoreProjects.Repositories
 			return result;
 		}
 
-		// public async Task<UserProfileModel> GetUserProfileAsync(ClaimsPrincipal userPrincipal)
-		// {
-		// 	var userName = userPrincipal.Identity!.Name;
-
-		// 	if (string.IsNullOrEmpty(userName))
-		// 	{
-		// 		return null;
-		// 	}
-
-		// 	// Lấy hồ sơ người dùng từ bảng Profiles
-		// 	var userProfile = await userProfileRepository.GetProfileByUserIdAsync(userName);
-
-		// 	if (userProfile == null)
-		// 	{
-		// 		return null;
-		// 	}
-
-		// 	return userProfile;
-		// }
-
-		public async Task LogoutAsync(ClaimsPrincipal userPrincipal)
+		public async Task<UserProfile> GetUserProfileAsync(string userId)
 		{
-			var user = await userManager.GetUserAsync(userPrincipal);
-			if (user != null)
-			{
-				await userManager.UpdateSecurityStampAsync(user);
-			}
+			return await context.UserProfiles!
+								 .Where(profile => profile.UserId == userId)
+								 .FirstOrDefaultAsync();
+		}
+
+		public async Task LogoutAsync(string userId)
+		{
+			var tokens = await context.UserTokens
+				.Where(t => t.UserId == userId && t.LoginProvider == "JWT")
+				.ToListAsync();
+
+			context.UserTokens.RemoveRange(tokens);
+			await context.SaveChangesAsync();
 		}
 	}
 }

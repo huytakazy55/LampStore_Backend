@@ -6,7 +6,7 @@ namespace LampStoreProjects.Data
     public class UserProfile
     {
         public int Id { get; set; }
-        public string? UserName { get; set; }
+        public string? UserId { get; set; }
         [MaxLength(100)]
         [Required]
         public string? FullName { get; set; }

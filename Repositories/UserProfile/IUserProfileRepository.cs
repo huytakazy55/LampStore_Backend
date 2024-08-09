@@ -10,7 +10,6 @@ namespace LampStoreProjects.Repositories
         Task<UserProfileModel> GetByIdAsync(int id);
         Task AddAsync(UserProfileModel UserProfileModel);
         Task UpdateAsync(UserProfileModel UserProfileModel);
-        Task<UserProfileModel> GetProfileByUserIdAsync(string userId);
         Task DeleteAsync(int id);
     }
 }
