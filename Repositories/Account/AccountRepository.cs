@@ -115,9 +115,7 @@ namespace LampStoreProjects.Repositories
 
 		public async Task<UserProfile> GetUserProfileAsync(string userId)
 		{
-			return await context.UserProfiles!
-								 .Where(profile => profile.UserId == userId)
-								 .FirstOrDefaultAsync();
+			return await context.UserProfiles!.Where(profile => profile.UserId == userId).FirstOrDefaultAsync();
 		}
 
 		public async Task LogoutAsync(string userId)

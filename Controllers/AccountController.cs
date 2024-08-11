@@ -40,7 +40,7 @@ namespace LampStoreProjects.Controllers
 
                 if (string.IsNullOrEmpty(result))
                 {
-                    return Unauthorized();
+                    return Unauthorized("Sai tên đăng nhập hoặc mật khẩu.");
                 }
 
                 return Ok(result);
