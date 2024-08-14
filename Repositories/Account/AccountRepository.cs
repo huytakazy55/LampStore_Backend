@@ -29,19 +29,19 @@ namespace LampStoreProjects.Repositories
 		{
 			if (string.IsNullOrEmpty(model.Username) || string.IsNullOrEmpty(model.Password))
 			{
-				return string.Empty;
+				return "Tên đăng nhập hoặc mật khẩu không được để trống.";
 			}
 
 			var user = await userManager.FindByNameAsync(model.Username);
 			if (user == null || !await userManager.CheckPasswordAsync(user, model.Password))
 			{
-				return string.Empty;
+				return "Sai tên đăng nhập hoặc mật khẩu.";
 			}
 
 			var authClaims = new List<Claim>
 			{
 				new Claim(ClaimTypes.NameIdentifier, user.Id),
-				new Claim(ClaimTypes.UserData, model.Username),
+				new Claim(ClaimTypes.Name, model.Username),
 				new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
 			};
 

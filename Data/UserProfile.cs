@@ -18,7 +18,7 @@ namespace LampStoreProjects.Data
         public string? PhoneNumber { get; set; }
         [MaxLength(100)]
         [Required]
-        public string? Andress { get; set; }
+        public string? Address { get; set; }
         public string? ProfileAvatar { get; set; }
         public ApplicationUser? User { get; set; }
     }
