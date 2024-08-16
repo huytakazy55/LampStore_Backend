@@ -29,13 +29,13 @@ namespace LampStoreProjects.Repositories
 		{
 			if (string.IsNullOrEmpty(model.Username) || string.IsNullOrEmpty(model.Password))
 			{
-				return "Tên đăng nhập hoặc mật khẩu không được để trống.";
+				return "blank";
 			}
 
 			var user = await userManager.FindByNameAsync(model.Username);
 			if (user == null || !await userManager.CheckPasswordAsync(user, model.Password))
 			{
-				return "Sai tên đăng nhập hoặc mật khẩu.";
+				return null;
 			}
 
 			var authClaims = new List<Claim>
@@ -56,7 +56,7 @@ namespace LampStoreProjects.Repositories
 			var tokenDescriptor = new SecurityTokenDescriptor
 			{
 				Subject = new ClaimsIdentity(authClaims),
-				Expires = DateTime.UtcNow.AddMinutes(60),
+				Expires = DateTime.UtcNow.AddHours(3),
 				NotBefore = DateTime.UtcNow,
 				SigningCredentials = new SigningCredentials(authenKey, SecurityAlgorithms.HmacSha512Signature),
 				Issuer = configuration["Jwt:Issuer"],
