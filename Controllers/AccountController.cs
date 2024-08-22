@@ -44,7 +44,7 @@ namespace LampStoreProjects.Controllers
                 }
                 if (result == "blank")
                 {
-                    return Unauthorized("Tên đăng nhập hoặc mật khẩu không được để trống.")
+                    return Unauthorized("Tên đăng nhập hoặc mật khẩu không được để trống.");
                 }
 
                 return Ok(result);

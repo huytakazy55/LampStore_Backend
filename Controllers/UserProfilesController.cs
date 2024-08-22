@@ -17,14 +17,14 @@ namespace LampStoreProjects.Controllers
             _userprofileRepository = userprofileRepository;
         }
 
-        [HttpGet]
+        [HttpGet("GetUserProfiles")]
         public async Task<ActionResult<IEnumerable<UserProfileModel>>> GetUserProfiles()
         {
             var userprofiles = await _userprofileRepository.GetAllAsync();
             return Ok(userprofiles);
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("GetUserProfile/{id}")]
         public async Task<ActionResult<UserProfileModel>> GetUserProfile(int id)
         {
             var userprofile = await _userprofileRepository.GetByIdAsync(id);
@@ -35,14 +35,14 @@ namespace LampStoreProjects.Controllers
             return Ok(userprofile);
         }
 
-        [HttpPost]
+        [HttpPost("CreateUserProfile")]
         public async Task<ActionResult> CreateUserProfile(UserProfileModel userprofileModel)
         {
             await _userprofileRepository.AddAsync(userprofileModel);
             return CreatedAtAction(nameof(GetUserProfile), new { id = userprofileModel.Id }, userprofileModel);
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("UpdateUserProfile/{id}")]
         public async Task<ActionResult> UpdateUserProfile(int id, UserProfileModel userprofileModel)
         {
             if (id != userprofileModel.Id)
@@ -53,7 +53,7 @@ namespace LampStoreProjects.Controllers
             return NoContent();
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("Delete/{id}")]
         public async Task<ActionResult> DeleteUserProfile(int id)
         {
             await _userprofileRepository.DeleteAsync(id);
