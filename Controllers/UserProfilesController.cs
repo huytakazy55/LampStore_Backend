@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using LampStoreProjects.Models;
 using LampStoreProjects.Repositories;
+using LampStoreProjects.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace LampStoreProjects.Controllers
 {
@@ -11,10 +13,14 @@ namespace LampStoreProjects.Controllers
     public class UserProfilesController : ControllerBase
     {
         private readonly IUserProfileRepository _userprofileRepository;
+        private readonly ApplicationDbContext _context;
+        private readonly IWebHostEnvironment _env;
 
-        public UserProfilesController(IUserProfileRepository userprofileRepository)
+        public UserProfilesController(IUserProfileRepository userprofileRepository, ApplicationDbContext context, IWebHostEnvironment env)
         {
             _userprofileRepository = userprofileRepository;
+            _context = context;
+            _env = env;
         }
 
         [HttpGet("GetUserProfiles")]
@@ -33,6 +39,55 @@ namespace LampStoreProjects.Controllers
                 return NotFound();
             }
             return Ok(userprofile);
+        }
+
+        [HttpPost("{id}/UploadAvatar")]
+        public async Task<ActionResult> UploadImage(int id, IFormFile ProfileAvatar)
+        {
+            try
+            {
+                // Kiểm tra ảnh có được cung cấp không
+                if (ProfileAvatar == null || ProfileAvatar.Length == 0)
+                {
+                    return BadRequest("No image file provided.");
+                }
+
+                var userProfile = await _context.UserProfiles!.FirstOrDefaultAsync(p => p.Id == id);
+
+                if (userProfile == null)
+                {
+                    return NotFound("User not found.");
+                }
+
+                // Tạo đường dẫn để lưu ảnh
+                var uploadPath = Path.Combine(_env.WebRootPath, "ImageImport");
+                if (!Directory.Exists(uploadPath))
+                {
+                    Directory.CreateDirectory(uploadPath);
+                }
+
+                var fileName = Guid.NewGuid() + Path.GetExtension(ProfileAvatar.FileName);
+                var filePath = Path.Combine(uploadPath, fileName);
+
+                // Lưu ảnh vào đường dẫn đã chỉ định
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await ProfileAvatar.CopyToAsync(stream);
+                }
+
+                // Tạo URL từ đường dẫn lưu ảnh
+                var imageUrl = $"/ImageImport/{fileName}";
+
+                userProfile.ProfileAvatar = imageUrl;
+                _context.UserProfiles!.Update(userProfile);
+                await _context.SaveChangesAsync();
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
 
         [HttpPost("CreateUserProfile")]

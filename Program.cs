@@ -36,6 +36,7 @@ builder.Services.AddAuthentication(options =>
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"]))
         };
     });
+
 var apiCorsPolicy = "ApiCorsPolicy";
 builder.Services.AddCors(options =>
 {
@@ -49,6 +50,7 @@ builder.Services.AddCors(options =>
         });
 });
 
+builder.Services.AddSingleton<IWebHostEnvironment>(builder.Environment);
 
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
@@ -94,9 +96,11 @@ else
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
+
 app.UseCors(apiCorsPolicy);
 app.UseHttpsRedirection();
 app.UseAuthentication();
+app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthorization();
 app.UseEndpoints(endpoints =>
