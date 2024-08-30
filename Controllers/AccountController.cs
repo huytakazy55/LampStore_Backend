@@ -99,6 +99,27 @@ namespace LampStoreProjects.Controllers
         }
 
         [Authorize]
+        [HttpGet("UserLogin")]
+        public async Task<IActionResult> GetUser([FromServices] IUserProfileRepository userProfileRepository)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            var user = await _accountRepository.GetUserAccountAsync(userId);
+
+            if (user == null)
+            {
+                return NotFound("Profile not found");
+            }
+
+            return Ok(user);
+        }
+
+        [Authorize]
         [HttpPost("Logout")]
         public async Task<IActionResult> Logout()
         {

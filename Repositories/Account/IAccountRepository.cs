@@ -11,6 +11,7 @@ namespace LampStoreProjects.Repositories
         Task<string> SignInAsync(SignInModel model);
 
         Task<UserProfile> GetUserProfileAsync(string userId);
+        Task<IdentityUser> GetUserAccountAsync(string userId);
 
         Task LogoutAsync(string userId);
 

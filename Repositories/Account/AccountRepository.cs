@@ -56,7 +56,7 @@ namespace LampStoreProjects.Repositories
 			var tokenDescriptor = new SecurityTokenDescriptor
 			{
 				Subject = new ClaimsIdentity(authClaims),
-				Expires = DateTime.UtcNow.AddHours(3),
+				Expires = DateTime.UtcNow.AddMinutes(15),
 				NotBefore = DateTime.UtcNow,
 				SigningCredentials = new SigningCredentials(authenKey, SecurityAlgorithms.HmacSha512Signature),
 				Issuer = configuration["Jwt:Issuer"],
@@ -116,6 +116,11 @@ namespace LampStoreProjects.Repositories
 		public async Task<UserProfile> GetUserProfileAsync(string userId)
 		{
 			return await context.UserProfiles!.Where(profile => profile.UserId == userId).FirstOrDefaultAsync();
+		}
+
+		public async Task<IdentityUser> GetUserAccountAsync(string userId)
+		{
+			return await userManager.FindByIdAsync(userId);
 		}
 
 		public async Task LogoutAsync(string userId)

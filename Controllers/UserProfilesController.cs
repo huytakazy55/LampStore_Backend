@@ -108,6 +108,33 @@ namespace LampStoreProjects.Controllers
             return NoContent();
         }
 
+        [HttpDelete("DeleteAvatar/{id}")]
+        public async Task<ActionResult> DeleteUserAvatar(int id)
+        {
+            var userProfile = await _context.UserProfiles!.FirstOrDefaultAsync(p => p.Id == id);
+
+            if (userProfile == null)
+            {
+                return NotFound("User not found.");
+            }
+            var avatarPath = userProfile.ProfileAvatar;
+            userProfile.ProfileAvatar = null;
+
+            _context.UserProfiles!.Update(userProfile);
+            await _context.SaveChangesAsync();
+
+            if (!string.IsNullOrEmpty(avatarPath))
+            {
+                var filePath = Path.Combine(_env.WebRootPath, avatarPath.TrimStart('/'));
+                if (System.IO.File.Exists(filePath))
+                {
+                    System.IO.File.Delete(filePath);
+                }
+            }
+
+            return Ok("Xóa Avatar thành công.");
+        }
+
         [HttpDelete("Delete/{id}")]
         public async Task<ActionResult> DeleteUserProfile(int id)
         {
