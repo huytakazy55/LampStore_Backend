@@ -59,8 +59,21 @@ namespace LampStoreProjects.Controllers
                     return NotFound("User not found.");
                 }
 
-                // Tạo đường dẫn để lưu ảnh
+                // Đường dẫn lưu ảnh
                 var uploadPath = Path.Combine(_env.WebRootPath, "ImageImport");
+
+                // Xóa ảnh cũ nếu có
+                if (!string.IsNullOrEmpty(userProfile.ProfileAvatar))
+                {
+                    var oldFilePath = Path.Combine(_env.WebRootPath, userProfile.ProfileAvatar.TrimStart('/'));
+
+                    if (System.IO.File.Exists(oldFilePath))
+                    {
+                        System.IO.File.Delete(oldFilePath);
+                    }
+                }
+
+                // Tạo đường dẫn để lưu ảnh mới
                 if (!Directory.Exists(uploadPath))
                 {
                     Directory.CreateDirectory(uploadPath);
@@ -69,15 +82,16 @@ namespace LampStoreProjects.Controllers
                 var fileName = Guid.NewGuid() + Path.GetExtension(ProfileAvatar.FileName);
                 var filePath = Path.Combine(uploadPath, fileName);
 
-                // Lưu ảnh vào đường dẫn đã chỉ định
+                // Lưu ảnh mới vào đường dẫn đã chỉ định
                 using (var stream = new FileStream(filePath, FileMode.Create))
                 {
                     await ProfileAvatar.CopyToAsync(stream);
                 }
 
-                // Tạo URL từ đường dẫn lưu ảnh
+                // Tạo URL từ đường dẫn lưu ảnh mới
                 var imageUrl = $"/ImageImport/{fileName}";
 
+                // Cập nhật thông tin người dùng
                 userProfile.ProfileAvatar = imageUrl;
                 _context.UserProfiles!.Update(userProfile);
                 await _context.SaveChangesAsync();

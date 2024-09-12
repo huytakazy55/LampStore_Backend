@@ -56,7 +56,7 @@ namespace LampStoreProjects.Repositories
 			var tokenDescriptor = new SecurityTokenDescriptor
 			{
 				Subject = new ClaimsIdentity(authClaims),
-				Expires = DateTime.UtcNow.AddMinutes(15),
+				Expires = DateTime.UtcNow.AddHours(3),
 				NotBefore = DateTime.UtcNow,
 				SigningCredentials = new SigningCredentials(authenKey, SecurityAlgorithms.HmacSha512Signature),
 				Issuer = configuration["Jwt:Issuer"],
