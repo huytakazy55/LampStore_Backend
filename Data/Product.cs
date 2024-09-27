@@ -19,7 +19,7 @@ namespace LampStoreProjects.Data
         [Required]
         public double Price { get; set; }
 
-        [Range(0, 100)]
+        [Range(0, 1000)]
         [Required]
         public int Quantity { get; set; }
 

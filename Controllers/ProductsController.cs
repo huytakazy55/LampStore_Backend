@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using System.IO;
 using System;
+using Microsoft.EntityFrameworkCore;
 
 namespace LampStoreProjects.Controllers
 {
@@ -16,11 +17,13 @@ namespace LampStoreProjects.Controllers
     {
         private readonly IProductRepository _productRepository;
         private readonly ApplicationDbContext _context;
+        private readonly IWebHostEnvironment _env;
 
-        public ProductsController(IProductRepository productRepository, ApplicationDbContext context)
+        public ProductsController(IProductRepository productRepository, ApplicationDbContext context, IWebHostEnvironment env)
         {
             _productRepository = productRepository;
             _context = context;
+            _env = env;
         }
 
         [HttpGet]
@@ -68,11 +71,20 @@ namespace LampStoreProjects.Controllers
         [HttpPost("{productId}/images")]
         public async Task<ActionResult> UploadImages(int productId, List<IFormFile> imageFiles)
         {
+            const int MAX_IMAGES = 5;
             try
             {
                 if (imageFiles == null || imageFiles.Count == 0)
                 {
                     return BadRequest("No image files provided.");
+                }
+
+                var existingImagesCount = await _context.ProductImages.CountAsync(img => img.ProductId == productId);
+
+                // Kiểm tra tổng số ảnh sau khi upload
+                if (existingImagesCount + imageFiles.Count > MAX_IMAGES)
+                {
+                    return BadRequest($"Bạn chỉ có thể upload tối đa {MAX_IMAGES} ảnh, hiện tại đã có {existingImagesCount} ảnh.");
                 }
 
                 var product = await _productRepository.GetProductByIdAsync(productId);
@@ -83,7 +95,8 @@ namespace LampStoreProjects.Controllers
 
                 foreach (var imageFile in imageFiles)
                 {
-                    var filePath = Path.Combine("ImageImport", Guid.NewGuid() + Path.GetExtension(imageFile.FileName));
+                    var uploadPath = Path.Combine(_env.WebRootPath, "ImageImport");
+                    var filePath = Path.Combine(uploadPath, Guid.NewGuid() + Path.GetExtension(imageFile.FileName));
 
                     using (var stream = new FileStream(filePath, FileMode.Create))
                     {
