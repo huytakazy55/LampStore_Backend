@@ -45,7 +45,6 @@ namespace LampStoreProjects.Repositories
             await _context.SaveChangesAsync();
             return _mapper.Map<ProductModel>(product);
         }
-
         public async Task DeleteProductAsync(int id)
         {
             var product = await _context.Products!.FindAsync(id);
@@ -55,5 +54,6 @@ namespace LampStoreProjects.Repositories
                 await _context.SaveChangesAsync();
             }
         }
+
     }
 }

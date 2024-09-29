@@ -96,16 +96,19 @@ namespace LampStoreProjects.Controllers
                 foreach (var imageFile in imageFiles)
                 {
                     var uploadPath = Path.Combine(_env.WebRootPath, "ImageImport");
-                    var filePath = Path.Combine(uploadPath, Guid.NewGuid() + Path.GetExtension(imageFile.FileName));
+                    var fileName = Guid.NewGuid() + Path.GetExtension(imageFile.FileName);
+                    var filePath = Path.Combine(uploadPath, fileName);
 
                     using (var stream = new FileStream(filePath, FileMode.Create))
                     {
                         await imageFile.CopyToAsync(stream);
                     }
 
+                    var imageUrl = $"/ImageImport/{fileName}";
+
                     var productImage = new ProductImage
                     {
-                        ImagePath = filePath,
+                        ImagePath = imageUrl,
                         ProductId = productId
                     };
                     _context.ProductImages!.Add(productImage);
