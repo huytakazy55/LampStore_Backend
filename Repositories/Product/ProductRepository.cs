@@ -30,6 +30,17 @@ namespace LampStoreProjects.Repositories
             return _mapper.Map<ProductModel>(product);
         }
 
+        public async Task<List<ProductImageModel>> GetProductImageByIdAsync(int id)
+        {
+            var images = await _context.ProductImages!.Where(x => x.ProductId == id).ToListAsync();
+            if (images == null)
+            {
+                return null;
+            }
+
+            return _mapper.Map<List<ProductImageModel>>(images);
+        }
+
         public async Task<ProductModel> AddProductAsync(ProductModel ProductModel)
         {
             var product = _mapper.Map<Product>(ProductModel);
@@ -44,6 +55,16 @@ namespace LampStoreProjects.Repositories
             _context.Products!.Update(product);
             await _context.SaveChangesAsync();
             return _mapper.Map<ProductModel>(product);
+        }
+
+        public async Task DeleteImageProductAsync(int imageId)
+        {
+            var Image = await _context.ProductImages!.FindAsync(imageId);
+            if (Image != null)
+            {
+                _context.ProductImages.Remove(Image);
+                await _context.SaveChangesAsync();
+            }
         }
         public async Task DeleteProductAsync(int id)
         {

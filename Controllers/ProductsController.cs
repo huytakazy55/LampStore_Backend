@@ -43,6 +43,19 @@ namespace LampStoreProjects.Controllers
             return Ok(product);
         }
 
+        [HttpGet("{id}/images")]
+        public async Task<ActionResult<List<ProductImageModel>>> GetProductImagesByProductId(int id)
+        {
+            var images = await _productRepository.GetProductImageByIdAsync(id);
+
+            if (images == null || images.Count == 0)
+            {
+                return NotFound();
+            }
+
+            return Ok(images);
+        }
+
         [HttpPost]
         public async Task<ActionResult<ProductModel>> AddProduct([FromBody] ProductModel product)
         {
@@ -68,6 +81,13 @@ namespace LampStoreProjects.Controllers
             return NoContent();
         }
 
+        [HttpDelete("image/{imageId}")]
+        public async Task<ActionResult> DeleteProductImage(int imageId)
+        {
+            await _productRepository.DeleteImageProductAsync(imageId);
+            return NoContent();
+        }
+
         [HttpPost("{productId}/images")]
         public async Task<ActionResult> UploadImages(int productId, List<IFormFile> imageFiles)
         {
@@ -79,7 +99,7 @@ namespace LampStoreProjects.Controllers
                     return BadRequest("No image files provided.");
                 }
 
-                var existingImagesCount = await _context.ProductImages.CountAsync(img => img.ProductId == productId);
+                var existingImagesCount = await _context.ProductImages!.CountAsync(img => img.ProductId == productId);
 
                 // Kiểm tra tổng số ảnh sau khi upload
                 if (existingImagesCount + imageFiles.Count > MAX_IMAGES)
