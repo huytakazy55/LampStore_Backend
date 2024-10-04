@@ -38,6 +38,11 @@ namespace LampStoreProjects.Repositories
 				return null;
 			}
 
+			if (await userManager.IsLockedOutAsync(user))
+			{
+				return "lockout";
+			}
+
 			var authClaims = new List<Claim>
 			{
 				new Claim(ClaimTypes.NameIdentifier, user.Id),
@@ -96,7 +101,8 @@ namespace LampStoreProjects.Repositories
 		{
 			var user = new ApplicationUser
 			{
-				UserName = model.Username
+				UserName = model.Username,
+				LockoutEnabled = true
 			};
 
 			var result = await userManager.CreateAsync(user, model.Password);
@@ -118,9 +124,26 @@ namespace LampStoreProjects.Repositories
 			return await context.UserProfiles!.Where(profile => profile.UserId == userId).FirstOrDefaultAsync();
 		}
 
+		public async Task<List<string>> GetRolesByUserIdAsync(string userId)
+		{
+			var user = await userManager.FindByIdAsync(userId);
+			if (user == null)
+			{
+				return null;
+			}
+
+			var roles = await userManager.GetRolesAsync(user);
+			return roles.ToList();
+		}
+
 		public async Task<IdentityUser> GetUserAccountAsync(string userId)
 		{
 			return await userManager.FindByIdAsync(userId);
+		}
+
+		public async Task<IEnumerable<IdentityUser>> GetAllUsersAsync()
+		{
+			return await context.Users.ToListAsync();
 		}
 
 		public async Task LogoutAsync(string userId)

@@ -46,6 +46,10 @@ namespace LampStoreProjects.Controllers
                 {
                     return Unauthorized("Tên đăng nhập hoặc mật khẩu không được để trống.");
                 }
+                if (result == "lockout")
+                {
+                    return Unauthorized("Tài khoản của bạn đã bị khóa! Liên hệ Admin để biết thêm thông tin");
+                }
 
                 return Ok(result);
             }
@@ -79,7 +83,7 @@ namespace LampStoreProjects.Controllers
 
         [Authorize]
         [HttpGet("profile")]
-        public async Task<IActionResult> GetProfile([FromServices] IUserProfileRepository userProfileRepository)
+        public async Task<IActionResult> GetProfile()
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -98,9 +102,20 @@ namespace LampStoreProjects.Controllers
             return Ok(profile);
         }
 
+        [HttpGet("role/{userId}")]
+        public async Task<IActionResult> GetRoleById(string userId)
+        {
+            var role = await _accountRepository.GetRolesByUserIdAsync(userId);
+            if (role == null)
+            {
+                return NotFound("Role not found");
+            }
+            return Ok(role);
+        }
+
         [Authorize]
         [HttpGet("UserLogin")]
-        public async Task<IActionResult> GetUser([FromServices] IUserProfileRepository userProfileRepository)
+        public async Task<IActionResult> GetUser()
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -117,6 +132,58 @@ namespace LampStoreProjects.Controllers
             }
 
             return Ok(user);
+        }
+
+        [Authorize]
+        [HttpGet("GetAllUserLogin")]
+        public async Task<IActionResult> GetAllUserLogin()
+        {
+            var users = await _accountRepository.GetAllUsersAsync();
+
+            if (users == null || !users.Any())
+            {
+                return NotFound("No users found");
+            }
+
+            return Ok(users);
+        }
+
+        [Authorize]
+        [HttpPost("LockUser/{userId}")]
+        public async Task<IActionResult> LockUser(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user != null)
+            {
+                // Khóa tài khoản vô thời hạn
+                await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
+
+                // Reset số lần đăng nhập thất bại (nếu cần)
+                await _userManager.ResetAccessFailedCountAsync(user);
+
+                return Ok("Tài khoản đã bị khóa.");
+            }
+
+            return NotFound("Người dùng không tồn tại.");
+        }
+
+        [Authorize]
+        [HttpPost("UnLockUser/{userId}")]
+        public async Task<IActionResult> UnlockUser(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user != null)
+            {
+                // Mở khóa tài khoản
+                await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.UtcNow);
+
+                // Reset số lần đăng nhập thất bại (nếu cần)
+                await _userManager.ResetAccessFailedCountAsync(user);
+
+                return Ok("Tài khoản đã được mở khóa.");
+            }
+
+            return NotFound("Người dùng không tồn tại.");
         }
 
         [Authorize]
