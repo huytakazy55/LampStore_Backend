@@ -106,7 +106,7 @@ namespace LampStoreProjects.Controllers
         public async Task<IActionResult> GetRoleById(string userId)
         {
             var role = await _accountRepository.GetRolesByUserIdAsync(userId);
-            if (role == null)
+            if (role == null && !role!.Any())
             {
                 return NotFound("Role not found");
             }
