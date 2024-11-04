@@ -15,10 +15,26 @@ namespace LampStoreProjects.Data
         [MaxLength(1000)]
         public string? Description { get; set; }
 
+        public double? Weight { get; set; }
+
+        [Range(0, 5)]
+        public int? Rating { get; set; }
+
+        public int? ReviewCount { get; set; }
+
+        public string? Tags { get; set; }
+        
+        public int? ViewCount { get; set; }
+
+        public int? Favorites { get; set; }
+        public string? Materials { get; set; }
         [Range(0, double.MaxValue)]
         [Required]
-        public double Price { get; set; }
-
+        public double OriginalPrice { get; set; }
+        [Range(0, 100)]
+        public double? Discount { get; set; }
+        [Range(0, double.MaxValue)]
+        public double SalePrice { get; set; }
         [Range(0, 1000)]
         [Required]
         public int Quantity { get; set; }

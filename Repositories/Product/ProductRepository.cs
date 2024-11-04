@@ -30,10 +30,10 @@ namespace LampStoreProjects.Repositories
             return _mapper.Map<ProductModel>(product);
         }
 
-        public async Task<List<ProductImageModel>> GetProductImageByIdAsync(int id)
+        public async Task<List<ProductImageModel>?> GetProductImageByIdAsync(int id)
         {
             var images = await _context.ProductImages!.Where(x => x.ProductId == id).ToListAsync();
-            if (images == null)
+            if (images.Count == 0)
             {
                 return null;
             }

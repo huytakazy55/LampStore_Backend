@@ -25,7 +25,7 @@ namespace LampStoreProjects.Repositories
 			this.context = context;
 		}
 
-		public async Task<string> SignInAsync(SignInModel model)
+		public async Task<string?> SignInAsync(SignInModel model)
 		{
 			if (string.IsNullOrEmpty(model.Username) || string.IsNullOrEmpty(model.Password))
 			{
@@ -56,7 +56,7 @@ namespace LampStoreProjects.Repositories
 				authClaims.Add(new Claim(ClaimTypes.Role, role));
 			}
 
-			var authenKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Secret"]));
+			var authenKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Secret"] ?? throw new InvalidOperationException("JWT secret is not configured.")));
 			var tokenHandler = new JwtSecurityTokenHandler();
 			var tokenDescriptor = new SecurityTokenDescriptor
 			{
@@ -105,6 +105,11 @@ namespace LampStoreProjects.Repositories
 				LockoutEnabled = true
 			};
 
+			if (string.IsNullOrEmpty(model.Password))
+			{
+				return IdentityResult.Failed(new IdentityError { Description = "Password is required." });
+			}
+
 			var result = await userManager.CreateAsync(user, model.Password);
 
 			if (result.Succeeded)
@@ -119,12 +124,12 @@ namespace LampStoreProjects.Repositories
 			return result;
 		}
 
-		public async Task<UserProfile> GetUserProfileAsync(string userId)
+		public async Task<UserProfile?> GetUserProfileAsync(string userId)
 		{
 			return await context.UserProfiles!.Where(profile => profile.UserId == userId).FirstOrDefaultAsync();
 		}
 
-		public async Task<List<string>> GetRolesByUserIdAsync(string userId)
+		public async Task<List<string>?> GetRolesByUserIdAsync(string userId)
 		{
 			var user = await userManager.FindByIdAsync(userId);
 			if (user == null)
@@ -136,7 +141,7 @@ namespace LampStoreProjects.Repositories
 			return roles.ToList();
 		}
 
-		public async Task<IdentityUser> GetUserAccountAsync(string userId)
+		public async Task<IdentityUser?> GetUserAccountAsync(string userId)
 		{
 			return await userManager.FindByIdAsync(userId);
 		}

@@ -8,12 +8,12 @@ namespace LampStoreProjects.Repositories
     public interface IAccountRepository
     {
         Task<IdentityResult> SignUpAsync(SignUpModel model);
-        Task<string> SignInAsync(SignInModel model);
+        Task<string?> SignInAsync(SignInModel model);
 
-        Task<UserProfile> GetUserProfileAsync(string userId);
-        Task<IdentityUser> GetUserAccountAsync(string userId);
+        Task<UserProfile?> GetUserProfileAsync(string userId);
+        Task<IdentityUser?> GetUserAccountAsync(string userId);
         Task<IEnumerable<IdentityUser>> GetAllUsersAsync();
-        Task<List<string>> GetRolesByUserIdAsync(string userId);
+        Task<List<string>?> GetRolesByUserIdAsync(string userId);
         Task LogoutAsync(string userId);
 
     }
