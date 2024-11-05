@@ -18,15 +18,18 @@ namespace LampStoreProjects.Data
         public double? Weight { get; set; }
 
         [Range(0, 5)]
-        public int? Rating { get; set; }
+        public int? Rating { get; set; } = 5;
 
-        public int? ReviewCount { get; set; }
+        public int? ReviewCount { get; set; } = 0;
 
         public string? Tags { get; set; }
         
-        public int? ViewCount { get; set; }
+        public int? ViewCount { get; set; } = 0;
 
-        public int? Favorites { get; set; }
+        public int? Favorites { get; set; } = 0;
+        public int? SellCount { get; set; } = 0;
+        [MaxLength(1000)]
+        [Required]
         public string? Materials { get; set; }
         [Range(0, double.MaxValue)]
         [Required]
@@ -48,6 +51,7 @@ namespace LampStoreProjects.Data
         public bool IsAvailable { get; set; } = true;
 
         public ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();
+        public ICollection<ProductVariant> Variants { get; set; } = new List<ProductVariant>();
         public CartItem? CartItem { get; set; }
         public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
     }

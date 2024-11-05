@@ -12,6 +12,7 @@ namespace LampStoreProjects.Data
         }
         public DbSet<Product>? Products { get; set; }
         public DbSet<ProductImage>? ProductImages { get; set; }
+        public DbSet<ProductVariant>? ProductVariants { get; set;}
         public DbSet<Category>? Categories { get; set; }
         public DbSet<Order>? Orders { get; set; }
         public DbSet<OrderItem>? OrderItems { get; set; }
@@ -28,6 +29,12 @@ namespace LampStoreProjects.Data
             modelBuilder.Entity<ProductImage>()
                 .HasOne(li => li.Product)
                 .WithMany(l => l.Images)
+                .HasForeignKey(li => li.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ProductVariant>()
+                .HasOne(li => li.Product)
+                .WithMany(l => l.Variants)
                 .HasForeignKey(li => li.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
 

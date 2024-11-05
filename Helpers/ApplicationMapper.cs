@@ -8,6 +8,8 @@ public class ApplicationMapper : Profile
     {
         CreateMap<ProductModel, Product>().ReverseMap();
         CreateMap<ProductImageModel, ProductImage>().ReverseMap();
+        CreateMap<ProductVariant, ProductVariantCreateModel>();
+        CreateMap<ProductVariantCreateModel, ProductVariant>();
         CreateMap<CategoryModel, Category>().ReverseMap();
         CreateMap<CartModel, Cart>().ReverseMap();
         CreateMap<CartItemModel, CartItem>().ReverseMap();

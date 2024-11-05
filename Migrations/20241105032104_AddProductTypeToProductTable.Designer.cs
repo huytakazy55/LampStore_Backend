@@ -4,6 +4,7 @@ using LampStoreProjects.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LampStoreProjects.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241105032104_AddProductTypeToProductTable")]
+    partial class AddProductTypeToProductTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -283,9 +286,7 @@ namespace LampStoreProjects.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("Materials")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -294,6 +295,11 @@ namespace LampStoreProjects.Migrations
 
                     b.Property<double>("OriginalPrice")
                         .HasColumnType("float");
+
+                    b.Property<string>("ProductType")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
@@ -347,34 +353,6 @@ namespace LampStoreProjects.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("ProductImage");
-                });
-
-            modelBuilder.Entity("LampStoreProjects.Data.ProductVariant", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("ProductVariant");
                 });
 
             modelBuilder.Entity("LampStoreProjects.Data.UserProfile", b =>
@@ -652,17 +630,6 @@ namespace LampStoreProjects.Migrations
                     b.Navigation("Product");
                 });
 
-            modelBuilder.Entity("LampStoreProjects.Data.ProductVariant", b =>
-                {
-                    b.HasOne("LampStoreProjects.Data.Product", "Product")
-                        .WithMany("Variants")
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Product");
-                });
-
             modelBuilder.Entity("LampStoreProjects.Data.UserProfile", b =>
                 {
                     b.HasOne("ApplicationUser", "User")
@@ -757,8 +724,6 @@ namespace LampStoreProjects.Migrations
                     b.Navigation("Images");
 
                     b.Navigation("OrderItems");
-
-                    b.Navigation("Variants");
                 });
 #pragma warning restore 612, 618
         }

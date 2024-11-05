@@ -56,6 +56,42 @@ namespace LampStoreProjects.Controllers
             return Ok(images);
         }
 
+        [HttpGet("{id}/variants")]
+        public async Task<ActionResult<List<ProductVariantCreateModel>>> GetProductVariantsByProductId(int id)
+        {
+            var variants = await _productRepository.GetProductVariantByIdAsync(id);
+
+            if(variants == null || variants.Count == 0)
+            {
+                return NotFound();
+            }
+
+            return Ok(variants);
+        }
+
+        [HttpPost("{productId}/varians")]
+        public async Task<ActionResult<ProductVariantModel>> AddProductVariant(int productId, [FromBody] List<ProductVariantCreateModel> variants)
+        {
+            if (variants == null || variants.Count == 0)
+            {
+                return BadRequest("Danh sách phân loại không được để trống.");
+            }
+
+            try
+            {
+                await _productRepository.AddProductVariantAsync(productId, variants);
+                return Ok("phân loại sản phẩm đã được thêm thành công.");
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Đã xảy ra lỗi khi thêm phân loại sản phẩm: " + ex.Message);
+            }
+        }
+
         [HttpPost]
         public async Task<ActionResult<ProductModel>> AddProduct([FromBody] ProductModel product)
         {
@@ -85,6 +121,13 @@ namespace LampStoreProjects.Controllers
         public async Task<ActionResult> DeleteProductImage(int imageId)
         {
             await _productRepository.DeleteImageProductAsync(imageId);
+            return NoContent();
+        }
+
+        [HttpDelete("variant/{variantId}")]
+        public async Task<ActionResult> DeleteProductVariant(int variantId)
+        {
+            await _productRepository.DeleteProductVariantAsync(variantId);
             return NoContent();
         }
 

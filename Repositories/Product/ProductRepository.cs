@@ -41,6 +41,37 @@ namespace LampStoreProjects.Repositories
             return _mapper.Map<List<ProductImageModel>>(images);
         }
 
+        public async Task<List<ProductVariantCreateModel>?> GetProductVariantByIdAsync(int id)
+        {
+            var variants = await _context.ProductVariants!.Where(x => x.ProductId == id).ToListAsync();
+            if (variants.Count == 0)
+            {
+                return null;
+            }
+
+            return _mapper.Map<List<ProductVariantCreateModel>>(variants);
+        }
+        
+        public async Task AddProductVariantAsync(int productId, List<ProductVariantCreateModel> productVariants)
+        {
+            var productExists = await _context.Products!.AnyAsync(p => p.Id == productId);
+            if (!productExists)
+            {
+                throw new ArgumentException("Không tồn tại sản phẩm!");
+            }
+
+            var productVariantsMapper = _mapper.Map<List<ProductVariant>>(productVariants);
+
+            foreach (var variant in productVariantsMapper)
+            {
+                variant.ProductId = productId;
+                variant.Product = null;
+            }
+
+            await _context.ProductVariants!.AddRangeAsync(productVariantsMapper);
+            await _context.SaveChangesAsync();
+        }
+
         public async Task<ProductModel> AddProductAsync(ProductModel ProductModel)
         {
             var product = _mapper.Map<Product>(ProductModel);
@@ -66,6 +97,17 @@ namespace LampStoreProjects.Repositories
                 await _context.SaveChangesAsync();
             }
         }
+
+        public async Task DeleteProductVariantAsync(int variantId)
+        {
+            var variant = await _context.ProductVariants!.FindAsync(variantId);
+            if (variant != null)
+            {
+                _context.ProductVariants.Remove(variant);
+                await _context.SaveChangesAsync();
+            }
+        }
+
         public async Task DeleteProductAsync(int id)
         {
             var product = await _context.Products!.FindAsync(id);
