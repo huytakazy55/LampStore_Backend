@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "cw2SM4VidCg=",
+  "dgSpecHash": "FLSK3tCsMkQ=",
   "success": true,
-  "projectFilePath": "C:\\Projects\\LampStoreProject\\LampStore_Backend\\LampStoreProjects.csproj",
+  "projectFilePath": "D:\\Projects\\LampStoreProject\\LampStore_Backend\\LampStoreProjects.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\hungnp\\.nuget\\packages\\automapper\\10.1.1\\automapper.10.1.1.nupkg.sha512",
     "C:\\Users\\hungnp\\.nuget\\packages\\automapper.extensions.microsoft.dependencyinjection\\8.1.1\\automapper.extensions.microsoft.dependencyinjection.8.1.1.nupkg.sha512",

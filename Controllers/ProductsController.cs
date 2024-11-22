@@ -156,9 +156,24 @@ namespace LampStoreProjects.Controllers
                     return NotFound("Product not found.");
                 }
 
+                if (string.IsNullOrEmpty(_env.WebRootPath))
+                {
+                    _env.WebRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                }
+                if (!Directory.Exists(_env.WebRootPath))
+                {
+                    Directory.CreateDirectory(_env.WebRootPath);
+                }
+
+                // Đảm bảo thư mục ImageImport tồn tại
+                var uploadPath = Path.Combine(_env.WebRootPath, "ImageImport");
+                if (!Directory.Exists(uploadPath))
+                {
+                    Directory.CreateDirectory(uploadPath);
+                }
+
                 foreach (var imageFile in imageFiles)
                 {
-                    var uploadPath = Path.Combine(_env.WebRootPath, "ImageImport");
                     var fileName = Guid.NewGuid() + Path.GetExtension(imageFile.FileName);
                     var filePath = Path.Combine(uploadPath, fileName);
 
@@ -167,7 +182,7 @@ namespace LampStoreProjects.Controllers
                         await imageFile.CopyToAsync(stream);
                     }
 
-                    var imageUrl = $"/ImageImport/{fileName}";
+                    var imageUrl = $"/ImageImport/{fileName}";          
 
                     var productImage = new ProductImage
                     {
