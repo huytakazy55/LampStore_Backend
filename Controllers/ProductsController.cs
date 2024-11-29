@@ -120,8 +120,24 @@ namespace LampStoreProjects.Controllers
         [HttpDelete("image/{imageId}")]
         public async Task<ActionResult> DeleteProductImage(int imageId)
         {
+            var productImage = await _context.ProductImages!.FirstOrDefaultAsync(x => x.Id == imageId);
+            if (productImage == null)
+            {
+                return NotFound("Hình ảnh không tồn tại.");
+            }
+
             await _productRepository.DeleteImageProductAsync(imageId);
-            return NoContent();
+
+            if (!string.IsNullOrEmpty(productImage.ImagePath))
+            {
+                var filePath = Path.Combine(_env.WebRootPath, productImage.ImagePath.TrimStart('/'));
+                if (System.IO.File.Exists(filePath))
+                {
+                    System.IO.File.Delete(filePath);
+                }
+            }
+
+            return Ok("Xóa hình ảnh sản phẩm thành công.");
         }
 
         [HttpDelete("variant/{variantId}")]

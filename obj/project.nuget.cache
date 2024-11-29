@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "FLSK3tCsMkQ=",
+  "dgSpecHash": "ydo/iWZpkdI=",
   "success": true,
   "projectFilePath": "D:\\Projects\\LampStoreProject\\LampStore_Backend\\LampStoreProjects.csproj",
   "expectedPackageFiles": [
@@ -100,5 +100,16 @@
     "C:\\Users\\hungnp\\.nuget\\packages\\system.threading.channels\\6.0.0\\system.threading.channels.6.0.0.nupkg.sha512",
     "C:\\Users\\hungnp\\.nuget\\packages\\system.threading.tasks.extensions\\4.5.4\\system.threading.tasks.extensions.4.5.4.nupkg.sha512"
   ],
-  "logs": []
+  "logs": [
+    {
+      "code": "NU1902",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Package 'Swashbuckle.AspNetCore.SwaggerUI' 6.0.0 has a known moderate severity vulnerability, https://github.com/advisories/GHSA-qrmm-w75w-3wpx",
+      "libraryId": "Swashbuckle.AspNetCore.SwaggerUI",
+      "targetGraphs": [
+        "net8.0"
+      ]
+    }
+  ]
 }

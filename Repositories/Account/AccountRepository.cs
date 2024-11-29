@@ -99,29 +99,53 @@ namespace LampStoreProjects.Repositories
 
 		public async Task<IdentityResult> SignUpAsync(SignUpModel model)
 		{
-			var user = new ApplicationUser
+			using var transaction = await context.Database.BeginTransactionAsync();
+			try
 			{
-				UserName = model.Username,
-				LockoutEnabled = true
-			};
+				if (string.IsNullOrEmpty(model.Password))
+				{
+					return IdentityResult.Failed(new IdentityError { Description = "Password is required." });
+				}
 
-			if (string.IsNullOrEmpty(model.Password))
-			{
-				return IdentityResult.Failed(new IdentityError { Description = "Password is required." });
-			}
+				var user = new ApplicationUser
+				{
+					UserName = model.Username,
+					LockoutEnabled = true
+				};
 
-			var result = await userManager.CreateAsync(user, model.Password);
+				var result = await userManager.CreateAsync(user, model.Password);
 
-			if (result.Succeeded)
-			{
+				if (!result.Succeeded)
+				{
+					return result;
+				}
+
+				var userProfile = new UserProfile
+				{
+					UserId = user.Id,
+					User = user
+				};
+
+				await context.UserProfiles!.AddAsync(userProfile);
+				await context.SaveChangesAsync();
+
 				if (!await roleManager.RoleExistsAsync(AppRole.Customer))
 				{
 					await roleManager.CreateAsync(new IdentityRole(AppRole.Customer));
 				}
 
 				await userManager.AddToRoleAsync(user, AppRole.Customer);
+
+				// Xác nhận giao dịch thành công
+				await transaction.CommitAsync();
+				return result;
 			}
-			return result;
+			catch (Exception ex)
+			{
+				// Rollback nếu có lỗi xảy ra
+				await transaction.RollbackAsync();
+				return IdentityResult.Failed(new IdentityError { Description = $"An error occurred: {ex.Message}" });
+			}
 		}
 
 		public async Task<UserProfile?> GetUserProfileAsync(string userId)
