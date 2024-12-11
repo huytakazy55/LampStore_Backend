@@ -54,20 +54,24 @@ namespace LampStoreProjects.Repositories
         
         public async Task AddProductVariantAsync(int productId, List<ProductVariantCreateModel> productVariants)
         {
+            if (productVariants == null || !productVariants.Any())
+            {
+                throw new ArgumentException("Danh sách biến thể sản phẩm không được để trống!");
+            }
+
             var productExists = await _context.Products!.AnyAsync(p => p.Id == productId);
             if (!productExists)
             {
-                throw new ArgumentException("Không tồn tại sản phẩm!");
+                throw new ArgumentException("Sản phẩm không tồn tại!");
             }
 
+            // Ánh xạ từ ProductVariantCreateModel sang ProductVariant
             var productVariantsMapper = _mapper.Map<List<ProductVariant>>(productVariants);
 
-            foreach (var variant in productVariantsMapper)
-            {
-                variant.ProductId = productId;
-                variant.Product = null;
-            }
+            // Thiết lập ProductId cho từng biến thể
+            productVariantsMapper.ForEach(variant => variant.ProductId = productId);
 
+            // Thêm vào database và lưu thay đổi
             await _context.ProductVariants!.AddRangeAsync(productVariantsMapper);
             await _context.SaveChangesAsync();
         }

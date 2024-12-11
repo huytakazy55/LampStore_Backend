@@ -69,7 +69,7 @@ namespace LampStoreProjects.Controllers
             return Ok(variants);
         }
 
-        [HttpPost("{productId}/varians")]
+        [HttpPost("{productId}/variants")]
         public async Task<ActionResult<ProductVariantModel>> AddProductVariant(int productId, [FromBody] List<ProductVariantCreateModel> variants)
         {
             if (variants == null || variants.Count == 0)
