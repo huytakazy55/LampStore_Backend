@@ -16,12 +16,14 @@ namespace LampStoreProjects.Controllers
     public class ProductsController : ControllerBase
     {
         private readonly IProductRepository _productRepository;
+        private readonly IProductStoreManage _productStoreManage;
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _env;
 
-        public ProductsController(IProductRepository productRepository, ApplicationDbContext context, IWebHostEnvironment env)
+        public ProductsController(IProductRepository productRepository, IProductStoreManage productStoreManage, ApplicationDbContext context, IWebHostEnvironment env)
         {
             _productRepository = productRepository;
+            _productStoreManage = productStoreManage;
             _context = context;
             _env = env;
         }
@@ -43,6 +45,28 @@ namespace LampStoreProjects.Controllers
             return Ok(product);
         }
 
+        [HttpGet("VariantType/{id}")]
+        public async Task<ActionResult<VariantTypeModel>> GetVariantTypeById(int id)
+        {
+            var variantType = await _productRepository.GetVariantTypeByIdAsync(id);
+            if (variantType == null)
+            {
+                return NotFound();
+            }
+            return Ok(variantType);
+        }
+
+        [HttpGet("VariantValue/{id}")]
+        public async Task<ActionResult<VariantValueModel>> GetVariantValueById(int id)
+        {
+            var variantvalue = await _productRepository.GetVariantValueByIdAsync(id);
+            if(variantvalue == null)
+            {
+                return NotFound();
+            }
+            return Ok(variantvalue);
+        }
+
         [HttpGet("{id}/images")]
         public async Task<ActionResult<List<ProductImageModel>>> GetProductImagesByProductId(int id)
         {
@@ -56,47 +80,25 @@ namespace LampStoreProjects.Controllers
             return Ok(images);
         }
 
-        [HttpGet("{id}/variants")]
-        public async Task<ActionResult<List<ProductVariantCreateModel>>> GetProductVariantsByProductId(int id)
-        {
-            var variants = await _productRepository.GetProductVariantByIdAsync(id);
-
-            if(variants == null || variants.Count == 0)
-            {
-                return NotFound();
-            }
-
-            return Ok(variants);
-        }
-
-        [HttpPost("{productId}/variants")]
-        public async Task<ActionResult<ProductVariantModel>> AddProductVariant(int productId, [FromBody] List<ProductVariantCreateModel> variants)
-        {
-            if (variants == null || variants.Count == 0)
-            {
-                return BadRequest("Danh sách phân loại không được để trống.");
-            }
-
-            try
-            {
-                await _productRepository.AddProductVariantAsync(productId, variants);
-                return Ok("phân loại sản phẩm đã được thêm thành công.");
-            }
-            catch (ArgumentException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, "Đã xảy ra lỗi khi thêm phân loại sản phẩm: " + ex.Message);
-            }
-        }
-
         [HttpPost]
         public async Task<ActionResult<ProductModel>> AddProduct([FromBody] ProductModel product)
         {
             var newProduct = await _productRepository.AddProductAsync(product);
             return CreatedAtAction(nameof(GetProductById), new { id = newProduct.Id }, newProduct);
+        }
+
+        [HttpPost("AddVariantType")]
+        public async Task<ActionResult<VariantTypeModel>> AddVariantTypeAsync([FromBody] VariantTypeModel variantType)
+        {
+            var newVariantType = await _productRepository.AddVariantTypeAsync(variantType);
+            return CreatedAtAction(nameof(GetVariantTypeById), new { id = newVariantType.Id }, newVariantType);
+        }
+
+        [HttpPost("AddVariantValue")]
+        public async Task<ActionResult<VariantValueModel>> AddVariantValueAsync([FromBody] VariantValueModel variantValue)
+        {
+            var newVariantValue = await _productRepository.AddVariantValueAsync(variantValue);
+            return CreatedAtAction(nameof(GetVariantValueById), new {id = newVariantValue.Id} , newVariantValue);
         }
 
         [HttpPut("{id}")]
@@ -140,13 +142,6 @@ namespace LampStoreProjects.Controllers
             return Ok("Xóa hình ảnh sản phẩm thành công.");
         }
 
-        [HttpDelete("variant/{variantId}")]
-        public async Task<ActionResult> DeleteProductVariant(int variantId)
-        {
-            await _productRepository.DeleteProductVariantAsync(variantId);
-            return NoContent();
-        }
-
         [HttpPost("{productId}/images")]
         public async Task<ActionResult> UploadImages(int productId, List<IFormFile> imageFiles)
         {
@@ -176,6 +171,7 @@ namespace LampStoreProjects.Controllers
                 {
                     _env.WebRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
                 }
+
                 if (!Directory.Exists(_env.WebRootPath))
                 {
                     Directory.CreateDirectory(_env.WebRootPath);

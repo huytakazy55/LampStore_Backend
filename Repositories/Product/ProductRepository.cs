@@ -20,7 +20,25 @@ namespace LampStoreProjects.Repositories
 
         public async Task<IEnumerable<ProductModel>> GetAllProductAsync()
         {
-            var products = await _context.Products!.Include(l => l.Images).ToListAsync();
+            var products = await _context.Products!
+                .Include(p => p.Images)
+                .Include(p => p.Variants)
+                .Select(p => new ProductModel
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Description = p.Description,
+                    CategoryId = p.CategoryId,
+                    DateAdded = p.DateAdded,
+                    IsAvailable = p.IsAvailable,
+                    Images = p.Images.Select(i => new ProductImageModel { ImagePath = i.ImagePath }).ToList(),
+                    MinPrice = p.Variants.Min(v => v.SalePrice),
+                    MaxPrice = p.Variants.Max(v => v.SalePrice),
+                    Quantity = p.Variants.Sum(v => v.Quantity)
+
+                })
+                .ToListAsync();
+
             return _mapper.Map<IEnumerable<ProductModel>>(products);
         }
 
@@ -28,6 +46,18 @@ namespace LampStoreProjects.Repositories
         {
             var product = await _context.Products!.Include(l => l.Images).FirstOrDefaultAsync(l => l.Id == id);
             return _mapper.Map<ProductModel>(product);
+        }
+
+        public async Task<VariantTypeModel> GetVariantTypeByIdAsync(int id)
+        {
+            var varianttype = await _context.VariantTypes!.FirstOrDefaultAsync(l => l.Id == id);
+            return _mapper.Map<VariantTypeModel>(varianttype);
+        }
+
+        public async Task<VariantValueModel> GetVariantValueByIdAsync(int id)
+        {
+            var variantvalue = await _context.VariantValues!.FirstOrDefaultAsync(l => l.Id == id);
+            return _mapper.Map<VariantValueModel>(variantvalue);
         }
 
         public async Task<List<ProductImageModel>?> GetProductImageByIdAsync(int id)
@@ -41,41 +71,6 @@ namespace LampStoreProjects.Repositories
             return _mapper.Map<List<ProductImageModel>>(images);
         }
 
-        public async Task<List<ProductVariantCreateModel>?> GetProductVariantByIdAsync(int id)
-        {
-            var variants = await _context.ProductVariants!.Where(x => x.ProductId == id).ToListAsync();
-            if (variants.Count == 0)
-            {
-                return null;
-            }
-
-            return _mapper.Map<List<ProductVariantCreateModel>>(variants);
-        }
-        
-        public async Task AddProductVariantAsync(int productId, List<ProductVariantCreateModel> productVariants)
-        {
-            if (productVariants == null || !productVariants.Any())
-            {
-                throw new ArgumentException("Danh sách biến thể sản phẩm không được để trống!");
-            }
-
-            var productExists = await _context.Products!.AnyAsync(p => p.Id == productId);
-            if (!productExists)
-            {
-                throw new ArgumentException("Sản phẩm không tồn tại!");
-            }
-
-            // Ánh xạ từ ProductVariantCreateModel sang ProductVariant
-            var productVariantsMapper = _mapper.Map<List<ProductVariant>>(productVariants);
-
-            // Thiết lập ProductId cho từng biến thể
-            productVariantsMapper.ForEach(variant => variant.ProductId = productId);
-
-            // Thêm vào database và lưu thay đổi
-            await _context.ProductVariants!.AddRangeAsync(productVariantsMapper);
-            await _context.SaveChangesAsync();
-        }
-
         public async Task<ProductModel> AddProductAsync(ProductModel ProductModel)
         {
             var product = _mapper.Map<Product>(ProductModel);
@@ -84,6 +79,22 @@ namespace LampStoreProjects.Repositories
             return _mapper.Map<ProductModel>(product);
         }
 
+        public async Task<VariantTypeModel> AddVariantTypeAsync(VariantTypeModel VariantType)
+        {
+            var variantType = _mapper.Map<VariantType>(VariantType);
+            _context.VariantTypes!.Add(variantType);
+            await _context.SaveChangesAsync();
+            return _mapper.Map<VariantTypeModel>(VariantType);
+        }
+
+        public async Task<VariantValueModel> AddVariantValueAsync(VariantValueModel VariantValue)
+        {
+            var variantvalue = _mapper.Map<VariantValue>(VariantValue);
+            _context.VariantValues!.Add(variantvalue);
+            await _context.SaveChangesAsync();
+            return _mapper.Map<VariantValueModel>(VariantValue);
+        }
+        
         public async Task<ProductModel> UpdateProductAsync(ProductModel ProductModel)
         {
             var product = _mapper.Map<Product>(ProductModel);

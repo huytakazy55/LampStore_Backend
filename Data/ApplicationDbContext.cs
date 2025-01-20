@@ -13,6 +13,8 @@ namespace LampStoreProjects.Data
         public DbSet<Product>? Products { get; set; }
         public DbSet<ProductImage>? ProductImages { get; set; }
         public DbSet<ProductVariant>? ProductVariants { get; set;}
+        public DbSet<VariantType>? VariantTypes { get; set; }
+        public DbSet<VariantValue>? VariantValues { get; set; }
         public DbSet<Category>? Categories { get; set; }
         public DbSet<Order>? Orders { get; set; }
         public DbSet<OrderItem>? OrderItems { get; set; }
@@ -36,6 +38,18 @@ namespace LampStoreProjects.Data
                 .HasOne(li => li.Product)
                 .WithMany(l => l.Variants)
                 .HasForeignKey(li => li.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<VariantType>()
+                .HasOne(li => li.ProductVariant)
+                .WithMany(l => l.Types)
+                .HasForeignKey(li => li.ProductVariantId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<VariantValue>()
+                .HasOne(li => li.VariantType)
+                .WithMany(l => l.Values)
+                .HasForeignKey(li => li.TypeId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Product>()

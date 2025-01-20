@@ -10,17 +10,26 @@ namespace LampStoreProjects.Data
         [Key]
         public int Id { get; set; }
 
-
         public int ProductId { get; set; }
 
         [ForeignKey("ProductId")]
         [JsonIgnore]
         public Product? Product { get; set; }
+        [Range(0, double.MaxValue)]
         [Required]
-        [MaxLength(30)]
-        public string? Type { get; set; }
+        public double OriginalPrice { get; set; }
+        [Range(0, 100)]
+        public double? Discount { get; set; }
+        [Range(0, double.MaxValue)]
+        public double SalePrice { get; set; }
+        [Range(0, 1000)]
         [Required]
-        [MaxLength(30)]
-        public string? Value { get; set; }
+        public int Quantity { get; set; }
+        [MaxLength(1000)]
+        [Required]
+        public string? Materials { get; set; }
+        public double? Weight { get; set; }
+        public bool IsAvailable { get; set; } = true;
+        public ICollection<VariantType> Types { get; set; } = new List<VariantType>();
     }
 }

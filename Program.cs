@@ -7,11 +7,18 @@ using LampStoreProjects.Data;
 using LampStoreProjects.Repositories;
 using System.Text;
 using Microsoft.Data.SqlClient;
+using System.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    
+builder.Services.AddTransient<IDbConnection>(sp =>
+{
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    return new SqlConnection(connectionString);
+});
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
@@ -70,6 +77,9 @@ builder.Services.AddScoped<IDeliveryRepository, DeliveryRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderItemRepository, OrderItemRepository>();
 builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
+
+builder.Services.AddScoped<IProductStoreManage, ProductStoreManage>();
+
 builder.Services.AddAutoMapper(typeof(Program));
 
 builder.Services.AddControllers()

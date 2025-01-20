@@ -7,19 +7,12 @@ namespace LampStoreProjects.Models
         public int Id { get; set;}
         public int ProductId { get; set;}
         public ProductModel? ProductModel{ get; set;}
-        [Required]
-        public string? Type { get; set;}
-        [Required]
-        public string? Value { get; set;}
+        public string? Materials { get; set;}
+        public int Quantity {get; set;}
+        public double OriginalPrice {get; set;}
+        public double Discount {get; set;}
+        public double SalePrice {get; set;}
+        public double Weight {get; set;}
+        public bool IsAvailable {get; set;}
     }
-
-    public class ProductVariantCreateModel
-    {
-            [Required]
-            public string? Type { get; set; }
-
-            [Required]
-            public string? Value { get; set; }
-    }
-    
 }
