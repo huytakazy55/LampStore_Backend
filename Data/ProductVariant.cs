@@ -28,5 +28,6 @@ namespace LampStoreProjects.Data
         public string Materials { get; set; } = string.Empty;
         public double Weight { get; set; }
         public string SKU { get; set; } = string.Empty;
+        public ICollection<ProductVariantValue> ProductVariantValues { get; set; } = new List<ProductVariantValue>();
     }
 }
