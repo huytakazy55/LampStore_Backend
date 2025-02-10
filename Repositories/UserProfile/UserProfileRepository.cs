@@ -24,7 +24,7 @@ namespace LampStoreProjects.Repositories
             return _mapper.Map<IEnumerable<UserProfileModel>>(UserProfiles);
         }
 
-        public async Task<UserProfileModel> GetByIdAsync(int id)
+        public async Task<UserProfileModel> GetByIdAsync(Guid id)
         {
             var UserProfile = await _context.UserProfiles!.FindAsync(id);
             return _mapper.Map<UserProfileModel>(UserProfile);
@@ -44,7 +44,7 @@ namespace LampStoreProjects.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(Guid id)
         {
             var UserProfile = await _context.UserProfiles!.FindAsync(id);
             if (UserProfile != null)

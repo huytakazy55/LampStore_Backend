@@ -5,17 +5,17 @@ namespace LampStoreProjects.Data
 {
     public class UserProfile
     {
-        public int Id { get; set; }
-        public string? UserId { get; set; }
+        public Guid Id { get; set; }
+        public string UserId { get; set; } = string.Empty;
         [MaxLength(100)]
-        public string? FullName { get; set; }
+        public string FullName { get; set; } = string.Empty;
         [MaxLength(100)]
-        public string? Email { get; set; }
+        public string Email { get; set; } = string.Empty;
         [MaxLength(20)]
-        public string? PhoneNumber { get; set; }
+        public string PhoneNumber { get; set; } = string.Empty;
         [MaxLength(100)]
-        public string? Address { get; set; }
-        public string? ProfileAvatar { get; set; }
+        public string Address { get; set; } = string.Empty;
+        public string ProfileAvatar { get; set; } = string.Empty;
         public ApplicationUser? User { get; set; }      
     }
 }

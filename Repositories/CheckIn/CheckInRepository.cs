@@ -24,7 +24,7 @@ namespace LampStoreProjects.Repositories
             return _mapper.Map<IEnumerable<CheckInModel>>(CheckIns);
         }
 
-        public async Task<CheckInModel> GetByIdAsync(int id)
+        public async Task<CheckInModel> GetByIdAsync(Guid id)
         {
             var CheckIn = await _context.CheckIns!.FindAsync(id);
             return _mapper.Map<CheckInModel>(CheckIn);
@@ -44,7 +44,7 @@ namespace LampStoreProjects.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(Guid id)
         {
             var CheckIn = await _context.CheckIns!.FindAsync(id);
             if (CheckIn != null)

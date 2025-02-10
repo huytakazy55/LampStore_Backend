@@ -1,18 +1,20 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace LampStoreProjects.Models
 {
     public class ProductVariantModel
     {
-        public int Id { get; set;}
-        public int ProductId { get; set;}
-        public ProductModel? ProductModel{ get; set;}
-        public string? Materials { get; set;}
-        public int Quantity {get; set;}
-        public double OriginalPrice {get; set;}
-        public double Discount {get; set;}
-        public double SalePrice {get; set;}
+        public Guid Id { get; set;}
+        public Guid? ProductId { get; set;}
+        public ProductModel ProductModel{ get; set;} = new ProductModel();
+        [Precision(18, 2)]
+        public decimal Price {get; set;}
+        [Precision(18, 2)]
+        public decimal DiscountPrice {get; set;}
+        public int Stock {get; set;} 
         public double Weight {get; set;}
-        public bool IsAvailable {get; set;}
+        public string Materials { get; set;} = string.Empty;
+        public string SKU {get; set;} = string.Empty;
     }
 }

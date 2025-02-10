@@ -7,9 +7,9 @@ namespace LampStoreProjects.Repositories
     public interface ICartItemRepository
     {
         Task<IEnumerable<CartItemModel>> GetAllAsync();
-        Task<CartItemModel> GetByIdAsync(int id);
+        Task<CartItemModel> GetByIdAsync(Guid id);
         Task AddAsync(CartItemModel CartItemModel);
         Task UpdateAsync(CartItemModel CartItemModel);
-        Task DeleteAsync(int id);
+        Task DeleteAsync(Guid id);
     }
 }

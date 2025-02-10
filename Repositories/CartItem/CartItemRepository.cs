@@ -24,7 +24,7 @@ namespace LampStoreProjects.Repositories
             return _mapper.Map<IEnumerable<CartItemModel>>(CartItem);
         }
 
-        public async Task<CartItemModel> GetByIdAsync(int id)
+        public async Task<CartItemModel> GetByIdAsync(Guid id)
         {
             var CartItem = await _context.CartItems!.FindAsync(id);
             return _mapper.Map<CartItemModel>(CartItem);
@@ -44,7 +44,7 @@ namespace LampStoreProjects.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(Guid id)
         {
             var CartItem = await _context.CartItems!.FindAsync(id);
             if (CartItem != null)

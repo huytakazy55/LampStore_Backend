@@ -4,10 +4,11 @@ namespace LampStoreProjects.Models
 {
     public class VariantValueModel
     {
-        public int Id {get; set;}
-        public int TypeId {get; set;}
+        public Guid Id {get; set;}
+        public Guid? TypeId {get; set;}
         [JsonIgnore]
-        public VariantTypeModel? VariantTypeModel {get; set;}
-        public string? Value {get; set;}
+        public VariantTypeModel VariantTypeModel {get; set;} = new VariantTypeModel();
+        public string Value {get; set;} = string.Empty;
     }
+
 }

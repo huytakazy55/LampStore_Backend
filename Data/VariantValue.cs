@@ -5,11 +5,11 @@ namespace LampStoreProjects.Data
 {
     public class VariantValue
     {
-        public int Id { get; set; }
-        public int TypeId { get; set; }
+        public Guid Id { get; set; }
+        public Guid? TypeId { get; set; }
         [ForeignKey("TypeId")]
         [JsonIgnore]
         public VariantType? VariantType { get; set; }
-        public string? Value { get; set; }
+        public string Value { get; set; } = string.Empty;
     }
 }

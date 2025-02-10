@@ -8,28 +8,25 @@ namespace LampStoreProjects.Data
     public class ProductVariant
     {
         [Key]
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
-        public int ProductId { get; set; }
+        public Guid? ProductId { get; set; }
 
         [ForeignKey("ProductId")]
         [JsonIgnore]
         public Product? Product { get; set; }
-        [Range(0, double.MaxValue)]
+        [Range(0, double.MaxValue )]
         [Required]
-        public double OriginalPrice { get; set; }
-        [Range(0, 100)]
-        public double? Discount { get; set; }
+        public decimal Price { get; set; }
         [Range(0, double.MaxValue)]
-        public double SalePrice { get; set; }
+        public decimal DiscountPrice { get; set; }
         [Range(0, 1000)]
         [Required]
-        public int Quantity { get; set; }
+        public int Stock { get; set; }
         [MaxLength(1000)]
         [Required]
-        public string? Materials { get; set; }
-        public double? Weight { get; set; }
-        public bool IsAvailable { get; set; } = true;
-        public ICollection<VariantType> Types { get; set; } = new List<VariantType>();
+        public string Materials { get; set; } = string.Empty;
+        public double Weight { get; set; }
+        public string SKU { get; set; } = string.Empty;
     }
 }

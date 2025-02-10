@@ -31,7 +31,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpGet("GetUserProfile/{id}")]
-        public async Task<ActionResult<UserProfileModel>> GetUserProfile(int id)
+        public async Task<ActionResult<UserProfileModel>> GetUserProfile(Guid id)
         {
             var userprofile = await _userprofileRepository.GetByIdAsync(id);
             if (userprofile == null)
@@ -42,7 +42,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPost("{id}/UploadAvatar")]
-        public async Task<ActionResult> UploadImage(int id, IFormFile ProfileAvatar)
+        public async Task<ActionResult> UploadImage(Guid id, IFormFile ProfileAvatar)
         {
             try
             {
@@ -112,7 +112,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPut("UpdateUserProfile/{id}")]
-        public async Task<ActionResult> UpdateUserProfile(int id, UserProfileModel userprofileModel)
+        public async Task<ActionResult> UpdateUserProfile(Guid id, UserProfileModel userprofileModel)
         {
             if (id != userprofileModel.Id)
             {
@@ -123,7 +123,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpDelete("DeleteAvatar/{id}")]
-        public async Task<ActionResult> DeleteUserAvatar(int id)
+        public async Task<ActionResult> DeleteUserAvatar(Guid id)
         {
             var userProfile = await _context.UserProfiles!.FirstOrDefaultAsync(p => p.Id == id);
 
@@ -132,7 +132,7 @@ namespace LampStoreProjects.Controllers
                 return NotFound("User not found.");
             }
             var avatarPath = userProfile.ProfileAvatar;
-            userProfile.ProfileAvatar = null;
+            userProfile.ProfileAvatar = "";
 
             _context.UserProfiles!.Update(userProfile);
             await _context.SaveChangesAsync();
@@ -150,7 +150,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpDelete("Delete/{id}")]
-        public async Task<ActionResult> DeleteUserProfile(int id)
+        public async Task<ActionResult> DeleteUserProfile(Guid id)
         {
             await _userprofileRepository.DeleteAsync(id);
             return NoContent();

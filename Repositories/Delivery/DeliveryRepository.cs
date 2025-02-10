@@ -24,7 +24,7 @@ namespace LampStoreProjects.Repositories
             return _mapper.Map<IEnumerable<DeliveryModel>>(Deliveries);
         }
 
-        public async Task<DeliveryModel> GetByIdAsync(int id)
+        public async Task<DeliveryModel> GetByIdAsync(Guid id)
         {
             var Delivery = await _context.Deliveries!.FindAsync(id);
             return _mapper.Map<DeliveryModel>(Delivery);
@@ -44,7 +44,7 @@ namespace LampStoreProjects.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(Guid id)
         {
             var Delivery = await _context.Deliveries!.FindAsync(id);
             if (Delivery != null)

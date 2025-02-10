@@ -1,23 +1,19 @@
-using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace LampStoreProjects.Data
 {
-    [Table("ProductImage")]
-    public class ProductImage
+    public class ProductReview
     {
-        [Key]
         public Guid Id { get; set; }
-
-        [Required]
-        [MaxLength(200)]
-        public string ImagePath { get; set; } = string.Empty;
-
         public Guid? ProductId { get; set; }
-
         [ForeignKey("ProductId")]
         [JsonIgnore]
         public Product? Product { get; set; }
+        public string UserId { get; set; } = string.Empty;
+        public ApplicationUser? User { get; set; }  
+        public decimal Rating { get; set; } = 0;
+        public string Comment { get; set; } = string.Empty;
+        public DateTime CreateAt { get; set; } = DateTime.Now;
     }
 }

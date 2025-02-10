@@ -25,7 +25,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<CartItemModel>> GetCartItem(int id)
+        public async Task<ActionResult<CartItemModel>> GetCartItem(Guid id)
         {
             var cartitem = await _cartitemRepository.GetByIdAsync(id);
             if (cartitem == null)
@@ -43,7 +43,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult> UpdateCartItem(int id, CartItemModel cartitemModel)
+        public async Task<ActionResult> UpdateCartItem(Guid id, CartItemModel cartitemModel)
         {
             if (id != cartitemModel.Id)
             {
@@ -54,7 +54,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult> DeleteCartItem(int id)
+        public async Task<ActionResult> DeleteCartItem(Guid id)
         {
             await _cartitemRepository.DeleteAsync(id);
             return NoContent();

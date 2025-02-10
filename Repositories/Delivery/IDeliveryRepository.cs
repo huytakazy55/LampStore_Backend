@@ -7,9 +7,9 @@ namespace LampStoreProjects.Repositories
     public interface IDeliveryRepository
     {
         Task<IEnumerable<DeliveryModel>> GetAllAsync();
-        Task<DeliveryModel> GetByIdAsync(int id);
+        Task<DeliveryModel> GetByIdAsync(Guid id);
         Task AddAsync(DeliveryModel DeliveryModel);
         Task UpdateAsync(DeliveryModel DeliveryModel);
-        Task DeleteAsync(int id);
+        Task DeleteAsync(Guid id);
     }
 }

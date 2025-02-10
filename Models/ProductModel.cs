@@ -1,46 +1,46 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using LampStoreProjects.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace LampStoreProjects.Models
 {
     public class ProductModel
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
         [MaxLength(100)]
         [Required]
-        public string? Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [MaxLength(1000)]
-        public string? Description { get; set; }
+        public string Description { get; set; } = string.Empty;
 
-        [Range(0, 5)]
-        public int? Rating { get; set; } = 5;
+        public int ReviewCount { get; set; } = 0;
 
-        public int? ReviewCount { get; set; } = 0;
-
-        public string? Tags { get; set; }
+        public string Tags { get; set; } = string.Empty;
         
-        public int? ViewCount { get; set; } = 0;
+        public int ViewCount { get; set; } = 0;
 
-        public int? Favorites { get; set; } = 0;
+        public int Favorites { get; set; } = 0;
 
-        public int? SellCount { get; set; } = 0;
+        public int SellCount { get; set; } = 0;
 
-        public int? CategoryId { get; set; }
+        public Guid? CategoryId { get; set; }
 
         public DateTime DateAdded { get; set; } = DateTime.Now;
+        public int Status { get; set; } = 1;
 
-        public bool IsAvailable { get; set; } = true;
         [JsonIgnore]
         public ICollection<ProductImageModel> Images { get; set; } = new List<ProductImageModel>();
         [JsonIgnore]
         public ICollection<ProductVariantModel> Variants { get; set; } = new List<ProductVariantModel>();
-        public double? MinPrice { get; set; }
-        public double? MaxPrice { get; set; }
-        public int? Quantity { get; set; }
+        [Precision(18, 2)]
+        public decimal MinPrice { get; set; }
+        [Precision(18, 2)]
+        public decimal MaxPrice { get; set; }
     }
 }

@@ -25,7 +25,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<DeliveryModel>> GetDelivery(int id)
+        public async Task<ActionResult<DeliveryModel>> GetDelivery(Guid id)
         {
             var delivery = await _deliveryRepository.GetByIdAsync(id);
             if (delivery == null)
@@ -43,7 +43,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult> UpdateDelivery(int id, DeliveryModel deliveryModel)
+        public async Task<ActionResult> UpdateDelivery(Guid id, DeliveryModel deliveryModel)
         {
             if (id != deliveryModel.Id)
             {
@@ -54,7 +54,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult> DeleteDelivery(int id)
+        public async Task<ActionResult> DeleteDelivery(Guid id)
         {
             await _deliveryRepository.DeleteAsync(id);
             return NoContent();

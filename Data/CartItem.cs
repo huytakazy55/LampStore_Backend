@@ -6,11 +6,11 @@ namespace LampStoreProjects.Data
 {
     public class CartItem
     {
-        public int Id { get; set; }
-        public int CartId { get; set; }
+        public Guid Id { get; set; }
+        public Guid? CartId { get; set; }
         [ForeignKey("CartId")]
         public Cart? Cart { get; set; }
-        public int ProductId { get; set; }
+        public Guid? ProductId { get; set; }
         [ForeignKey("ProductId")]
         public Product? Product { get; set; }
         public int Quantity { get; set; }

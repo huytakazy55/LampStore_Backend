@@ -5,8 +5,8 @@ namespace LampStoreProjects.Models
     public class DeliveryModel
     {
         [Key]
-        public int Id { get; set; }
-        public int OrderId { get; set; }
+        public Guid Id { get; set; }
+        public Guid? OrderId { get; set; }
         public DateTime DeliveryDate { get; set; }
         public string? DeliveryStatus { get; set; }
     }

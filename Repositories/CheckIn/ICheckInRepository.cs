@@ -7,9 +7,9 @@ namespace LampStoreProjects.Repositories
     public interface ICheckInRepository
     {
         Task<IEnumerable<CheckInModel>> GetAllAsync();
-        Task<CheckInModel> GetByIdAsync(int id);
+        Task<CheckInModel> GetByIdAsync(Guid id);
         Task AddAsync(CheckInModel CheckInModel);
         Task UpdateAsync(CheckInModel CheckInModel);
-        Task DeleteAsync(int id);
+        Task DeleteAsync(Guid id);
     }
 }

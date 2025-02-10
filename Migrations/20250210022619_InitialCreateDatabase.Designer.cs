@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LampStoreProjects.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20241031033253_InittialCreateDatabase")]
-    partial class InittialCreateDatabase
+    [Migration("20250210022619_InitialCreateDatabase")]
+    partial class InitialCreateDatabase
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -92,11 +92,9 @@ namespace LampStoreProjects.Migrations
 
             modelBuilder.Entity("LampStoreProjects.Data.Cart", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("UserId")
                         .HasColumnType("nvarchar(450)");
@@ -110,17 +108,15 @@ namespace LampStoreProjects.Migrations
 
             modelBuilder.Entity("LampStoreProjects.Data.CartItem", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("uniqueidentifier");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    b.Property<Guid?>("CartId")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("CartId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("ProductId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
@@ -130,20 +126,20 @@ namespace LampStoreProjects.Migrations
                     b.HasIndex("CartId");
 
                     b.HasIndex("ProductId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[ProductId] IS NOT NULL");
 
                     b.ToTable("CartItems");
                 });
 
             modelBuilder.Entity("LampStoreProjects.Data.Category", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Description")
+                        .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
@@ -159,16 +155,15 @@ namespace LampStoreProjects.Migrations
 
             modelBuilder.Entity("LampStoreProjects.Data.CheckIn", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CheckInDate")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Location")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("UserId")
@@ -183,20 +178,19 @@ namespace LampStoreProjects.Migrations
 
             modelBuilder.Entity("LampStoreProjects.Data.Delivery", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("DeliveryDate")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("DeliveryStatus")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("OrderId")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
@@ -207,19 +201,19 @@ namespace LampStoreProjects.Migrations
 
             modelBuilder.Entity("LampStoreProjects.Data.Order", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("OrderDate")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Status")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("UserId")
+                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
@@ -231,20 +225,19 @@ namespace LampStoreProjects.Migrations
 
             modelBuilder.Entity("LampStoreProjects.Data.OrderItem", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("uniqueidentifier");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("OrderId")
-                        .HasColumnType("int");
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
 
-                    b.Property<double>("Price")
-                        .HasColumnType("float");
-
-                    b.Property<int?>("ProductId")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("ProductId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
@@ -260,62 +253,44 @@ namespace LampStoreProjects.Migrations
 
             modelBuilder.Entity("LampStoreProjects.Data.Product", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("uniqueidentifier");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("CategoryId")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("DateAdded")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
+                        .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<double?>("Discount")
-                        .HasColumnType("float");
-
-                    b.Property<int?>("Favorites")
+                    b.Property<int>("Favorites")
                         .HasColumnType("int");
-
-                    b.Property<bool>("IsAvailable")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Materials")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<double>("OriginalPrice")
-                        .HasColumnType("float");
-
-                    b.Property<double>("Price")
-                        .HasColumnType("float");
-
-                    b.Property<int>("Quantity")
+                    b.Property<int>("ReviewCount")
                         .HasColumnType("int");
 
-                    b.Property<int?>("Rating")
+                    b.Property<int>("SellCount")
                         .HasColumnType("int");
 
-                    b.Property<int?>("ReviewCount")
+                    b.Property<int>("Status")
                         .HasColumnType("int");
 
                     b.Property<string>("Tags")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("ViewCount")
+                    b.Property<int>("ViewCount")
                         .HasColumnType("int");
-
-                    b.Property<double?>("Weight")
-                        .HasColumnType("float");
 
                     b.HasKey("Id");
 
@@ -326,19 +301,17 @@ namespace LampStoreProjects.Migrations
 
             modelBuilder.Entity("LampStoreProjects.Data.ProductImage", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ImagePath")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("ProductId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
@@ -347,13 +320,83 @@ namespace LampStoreProjects.Migrations
                     b.ToTable("ProductImage");
                 });
 
-            modelBuilder.Entity("LampStoreProjects.Data.UserProfile", b =>
+            modelBuilder.Entity("LampStoreProjects.Data.ProductReview", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Comment")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreateAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Rating")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ProductReviews");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.ProductVariant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("DiscountPrice")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("Materials")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<Guid?>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SKU")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Stock")
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    b.Property<double>("Weight")
+                        .HasColumnType("float");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("ProductVariant");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.UserProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Address")
                         .IsRequired()
@@ -376,18 +419,59 @@ namespace LampStoreProjects.Migrations
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("ProfileAvatar")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("UserId")
+                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("UserId")
-                        .IsUnique()
-                        .HasFilter("[UserId] IS NOT NULL");
+                        .IsUnique();
 
                     b.ToTable("UserProfiles");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.VariantType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("VariantTypes");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.VariantValue", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("TypeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TypeId");
+
+                    b.ToTable("VariantValues");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -538,14 +622,11 @@ namespace LampStoreProjects.Migrations
                     b.HasOne("LampStoreProjects.Data.Cart", "Cart")
                         .WithMany("CartItems")
                         .HasForeignKey("CartId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("LampStoreProjects.Data.Product", "Product")
                         .WithOne("CartItem")
-                        .HasForeignKey("LampStoreProjects.Data.CartItem", "ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("LampStoreProjects.Data.CartItem", "ProductId");
 
                     b.Navigation("Cart");
 
@@ -567,8 +648,7 @@ namespace LampStoreProjects.Migrations
                     b.HasOne("LampStoreProjects.Data.Order", "Order")
                         .WithMany("Deliveries")
                         .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Order");
                 });
@@ -578,7 +658,8 @@ namespace LampStoreProjects.Migrations
                     b.HasOne("ApplicationUser", "User")
                         .WithMany("Orders")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });
@@ -588,8 +669,7 @@ namespace LampStoreProjects.Migrations
                     b.HasOne("LampStoreProjects.Data.Order", "Order")
                         .WithMany("OrderItems")
                         .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("LampStoreProjects.Data.Product", "Product")
                         .WithMany("OrderItems")
@@ -616,8 +696,35 @@ namespace LampStoreProjects.Migrations
                     b.HasOne("LampStoreProjects.Data.Product", "Product")
                         .WithMany("Images")
                         .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.ProductReview", b =>
+                {
+                    b.HasOne("LampStoreProjects.Data.Product", "Product")
+                        .WithMany("ProductReviews")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.ProductVariant", b =>
+                {
+                    b.HasOne("LampStoreProjects.Data.Product", "Product")
+                        .WithMany("Variants")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Product");
                 });
@@ -627,9 +734,30 @@ namespace LampStoreProjects.Migrations
                     b.HasOne("ApplicationUser", "User")
                         .WithOne()
                         .HasForeignKey("LampStoreProjects.Data.UserProfile", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.VariantType", b =>
+                {
+                    b.HasOne("LampStoreProjects.Data.Product", "Product")
+                        .WithMany("Types")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.VariantValue", b =>
+                {
+                    b.HasOne("LampStoreProjects.Data.VariantType", "VariantType")
+                        .WithMany("Values")
+                        .HasForeignKey("TypeId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("VariantType");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -716,6 +844,17 @@ namespace LampStoreProjects.Migrations
                     b.Navigation("Images");
 
                     b.Navigation("OrderItems");
+
+                    b.Navigation("ProductReviews");
+
+                    b.Navigation("Types");
+
+                    b.Navigation("Variants");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.VariantType", b =>
+                {
+                    b.Navigation("Values");
                 });
 #pragma warning restore 612, 618
         }

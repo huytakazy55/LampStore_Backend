@@ -25,7 +25,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<OrderModel>> GetOrder(int id)
+        public async Task<ActionResult<OrderModel>> GetOrder(Guid id)
         {
             var order = await _orderRepository.GetByIdAsync(id);
             if (order == null)
@@ -43,7 +43,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult> UpdateOrder(int id, OrderModel orderModel)
+        public async Task<ActionResult> UpdateOrder(Guid id, OrderModel orderModel)
         {
             if (id != orderModel.Id)
             {
@@ -54,7 +54,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult> DeleteOrder(int id)
+        public async Task<ActionResult> DeleteOrder(Guid id)
         {
             await _orderRepository.DeleteAsync(id);
             return NoContent();

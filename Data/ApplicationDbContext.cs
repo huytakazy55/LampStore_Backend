@@ -15,6 +15,7 @@ namespace LampStoreProjects.Data
         public DbSet<ProductVariant>? ProductVariants { get; set;}
         public DbSet<VariantType>? VariantTypes { get; set; }
         public DbSet<VariantValue>? VariantValues { get; set; }
+        public DbSet<ProductReview>? ProductReviews { get; set; }
         public DbSet<Category>? Categories { get; set; }
         public DbSet<Order>? Orders { get; set; }
         public DbSet<OrderItem>? OrderItems { get; set; }
@@ -39,11 +40,18 @@ namespace LampStoreProjects.Data
                 .WithMany(l => l.Variants)
                 .HasForeignKey(li => li.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
+            
+            modelBuilder.Entity<ProductVariant>()
+                .Property(o => o.DiscountPrice)
+                .HasPrecision(18, 4);
+            modelBuilder.Entity<ProductVariant>()
+                .Property(p => p.Price)
+                .HasPrecision(18, 4);
 
             modelBuilder.Entity<VariantType>()
-                .HasOne(li => li.ProductVariant)
+                .HasOne(li => li.Product)
                 .WithMany(l => l.Types)
-                .HasForeignKey(li => li.ProductVariantId)
+                .HasForeignKey(li => li.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<VariantValue>()
@@ -51,6 +59,16 @@ namespace LampStoreProjects.Data
                 .WithMany(l => l.Values)
                 .HasForeignKey(li => li.TypeId)
                 .OnDelete(DeleteBehavior.Cascade);
+            
+            modelBuilder.Entity<ProductReview>()
+                .HasOne(li => li.Product)
+                .WithMany(l => l.ProductReviews)
+                .HasForeignKey(li => li.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ProductReview>()
+                .Property(o => o.Rating)
+                .HasPrecision(18, 4);
 
             modelBuilder.Entity<Product>()
                 .HasOne(l => l.Category)
@@ -97,8 +115,12 @@ namespace LampStoreProjects.Data
             modelBuilder.Entity<OrderItem>()
                 .HasOne(i => i.Order)
                 .WithMany(o => o.OrderItems)
-                .HasForeignKey(i => i.OrderId)
+                .HasForeignKey(i => i.OrderId)                
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<OrderItem>()
+                .Property(o => o.Price)
+                .HasPrecision(18, 4);
 
             modelBuilder.Entity<OrderItem>()
                 .HasOne(l => l.Product)

@@ -25,7 +25,7 @@ namespace LampStoreProjects.Repositories
             return _mapper.Map<IEnumerable<OrderModel>>(Orders);
         }
 
-        public async Task<OrderModel> GetByIdAsync(int id)
+        public async Task<OrderModel> GetByIdAsync(Guid id)
         {
             var Order = await _context.Orders!.FindAsync(id);
             return _mapper.Map<OrderModel>(Order);
@@ -45,7 +45,7 @@ namespace LampStoreProjects.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(Guid id)
         {
             var Order = await _context.Orders!.FindAsync(id);
             if (Order != null)

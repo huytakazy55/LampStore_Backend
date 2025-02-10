@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using System.IO;
 using System;
 using Microsoft.EntityFrameworkCore;
+using LampStoreProjects.DTOs;
 
 namespace LampStoreProjects.Controllers
 {
@@ -35,7 +36,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<ProductModel>> GetProductById(int id)
+        public async Task<ActionResult<ProductModel>> GetProductById(Guid id)
         {
             var product = await _productRepository.GetProductByIdAsync(id);
             if (product == null)
@@ -46,7 +47,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpGet("VariantType/{id}")]
-        public async Task<ActionResult<VariantTypeModel>> GetVariantTypeById(int id)
+        public async Task<ActionResult<VariantTypeModel>> GetVariantTypeById(Guid id)
         {
             var variantType = await _productRepository.GetVariantTypeByIdAsync(id);
             if (variantType == null)
@@ -57,7 +58,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpGet("VariantValue/{id}")]
-        public async Task<ActionResult<VariantValueModel>> GetVariantValueById(int id)
+        public async Task<ActionResult<VariantValueModel>> GetVariantValueById(Guid id)
         {
             var variantvalue = await _productRepository.GetVariantValueByIdAsync(id);
             if(variantvalue == null)
@@ -68,7 +69,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpGet("{id}/images")]
-        public async Task<ActionResult<List<ProductImageModel>>> GetProductImagesByProductId(int id)
+        public async Task<ActionResult<List<ProductImageModel>>> GetProductImagesByProductId(Guid id)
         {
             var images = await _productRepository.GetProductImageByIdAsync(id);
 
@@ -80,29 +81,15 @@ namespace LampStoreProjects.Controllers
             return Ok(images);
         }
 
-        [HttpPost]
-        public async Task<ActionResult<ProductModel>> AddProduct([FromBody] ProductModel product)
+        [HttpPost("CreateProduct")]
+        public async Task<IActionResult> CreateProduct([FromBody] ProductCreateDto productDto)
         {
-            var newProduct = await _productRepository.AddProductAsync(product);
-            return CreatedAtAction(nameof(GetProductById), new { id = newProduct.Id }, newProduct);
-        }
-
-        [HttpPost("AddVariantType")]
-        public async Task<ActionResult<VariantTypeModel>> AddVariantTypeAsync([FromBody] VariantTypeModel variantType)
-        {
-            var newVariantType = await _productRepository.AddVariantTypeAsync(variantType);
-            return CreatedAtAction(nameof(GetVariantTypeById), new { id = newVariantType.Id }, newVariantType);
-        }
-
-        [HttpPost("AddVariantValue")]
-        public async Task<ActionResult<VariantValueModel>> AddVariantValueAsync([FromBody] VariantValueModel variantValue)
-        {
-            var newVariantValue = await _productRepository.AddVariantValueAsync(variantValue);
-            return CreatedAtAction(nameof(GetVariantValueById), new {id = newVariantValue.Id} , newVariantValue);
+            var createdProduct = await _productRepository.CreateProductAsync(productDto);
+            return CreatedAtAction(nameof(CreateProduct), new { id = createdProduct.Id }, createdProduct);
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<ProductModel>> UpdateProduct(int id, [FromBody] ProductModel product)
+        public async Task<ActionResult<ProductModel>> UpdateProduct(Guid id, [FromBody] ProductModel product)
         {
             if (id != product.Id)
             {
@@ -113,14 +100,14 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult> DeleteProduct(int id)
+        public async Task<ActionResult> DeleteProduct(Guid id)
         {
             await _productRepository.DeleteProductAsync(id);
             return NoContent();
         }
 
         [HttpDelete("image/{imageId}")]
-        public async Task<ActionResult> DeleteProductImage(int imageId)
+        public async Task<ActionResult> DeleteProductImage(Guid imageId)
         {
             var productImage = await _context.ProductImages!.FirstOrDefaultAsync(x => x.Id == imageId);
             if (productImage == null)
@@ -143,7 +130,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPost("{productId}/images")]
-        public async Task<ActionResult> UploadImages(int productId, List<IFormFile> imageFiles)
+        public async Task<ActionResult> UploadImages(Guid productId, List<IFormFile> imageFiles)
         {
             const int MAX_IMAGES = 5;
             try

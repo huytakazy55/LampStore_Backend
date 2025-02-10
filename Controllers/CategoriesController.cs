@@ -25,7 +25,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<CategoryModel>> GetCategory(int id)
+        public async Task<ActionResult<CategoryModel>> GetCategory(Guid id)
         {
             var category = await _categoryRepository.GetByIdAsync(id);
             if (category == null)
@@ -43,7 +43,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult> UpdateCategory(int id, CategoryModel categoryModel)
+        public async Task<ActionResult> UpdateCategory(Guid id, CategoryModel categoryModel)
         {
             if (id != categoryModel.Id)
             {
@@ -54,7 +54,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult> DeleteCategory(int id)
+        public async Task<ActionResult> DeleteCategory(Guid id)
         {
             await _categoryRepository.DeleteAsync(id);
             return NoContent();

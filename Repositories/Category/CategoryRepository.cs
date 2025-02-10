@@ -24,7 +24,7 @@ namespace LampStoreProjects.Repositories
             return _mapper.Map<IEnumerable<CategoryModel>>(categories);
         }
 
-        public async Task<CategoryModel> GetByIdAsync(int id)
+        public async Task<CategoryModel> GetByIdAsync(Guid id)
         {
             var category = await _context.Categories!.FindAsync(id);
             return _mapper.Map<CategoryModel>(category);
@@ -44,7 +44,7 @@ namespace LampStoreProjects.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(Guid id)
         {
             var category = await _context.Categories!.FindAsync(id);
             if (category != null)

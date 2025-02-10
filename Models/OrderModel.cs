@@ -5,9 +5,9 @@ namespace LampStoreProjects.Models
     public class OrderModel
     {
         [Key]
-        public int Id { get; set; }
-        public string? UserId { get; set; }
+        public Guid Id { get; set; }
+        public string UserId { get; set; } = string.Empty;
         public DateTime OrderDate { get; set; }
-        public string? Status { get; set; }
+        public string Status { get; set; } = string.Empty;
     }
 }

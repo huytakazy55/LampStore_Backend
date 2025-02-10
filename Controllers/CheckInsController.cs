@@ -25,7 +25,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<CheckInModel>> GetCheckIn(int id)
+        public async Task<ActionResult<CheckInModel>> GetCheckIn(Guid id)
         {
             var checkin = await _checkinRepository.GetByIdAsync(id);
             if (checkin == null)
@@ -43,7 +43,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult> UpdateCheckIn(int id, CheckInModel checkinModel)
+        public async Task<ActionResult> UpdateCheckIn(Guid id, CheckInModel checkinModel)
         {
             if (id != checkinModel.Id)
             {
@@ -54,7 +54,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult> DeleteCheckIn(int id)
+        public async Task<ActionResult> DeleteCheckIn(Guid id)
         {
             await _checkinRepository.DeleteAsync(id);
             return NoContent();
