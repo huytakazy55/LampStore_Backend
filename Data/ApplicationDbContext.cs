@@ -15,7 +15,7 @@ namespace LampStoreProjects.Data
         public DbSet<ProductVariant>? ProductVariants { get; set;}
         public DbSet<VariantType>? VariantTypes { get; set; }
         public DbSet<VariantValue>? VariantValues { get; set; }
-        public DbSet<ProductVariantValue>? productVariantValues { get; set; }
+        public DbSet<ProductVariantValue>? ProductVariantValues { get; set; }
         public DbSet<ProductReview>? ProductReviews { get; set; }
         public DbSet<Category>? Categories { get; set; }
         public DbSet<Order>? Orders { get; set; }

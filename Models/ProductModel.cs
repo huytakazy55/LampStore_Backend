@@ -33,14 +33,13 @@ namespace LampStoreProjects.Models
 
         public DateTime DateAdded { get; set; } = DateTime.Now;
         public int Status { get; set; } = 1;
-
         [JsonIgnore]
         public ICollection<ProductImageModel> Images { get; set; } = new List<ProductImageModel>();
         [JsonIgnore]
         public ICollection<ProductVariantModel> Variants { get; set; } = new List<ProductVariantModel>();
         [Precision(18, 2)]
-        public decimal MinPrice { get; set; }
+        public decimal? MinPrice { get; set; }
         [Precision(18, 2)]
-        public decimal MaxPrice { get; set; }
+        public decimal? MaxPrice { get; set; }
     }
 }

@@ -8,6 +8,9 @@ using LampStoreProjects.Repositories;
 using System.Text;
 using Microsoft.Data.SqlClient;
 using System.Data;
+using Serilog;
+using Serilog.Formatting.Json;
+using Microsoft.AspNetCore.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -96,7 +99,42 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "LampStore API", Version = "v1" });
 });
 
+// Cai dat ghi log
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Error()
+    .WriteTo.Console(new JsonFormatter()) // Hiển thị log dạng JSON trong console
+    .WriteTo.File(new JsonFormatter(), "Logs/errors.json", rollingInterval: RollingInterval.Day) // Ghi log JSON vào file
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+
 var app = builder.Build();
+
+// Middleware bắt lỗi toàn cục
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+        if (exception != null)
+        {
+            context.Response.StatusCode = 500;
+            context.Response.ContentType = "application/json";
+
+            var errorResponse = new
+            {
+                Message = "Có lỗi xảy ra trên server!",
+                Error = exception.Message,
+                StackTrace = exception.StackTrace
+            };
+
+            await context.Response.WriteAsJsonAsync(errorResponse);
+
+            // Ghi log lỗi có format JSON đẹp
+            Log.Error("{@Error}", errorResponse);
+        }
+    });
+});
 
 if (app.Environment.IsDevelopment())
 {
@@ -114,6 +152,7 @@ else
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
+
 
 app.UseCors(apiCorsPolicy);
 app.UseHttpsRedirection();

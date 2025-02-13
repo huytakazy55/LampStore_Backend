@@ -30,10 +30,15 @@ namespace LampStoreProjects.Repositories
                     Name = p.Name,
                     Description = p.Description,
                     CategoryId = p.CategoryId,
+                    Tags = p.Tags,
+                    ViewCount = p.ViewCount,
+                    Favorites = p.Favorites,
+                    SellCount = p.SellCount,
+                    Status = p.Status,                    
                     DateAdded = p.DateAdded,
                     Images = p.Images.Select(i => new ProductImageModel { ImagePath = i.ImagePath }).ToList(),
                     MinPrice = p.Variants.Min(v => v.DiscountPrice),
-                    MaxPrice = p.Variants.Max(v => v.DiscountPrice),
+                    MaxPrice = p.Variants.Max(v => v.Price)
 
                 })
                 .ToListAsync();
@@ -82,6 +87,9 @@ namespace LampStoreProjects.Repositories
                 await _context.Products!.AddAsync(product);
                 await _context.SaveChangesAsync(); // Lưu để có ID cho các liên kết sau
 
+                // Thêm Variant Types và Variant Values
+                var allVariantValues = new List<VariantValue>();
+
                 // Thêm Variant Types
                 var variantTypes = new List<VariantType>();
                 foreach (var variantDto in productDto.VariantTypes)
@@ -102,6 +110,8 @@ namespace LampStoreProjects.Repositories
 
                     await _context.VariantValues!.AddRangeAsync(variantValues);
                     await _context.SaveChangesAsync();
+
+                    allVariantValues.AddRange(variantValues);
                 }
 
                 // Thêm Product Variants
@@ -117,6 +127,32 @@ namespace LampStoreProjects.Repositories
                 }).ToList();
 
                 await _context.ProductVariants!.AddRangeAsync(productVariants);
+                await _context.SaveChangesAsync();
+
+                // Lấy danh sách ProductVariants vừa được lưu
+                var savedProductVariants = await _context.ProductVariants
+                    .Where(pv => pv.ProductId == product.Id)
+                    .ToListAsync();
+
+                // Lấy danh sách VariantValues đã lưu
+                var savedVariantValues = allVariantValues;
+
+                // Tạo danh sách ProductVariantValues với tất cả ProductVariant và VariantValue phù hợp
+                var productVariantValues = new List<ProductVariantValue>();
+
+                foreach (var productVariant in savedProductVariants)
+                {
+                    foreach (var variantValue in savedVariantValues)
+                    {
+                        productVariantValues.Add(new ProductVariantValue
+                        {
+                            ProductVariantId = productVariant.Id,
+                            VariantValueId = variantValue.Id
+                        });
+                    }
+                }
+
+                await _context.ProductVariantValues!.AddRangeAsync(productVariantValues);
                 await _context.SaveChangesAsync();
 
                 // Commit transaction
