@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace LampStoreProjects.Models
@@ -7,6 +8,7 @@ namespace LampStoreProjects.Models
     {
         public Guid Id { get; set;}
         public Guid? ProductId { get; set;}
+        [JsonIgnore]
         public ProductModel ProductModel{ get; set;} = new ProductModel();
         [Precision(18, 2)]
         public decimal Price {get; set;}

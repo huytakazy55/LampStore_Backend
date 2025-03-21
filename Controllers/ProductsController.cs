@@ -46,6 +46,17 @@ namespace LampStoreProjects.Controllers
             return Ok(product);
         }
 
+        [HttpGet("Variant/{id}")]
+        public async Task<ActionResult<IEnumerable<ProductVariantModel>>> GetProductVariantById(Guid id)
+        {
+            var variant = await _productRepository.GetProductVariantByIdAsync(id);
+            if(variant == null)
+            {
+                return NotFound();
+            }
+            return Ok(variant);
+        }
+
         [HttpGet("VariantType/{id}")]
         public async Task<ActionResult<VariantTypeModel>> GetVariantTypeById(Guid id)
         {

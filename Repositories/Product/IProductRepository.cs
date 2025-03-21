@@ -9,9 +9,10 @@ namespace LampStoreProjects.Repositories
     {
         Task<IEnumerable<ProductModel>> GetAllProductAsync();
         Task<ProductModel> GetProductByIdAsync(Guid id);
+        Task<ProductVariantModel> GetProductVariantByIdAsync(Guid id);
         Task<List<ProductImageModel>?> GetProductImageByIdAsync(Guid id);
-        Task<VariantTypeModel> GetVariantTypeByIdAsync(Guid id);
-        Task<VariantValueModel> GetVariantValueByIdAsync(Guid id);
+        Task<List<VariantTypeModel>> GetVariantTypeByIdAsync(Guid id);
+        Task<List<string>> GetVariantValueByIdAsync(Guid id);
         Task<ProductModel> CreateProductAsync(ProductCreateDto productDto);
         Task<ProductModel> UpdateProductAsync(ProductModel ProductModel);
         Task DeleteImageProductAsync(Guid imageId);

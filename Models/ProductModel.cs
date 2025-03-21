@@ -32,7 +32,7 @@ namespace LampStoreProjects.Models
         public Guid? CategoryId { get; set; }
 
         public DateTime DateAdded { get; set; } = DateTime.Now;
-        public int Status { get; set; } = 1;
+        public bool Status { get; set; } = false;
         [JsonIgnore]
         public ICollection<ProductImageModel> Images { get; set; } = new List<ProductImageModel>();
         [JsonIgnore]
@@ -41,5 +41,7 @@ namespace LampStoreProjects.Models
         public decimal? MinPrice { get; set; }
         [Precision(18, 2)]
         public decimal? MaxPrice { get; set; }
+
+        public int Stock {get;set;}
     }
 }
