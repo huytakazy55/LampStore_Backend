@@ -2,8 +2,6 @@ using AutoMapper;
 using LampStoreProjects.Models;
 using LampStoreProjects.Data;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using LampStoreProjects.DTOs;
 
 namespace LampStoreProjects.Repositories
@@ -23,7 +21,7 @@ namespace LampStoreProjects.Repositories
         {
             var products = await _context.Products!
                 .Include(p => p.Images)
-                .Include(p => p.Variants)
+                .Include(p => p.ProductVariants)
                 .Select(p => new ProductModel
                 {
                     Id = p.Id,
@@ -37,9 +35,9 @@ namespace LampStoreProjects.Repositories
                     Status = p.Status,                    
                     DateAdded = p.DateAdded,
                     Images = p.Images.Select(i => new ProductImageModel { ImagePath = i.ImagePath }).ToList(),
-                    MinPrice = p.Variants.Min(v => v.DiscountPrice),
-                    MaxPrice = p.Variants.Max(v => v.Price),
-                    Stock = p.Variants.Sum(s => s.Stock)
+                    MinPrice = p.ProductVariants.Min(v => v.DiscountPrice),
+                    MaxPrice = p.ProductVariants.Max(v => v.Price),
+                    Stock = p.ProductVariants.Sum(s => s.Stock)
                 })
                 .ToListAsync();
 
@@ -178,25 +176,22 @@ namespace LampStoreProjects.Repositories
             }
         }
 
-
-        public async Task<ProductModel> UpdateProductAsync(int productId, ProductCreateDto productDto)
+        public async Task<ProductModel> UpdateProductAsync(Guid productId, ProductUpdateDto productDto)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var product = await _context.Products
-                    .Include(p => p.VariantTypes)
-                    .ThenInclude(vt => vt.VariantValues)
-                    .Include(p => p.ProductVariants)
-                    .ThenInclude(pv => pv.ProductVariantValues)
-                    .FirstOrDefaultAsync(p => p.Id == productId);
+                var product = await _context.Products!
+                .Include(p => p.VariantTypes)
+                    .ThenInclude(vt => vt.Values)
+                .Include(p => p.ProductVariants)
+                .FirstOrDefaultAsync(p => p.Id == productId);
 
                 if (product == null)
                     throw new KeyNotFoundException("Product not found");
 
                 // Cập nhật thông tin sản phẩm
                 _mapper.Map(productDto, product);
-                product.DateUpdated = DateTime.UtcNow;
                 _context.Products!.Update(product);
                 await _context.SaveChangesAsync();
 
@@ -238,7 +233,7 @@ namespace LampStoreProjects.Repositories
                         await _context.SaveChangesAsync();
 
                         // Xóa các Variant Value cũ không còn trong danh sách mới
-                        var existingValues = existingVariantType.VariantValues.ToList();
+                        var existingValues = existingVariantType.Values.ToList();
                         var newValues = variantDto.Values.ToList();
 
                         var valuesToRemove = existingValues.Where(ev => !newValues.Contains(ev.Value)).ToList();
@@ -255,7 +250,7 @@ namespace LampStoreProjects.Repositories
                         await _context.VariantValues.AddRangeAsync(valuesToAdd);
                         await _context.SaveChangesAsync();
 
-                        allVariantValues.AddRange(existingVariantType.VariantValues);
+                        allVariantValues.AddRange(existingVariantType.Values);
                     }
                 }
 

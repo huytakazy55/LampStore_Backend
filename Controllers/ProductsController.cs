@@ -100,13 +100,13 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<ProductModel>> UpdateProduct(Guid id, [FromBody] ProductModel product)
+        public async Task<ActionResult<ProductModel>> UpdateProduct(Guid Id, [FromBody] ProductUpdateDto productDto)
         {
-            if (id != product.Id)
+            if (Id != productDto.Id)
             {
                 return BadRequest();
             }
-            await _productRepository.UpdateProductAsync(product);
+            await _productRepository.UpdateProductAsync(Id, productDto);
             return NoContent();
         }
 

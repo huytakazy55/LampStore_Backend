@@ -38,7 +38,7 @@ namespace LampStoreProjects.Data
 
             modelBuilder.Entity<ProductVariant>()
                 .HasOne(li => li.Product)
-                .WithMany(l => l.Variants)
+                .WithMany(l => l.ProductVariants)
                 .HasForeignKey(li => li.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
             
@@ -51,7 +51,7 @@ namespace LampStoreProjects.Data
 
             modelBuilder.Entity<VariantType>()
                 .HasOne(li => li.Product)
-                .WithMany(l => l.Types)
+                .WithMany(l => l.VariantTypes)
                 .HasForeignKey(li => li.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
 
