@@ -14,7 +14,7 @@ namespace LampStoreProjects.DTOs
         public int SellCount { get; set; } = 0;
         public Guid? CategoryId { get; set; }
         public DateTime DateAdded { get; set; } = DateTime.Now;
-        public int Status {get; set; } = 1;
+        public bool Status {get; set; } = true;
         public List<ProductVariantDto> ProductVariants { get; set; } = new List<ProductVariantDto>(); 
         public List<VariantTypeDto> VariantTypes { get; set; } = new List<VariantTypeDto>();
     }

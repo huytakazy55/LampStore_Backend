@@ -6,20 +6,14 @@ using LampStoreProjects.DTOs;
 
 namespace LampStoreProjects.Repositories
 {
-    public class ProductRepository : IProductRepository
+    public class ProductRepository(ApplicationDbContext context, IMapper mapper) : IProductRepository
     {
-        private readonly ApplicationDbContext _context;
-        private readonly IMapper _mapper;
-
-        public ProductRepository(ApplicationDbContext context, IMapper mapper)
-        {
-            _context = context;
-            _mapper = mapper;
-        }
+        private readonly ApplicationDbContext _context = context;
+        private readonly IMapper _mapper = mapper;
 
         public async Task<IEnumerable<ProductModel>> GetAllProductAsync()
         {
-            var products = await _context.Products!
+            return await _context.Products!
                 .Include(p => p.Images)
                 .Include(p => p.ProductVariants)
                 .Select(p => new ProductModel
@@ -34,14 +28,17 @@ namespace LampStoreProjects.Repositories
                     SellCount = p.SellCount,
                     Status = p.Status,                    
                     DateAdded = p.DateAdded,
-                    Images = p.Images.Select(i => new ProductImageModel { ImagePath = i.ImagePath }).ToList(),
+                    Images = p.Images.Select(i => new ProductImageModel 
+                    { 
+                        Id = i.Id,
+                        ImagePath = i.ImagePath,
+                        ProductId = i.ProductId
+                    }).ToList(),
                     MinPrice = p.ProductVariants.Min(v => v.DiscountPrice),
                     MaxPrice = p.ProductVariants.Max(v => v.Price),
                     Stock = p.ProductVariants.Sum(s => s.Stock)
                 })
                 .ToListAsync();
-
-            return _mapper.Map<IEnumerable<ProductModel>>(products);
         }
 
         public async Task<ProductModel> GetProductByIdAsync(Guid id)
@@ -89,87 +86,74 @@ namespace LampStoreProjects.Repositories
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // Thêm sản phẩm
-                var product = _mapper.Map<Product>(productDto);
-                product.DateAdded = DateTime.UtcNow;
+                // Tạo sản phẩm mới
+                var product = new Product
+                {
+                    Id = Guid.NewGuid(),
+                    Name = productDto.Name,
+                    Description = productDto.Description,
+                    ReviewCount = productDto.ReviewCount,
+                    Tags = productDto.Tags,
+                    ViewCount = productDto.ViewCount,
+                    Favorites = productDto.Favorites,
+                    SellCount = productDto.SellCount,
+                    CategoryId = productDto.CategoryId,
+                    DateAdded = productDto.DateAdded,
+                    Status = productDto.Status == 1,
+                };
 
                 await _context.Products!.AddAsync(product);
-                await _context.SaveChangesAsync(); // Lưu để có ID cho các liên kết sau
 
-                // Thêm Variant Types và Variant Values
-                var allVariantValues = new List<VariantValue>();
-
-                // Thêm Variant Types
-                var variantTypes = new List<VariantType>();
-                foreach (var variantDto in productDto.VariantTypes)
+                // Xử lý các loại biến thể (VariantType)
+                foreach (var variantTypeDto in productDto.VariantTypes)
                 {
                     var variantType = new VariantType
                     {
-                        Name = variantDto.Name,
+                        Id = Guid.NewGuid(),
+                        Name = variantTypeDto.Name,
                         ProductId = product.Id
                     };
+
                     await _context.VariantTypes!.AddAsync(variantType);
-                    await _context.SaveChangesAsync(); // Lưu để có ID cho VariantValues
 
-                    var variantValues = variantDto.Values.Select(value => new VariantValue
+                    // Xử lý các giá trị của loại biến thể
+                    foreach (var value in variantTypeDto.Values)
                     {
-                        TypeId = variantType.Id,
-                        Value = value
-                    }).ToList();
-
-                    await _context.VariantValues!.AddRangeAsync(variantValues);
-                    await _context.SaveChangesAsync();
-
-                    allVariantValues.AddRange(variantValues);
-                }
-
-                // Thêm Product Variants
-                var productVariants = productDto.ProductVariants.Select(variantDto => new ProductVariant
-                {
-                    ProductId = product.Id,
-                    Price = variantDto.Price,
-                    DiscountPrice = variantDto.DiscountPrice,
-                    Stock = variantDto.Stock,
-                    Weight = variantDto.Weight,
-                    Materials = variantDto.Materials,
-                    SKU = variantDto.SKU
-                }).ToList();
-
-                await _context.ProductVariants!.AddRangeAsync(productVariants);
-                await _context.SaveChangesAsync();
-
-                // Lấy danh sách ProductVariants vừa được lưu
-                var savedProductVariants = await _context.ProductVariants
-                    .Where(pv => pv.ProductId == product.Id)
-                    .ToListAsync();
-
-                // Lấy danh sách VariantValues đã lưu
-                var savedVariantValues = allVariantValues;
-
-                // Tạo danh sách ProductVariantValues với tất cả ProductVariant và VariantValue phù hợp
-                var productVariantValues = new List<ProductVariantValue>();
-
-                foreach (var productVariant in savedProductVariants)
-                {
-                    foreach (var variantValue in savedVariantValues)
-                    {
-                        productVariantValues.Add(new ProductVariantValue
+                        var variantValue = new VariantValue
                         {
-                            ProductVariantId = productVariant.Id,
-                            VariantValueId = variantValue.Id
-                        });
+                            Id = Guid.NewGuid(),
+                            Value = value,
+                            TypeId = variantType.Id
+                        };
+
+                        await _context.VariantValues!.AddAsync(variantValue);
                     }
                 }
 
-                await _context.ProductVariantValues!.AddRangeAsync(productVariantValues);
-                await _context.SaveChangesAsync();
+                // Xử lý các biến thể sản phẩm (ProductVariant)
+                foreach (var variantDto in productDto.ProductVariants)
+                {
+                    var productVariant = new ProductVariant
+                    {
+                        Id = Guid.NewGuid(),
+                        ProductId = product.Id,
+                        Price = variantDto.Price,
+                        DiscountPrice = variantDto.DiscountPrice,
+                        Stock = variantDto.Stock,
+                        Weight = variantDto.Weight,
+                        Materials = variantDto.Materials,
+                        SKU = variantDto.SKU
+                    };
 
-                // Commit transaction
+                    await _context.ProductVariants!.AddAsync(productVariant);
+                }
+
+                await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
                 return _mapper.Map<ProductModel>(product);
             }
-            catch
+            catch (Exception)
             {
                 await transaction.RollbackAsync();
                 throw;
@@ -181,89 +165,116 @@ namespace LampStoreProjects.Repositories
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
+                // Lấy sản phẩm hiện tại với các quan hệ
                 var product = await _context.Products!
-                .Include(p => p.VariantTypes)
-                    .ThenInclude(vt => vt.Values)
-                .Include(p => p.ProductVariants)
-                .FirstOrDefaultAsync(p => p.Id == productId);
+                    .Include(p => p.VariantTypes)
+                        .ThenInclude(vt => vt.Values)
+                    .Include(p => p.ProductVariants)
+                    .FirstOrDefaultAsync(p => p.Id == productId);
 
                 if (product == null)
-                    throw new KeyNotFoundException("Product not found");
-
-                // Cập nhật thông tin sản phẩm
-                _mapper.Map(productDto, product);
-                _context.Products!.Update(product);
-                await _context.SaveChangesAsync();
-
-                // Cập nhật hoặc xóa Variant Types và Values
-                var allVariantValues = new List<VariantValue>();
-
-                foreach (var variantDto in productDto.VariantTypes)
                 {
-                    var existingVariantType = product.VariantTypes.FirstOrDefault(vt => vt.Name == variantDto.Name);
+                    throw new KeyNotFoundException("Không tìm thấy sản phẩm");
+                }
 
-                    if (existingVariantType == null)
+                // Cập nhật thông tin cơ bản của sản phẩm
+                product.Name = productDto.Name;
+                product.Description = productDto.Description;
+                product.ReviewCount = productDto.ReviewCount;
+                product.Tags = productDto.Tags;
+                product.ViewCount = productDto.ViewCount;
+                product.Favorites = productDto.Favorites;
+                product.SellCount = productDto.SellCount;
+                product.CategoryId = productDto.CategoryId;
+                product.Status = productDto.Status == true;
+
+                // Xử lý các loại biến thể (VariantType)
+                var existingVariantTypes = product.VariantTypes.ToList();
+                var newVariantTypes = new List<VariantType>();
+
+                foreach (var variantTypeDto in productDto.VariantTypes)
+                {
+                    var existingType = existingVariantTypes.FirstOrDefault(vt => vt.Name == variantTypeDto.Name);
+                    
+                    if (existingType != null)
                     {
-                        // Thêm mới Variant Type nếu chưa tồn tại
-                        var newVariantType = new VariantType
-                        {
-                            Name = variantDto.Name,
-                            ProductId = product.Id
-                        };
-                        await _context.VariantTypes!.AddAsync(newVariantType);
-                        await _context.SaveChangesAsync(); // Để lấy ID
+                        // Cập nhật giá trị của loại biến thể hiện có
+                        var existingValues = existingType.Values.ToList();
+                        var newValues = variantTypeDto.Values.ToList();
 
-                        // Thêm Variant Values
-                        var variantValues = variantDto.Values.Select(value => new VariantValue
-                        {
-                            TypeId = newVariantType.Id,
-                            Value = value
-                        }).ToList();
-
-                        await _context.VariantValues!.AddRangeAsync(variantValues);
-                        await _context.SaveChangesAsync();
-
-                        allVariantValues.AddRange(variantValues);
-                    }
-                    else
-                    {
-                        // Cập nhật Variant Type nếu tồn tại
-                        existingVariantType.Name = variantDto.Name;
-                        _context.VariantTypes!.Update(existingVariantType);
-                        await _context.SaveChangesAsync();
-
-                        // Xóa các Variant Value cũ không còn trong danh sách mới
-                        var existingValues = existingVariantType.Values.ToList();
-                        var newValues = variantDto.Values.ToList();
-
+                        // Xóa các giá trị không còn tồn tại
                         var valuesToRemove = existingValues.Where(ev => !newValues.Contains(ev.Value)).ToList();
                         _context.VariantValues!.RemoveRange(valuesToRemove);
 
-                        // Thêm mới các Variant Value nếu chưa tồn tại
+                        // Thêm các giá trị mới
                         var valuesToAdd = newValues.Except(existingValues.Select(ev => ev.Value))
                             .Select(value => new VariantValue
                             {
-                                TypeId = existingVariantType.Id,
-                                Value = value
+                                Id = Guid.NewGuid(),
+                                Value = value,
+                                TypeId = existingType.Id
                             }).ToList();
 
-                        await _context.VariantValues.AddRangeAsync(valuesToAdd);
-                        await _context.SaveChangesAsync();
+                        await _context.VariantValues!.AddRangeAsync(valuesToAdd);
+                    }
+                    else
+                    {
+                        // Tạo loại biến thể mới
+                        var newVariantType = new VariantType
+                        {
+                            Id = Guid.NewGuid(),
+                            Name = variantTypeDto.Name,
+                            ProductId = product.Id
+                        };
 
-                        allVariantValues.AddRange(existingVariantType.Values);
+                        newVariantTypes.Add(newVariantType);
+                        await _context.VariantTypes!.AddAsync(newVariantType);
+
+                        // Thêm các giá trị cho loại biến thể mới
+                        var variantValues = variantTypeDto.Values.Select(value => new VariantValue
+                        {
+                            Id = Guid.NewGuid(),
+                            Value = value,
+                            TypeId = newVariantType.Id
+                        }).ToList();
+
+                        await _context.VariantValues!.AddRangeAsync(variantValues);
                     }
                 }
 
-                // Cập nhật hoặc thêm Product Variants
+                // Xóa các loại biến thể không còn tồn tại
+                var typesToRemove = existingVariantTypes
+                    .Where(et => !productDto.VariantTypes.Any(vt => vt.Name == et.Name))
+                    .ToList();
+
+                _context.VariantTypes!.RemoveRange(typesToRemove);
+
+                // Xử lý các biến thể sản phẩm (ProductVariant)
+                var existingVariants = product.ProductVariants.ToList();
+                var newVariants = new List<ProductVariant>();
+
                 foreach (var variantDto in productDto.ProductVariants)
                 {
-                    var existingVariant = product.ProductVariants.FirstOrDefault(pv => pv.SKU == variantDto.SKU);
-
-                    if (existingVariant == null)
+                    var existingVariant = existingVariants.FirstOrDefault(v => v.SKU == variantDto.SKU);
+                    
+                    if (existingVariant != null)
                     {
-                        // Thêm mới Product Variant
+                        // Cập nhật biến thể hiện có
+                        existingVariant.Price = variantDto.Price;
+                        existingVariant.DiscountPrice = variantDto.DiscountPrice;
+                        existingVariant.Stock = variantDto.Stock;
+                        existingVariant.Weight = variantDto.Weight;
+                        existingVariant.Materials = variantDto.Materials;
+                        existingVariant.SKU = variantDto.SKU;
+
+                        _context.ProductVariants!.Update(existingVariant);
+                    }
+                    else
+                    {
+                        // Tạo biến thể mới
                         var newVariant = new ProductVariant
                         {
+                            Id = Guid.NewGuid(),
                             ProductId = product.Id,
                             Price = variantDto.Price,
                             DiscountPrice = variantDto.DiscountPrice,
@@ -273,29 +284,24 @@ namespace LampStoreProjects.Repositories
                             SKU = variantDto.SKU
                         };
 
+                        newVariants.Add(newVariant);
                         await _context.ProductVariants!.AddAsync(newVariant);
-                        await _context.SaveChangesAsync();
-                    }
-                    else
-                    {
-                        // Cập nhật Product Variant
-                        existingVariant.Price = variantDto.Price;
-                        existingVariant.DiscountPrice = variantDto.DiscountPrice;
-                        existingVariant.Stock = variantDto.Stock;
-                        existingVariant.Weight = variantDto.Weight;
-                        existingVariant.Materials = variantDto.Materials;
-
-                        _context.ProductVariants!.Update(existingVariant);
-                        await _context.SaveChangesAsync();
                     }
                 }
 
-                // Commit transaction
+                // Xóa các biến thể không còn tồn tại
+                var variantsToRemove = existingVariants
+                    .Where(ev => !productDto.ProductVariants.Any(v => v.SKU == ev.SKU))
+                    .ToList();
+
+                _context.ProductVariants!.RemoveRange(variantsToRemove);
+
+                await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
                 return _mapper.Map<ProductModel>(product);
             }
-            catch
+            catch (Exception)
             {
                 await transaction.RollbackAsync();
                 throw;

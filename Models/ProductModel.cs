@@ -33,8 +33,8 @@ namespace LampStoreProjects.Models
 
         public DateTime DateAdded { get; set; } = DateTime.Now;
         public bool Status { get; set; } = false;
-        [JsonIgnore]
         public ICollection<ProductImageModel> Images { get; set; } = new List<ProductImageModel>();
+        public ICollection<ProductTagModel> ProductTags { get; set; } = new List<ProductTagModel>();
         [JsonIgnore]
         public ICollection<ProductVariantModel> Variants { get; set; } = new List<ProductVariantModel>();
         [Precision(18, 2)]

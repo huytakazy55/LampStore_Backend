@@ -4,12 +4,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LampStoreProjects.Data
 {
-    public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
+    public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : IdentityDbContext<ApplicationUser>(options)
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-            : base(options)
-        {
-        }
         public DbSet<Product>? Products { get; set; }
         public DbSet<ProductImage>? ProductImages { get; set; }
         public DbSet<ProductVariant>? ProductVariants { get; set;}
@@ -25,7 +21,8 @@ namespace LampStoreProjects.Data
         public DbSet<Delivery>? Deliveries { get; set; }
         public DbSet<CheckIn>? CheckIns { get; set; }
         public DbSet<UserProfile>? UserProfiles { get; set; }
-
+        public DbSet<Tag>? Tags { get; set; }
+        public DbSet<ProductTag>? ProductTags { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -147,7 +144,17 @@ namespace LampStoreProjects.Data
                 .HasForeignKey(pvv => pvv.VariantValueId)
                 .OnDelete(DeleteBehavior.NoAction);
 
+            modelBuilder.Entity<ProductTag>()
+                .HasOne(pt => pt.Product)
+                .WithMany(p => p.ProductTags)
+                .HasForeignKey(pt => pt.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<ProductTag>()
+                .HasOne(pt => pt.Tag)
+                .WithMany(t => t.ProductTags)
+                .HasForeignKey(pt => pt.TagId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

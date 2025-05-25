@@ -8,7 +8,17 @@ public class ApplicationMapper : Profile
     public ApplicationMapper()
     {
         CreateMap<ProductModel, Product>().ReverseMap();
-        CreateMap<Product, ProductCreateDto>().ReverseMap();
+        CreateMap<Product, ProductCreateDto>()
+            .ForMember(dest => dest.ProductVariants, opt => opt.MapFrom(src => src.ProductVariants))
+            .ForMember(dest => dest.VariantTypes, opt => opt.MapFrom(src => src.VariantTypes))
+            .ReverseMap();
+
+        CreateMap<ProductVariantDto, ProductVariant>().ReverseMap();
+        CreateMap<VariantTypeDto, VariantType>()
+            .ForMember(dest => dest.Values, opt => opt.MapFrom(src => src.Values.Select(v => new VariantValue { Value = v })))
+            .ReverseMap();
+        
+        CreateMap<Product, ProductUpdateDto>().ReverseMap();
         CreateMap<ProductImageModel, ProductImage>().ReverseMap();
         CreateMap<ProductVariantModel, ProductVariant>().ReverseMap();
         CreateMap<VariantTypeModel, VariantType>().ReverseMap();
@@ -21,5 +31,7 @@ public class ApplicationMapper : Profile
         CreateMap<OrderModel, Order>().ReverseMap();
         CreateMap<OrderItemModel, OrderItem>().ReverseMap();
         CreateMap<UserProfileModel, UserProfile>().ReverseMap();
+        CreateMap<TagModel, Tag>().ReverseMap();
+        CreateMap<ProductTagModel, ProductTag>().ReverseMap();
     }
 }

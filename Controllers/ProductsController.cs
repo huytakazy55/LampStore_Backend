@@ -92,11 +92,23 @@ namespace LampStoreProjects.Controllers
             return Ok(images);
         }
 
-        [HttpPost("CreateProduct")]
-        public async Task<IActionResult> CreateProduct([FromBody] ProductCreateDto productDto)
+        [HttpPost]
+        public async Task<ActionResult<ProductModel>> CreateProduct([FromBody] ProductCreateDto productDto)
         {
-            var createdProduct = await _productRepository.CreateProductAsync(productDto);
-            return CreatedAtAction(nameof(CreateProduct), new { id = createdProduct.Id }, createdProduct);
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var createdProduct = await _productRepository.CreateProductAsync(productDto);
+                return CreatedAtAction(nameof(GetProductById), new { id = createdProduct.Id }, createdProduct);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Lỗi khi tạo sản phẩm: {ex.Message}");
+            }
         }
 
         [HttpPut("{id}")]
@@ -208,6 +220,29 @@ namespace LampStoreProjects.Controllers
             catch (System.Exception ex)
             {
                 return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("import")]
+        public async Task<IActionResult> ImportProducts([FromBody] List<ProductCreateDto> products)
+        {
+            try
+            {
+                if (products == null || !products.Any())
+                {
+                    return BadRequest(new { message = "Không có dữ liệu sản phẩm để import" });
+                }
+
+                foreach (var product in products)
+                {
+                    await _productRepository.CreateProductAsync(product);
+                }
+
+                return Ok(new { message = "Import sản phẩm thành công" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = "Có lỗi xảy ra khi import sản phẩm", error = ex.Message });
             }
         }
     }

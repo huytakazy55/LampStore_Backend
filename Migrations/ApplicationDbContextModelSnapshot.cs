@@ -350,6 +350,27 @@ namespace LampStoreProjects.Migrations
                     b.ToTable("ProductReviews");
                 });
 
+            modelBuilder.Entity("LampStoreProjects.Data.ProductTag", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TagId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("TagId");
+
+                    b.ToTable("ProductTags");
+                });
+
             modelBuilder.Entity("LampStoreProjects.Data.ProductVariant", b =>
                 {
                     b.Property<Guid>("Id")
@@ -408,6 +429,25 @@ namespace LampStoreProjects.Migrations
                     b.HasIndex("VariantValueId");
 
                     b.ToTable("ProductVariantValues");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.Tag", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Tags");
                 });
 
             modelBuilder.Entity("LampStoreProjects.Data.UserProfile", b =>
@@ -737,10 +777,29 @@ namespace LampStoreProjects.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("LampStoreProjects.Data.ProductTag", b =>
+                {
+                    b.HasOne("LampStoreProjects.Data.Product", "Product")
+                        .WithMany("ProductTags")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LampStoreProjects.Data.Tag", "Tag")
+                        .WithMany("ProductTags")
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Tag");
+                });
+
             modelBuilder.Entity("LampStoreProjects.Data.ProductVariant", b =>
                 {
                     b.HasOne("LampStoreProjects.Data.Product", "Product")
-                        .WithMany("Variants")
+                        .WithMany("ProductVariants")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade);
 
@@ -778,7 +837,7 @@ namespace LampStoreProjects.Migrations
             modelBuilder.Entity("LampStoreProjects.Data.VariantType", b =>
                 {
                     b.HasOne("LampStoreProjects.Data.Product", "Product")
-                        .WithMany("Types")
+                        .WithMany("VariantTypes")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade);
 
@@ -882,14 +941,21 @@ namespace LampStoreProjects.Migrations
 
                     b.Navigation("ProductReviews");
 
-                    b.Navigation("Types");
+                    b.Navigation("ProductTags");
 
-                    b.Navigation("Variants");
+                    b.Navigation("ProductVariants");
+
+                    b.Navigation("VariantTypes");
                 });
 
             modelBuilder.Entity("LampStoreProjects.Data.ProductVariant", b =>
                 {
                     b.Navigation("ProductVariantValues");
+                });
+
+            modelBuilder.Entity("LampStoreProjects.Data.Tag", b =>
+                {
+                    b.Navigation("ProductTags");
                 });
 
             modelBuilder.Entity("LampStoreProjects.Data.VariantType", b =>

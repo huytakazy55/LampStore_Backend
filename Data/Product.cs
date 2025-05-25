@@ -31,7 +31,7 @@ namespace LampStoreProjects.Data
 
         public DateTime DateAdded { get; set; } = DateTime.Now;
 
-        public bool Status { get; set; } = false;
+        public bool Status { get; set; } = true;
 
         public ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();
         public ICollection<ProductVariant> ProductVariants { get; set; } = new List<ProductVariant>();
@@ -39,5 +39,6 @@ namespace LampStoreProjects.Data
         public ICollection<ProductReview> ProductReviews { get; set; } = new List<ProductReview>();
         public CartItem? CartItem { get; set; }
         public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+        public ICollection<ProductTag> ProductTags { get; set; } = new List<ProductTag>();
     }
 }

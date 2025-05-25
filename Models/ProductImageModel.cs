@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace LampStoreProjects.Models
 {
@@ -10,9 +11,8 @@ namespace LampStoreProjects.Models
 
         [Required]
         public string ImagePath { get; set; } = string.Empty;
-
-        public Guid? ProductModelId { get; set; }
-
-        public ProductModel ProductModel { get; set; } = new ProductModel();
+        public Guid? ProductId { get; set; }
+        [JsonIgnore]
+        public ProductModel Product { get; set; } = new ProductModel();
     }
 }
