@@ -59,5 +59,12 @@ namespace LampStoreProjects.Controllers
             await _tagRepository.DeleteAsync(id);
             return NoContent();
         }
+
+        [HttpDelete("bulk")]
+        public async Task<ActionResult> BulkDeleteTags(List<Guid> ids)
+        {
+            await _tagRepository.BulkDeleteAsync(ids);
+            return NoContent();
+        }
     }
 }

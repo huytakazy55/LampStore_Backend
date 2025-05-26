@@ -9,5 +9,6 @@ namespace LampStoreProjects.Repositories
         Task AddAsync(TagModel tagModel);
         Task UpdateAsync(TagModel tagModel);
         Task DeleteAsync(Guid id);
+        Task BulkDeleteAsync(List<Guid> ids);
     }
 }

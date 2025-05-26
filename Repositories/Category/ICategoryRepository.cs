@@ -11,5 +11,6 @@ namespace LampStoreProjects.Repositories
         Task AddAsync(CategoryModel categoryModel);
         Task UpdateAsync(CategoryModel categoryModel);
         Task DeleteAsync(Guid id);
+        Task BulkDeleteAsync(List<Guid> ids);
     }
 }

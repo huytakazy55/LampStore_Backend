@@ -245,5 +245,12 @@ namespace LampStoreProjects.Controllers
                 return BadRequest(new { message = "Có lỗi xảy ra khi import sản phẩm", error = ex.Message });
             }
         }
+
+        [HttpDelete("bulk")]
+        public async Task<ActionResult> BulkDeleteProducts(List<Guid> ids)
+        {
+            await _productRepository.BulkDeleteAsync(ids);
+            return NoContent();
+        }
     }
 }

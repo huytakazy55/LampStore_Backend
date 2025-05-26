@@ -59,5 +59,12 @@ namespace LampStoreProjects.Controllers
             await _categoryRepository.DeleteAsync(id);
             return NoContent();
         }
+
+        [HttpDelete("bulk")]
+        public async Task<ActionResult> BulkDeleteCategories(List<Guid> ids)
+        {
+            await _categoryRepository.BulkDeleteAsync(ids);
+            return NoContent();
+        }
     }
 }

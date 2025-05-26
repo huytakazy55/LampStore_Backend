@@ -347,5 +347,12 @@ namespace LampStoreProjects.Repositories
             }
         }
 
+        public async Task BulkDeleteAsync(List<Guid> ids)
+        {
+            var products = _context.Products!.Where(p => ids.Contains(p.Id));
+            _context.Products!.RemoveRange(products);
+            await _context.SaveChangesAsync();
+        }
+
     }
 }
