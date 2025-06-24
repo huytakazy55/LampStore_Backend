@@ -141,7 +141,7 @@ namespace LampStoreProjects.Repositories
 				return result;
 			}
 			catch (Exception ex)
-			{
+			{				
 				// Rollback nếu có lỗi xảy ra
 				await transaction.RollbackAsync();
 				return IdentityResult.Failed(new IdentityError { Description = $"An error occurred: {ex.Message}" });

@@ -34,9 +34,9 @@ namespace LampStoreProjects.Repositories
                         ImagePath = i.ImagePath,
                         ProductId = i.ProductId
                     }).ToList(),
-                    MinPrice = p.ProductVariants.Min(v => v.DiscountPrice),
-                    MaxPrice = p.ProductVariants.Max(v => v.Price),
-                    Stock = p.ProductVariants.Sum(s => s.Stock)
+                    MinPrice = p.ProductVariants.Any() ? p.ProductVariants.Min(v => v.DiscountPrice) : null,
+                    MaxPrice = p.ProductVariants.Any() ? p.ProductVariants.Max(v => v.Price) : null,
+                    Stock = p.ProductVariants.Any() ? p.ProductVariants.Sum(s => s.Stock) : 0
                 })
                 .ToListAsync();
         }

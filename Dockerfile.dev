@@ -1,0 +1,16 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0
+
+WORKDIR /src
+
+COPY ["LampStoreProjects.csproj", "./"]
+RUN dotnet restore
+COPY . .
+
+# Install dotnet tools for development
+RUN dotnet tool install --global dotnet-watch
+
+# Expose port for development server
+EXPOSE 5000
+
+# Start development server with hot reload
+CMD ["dotnet", "watch", "run", "--no-launch-profile"] 
