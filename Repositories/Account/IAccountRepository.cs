@@ -9,6 +9,7 @@ namespace LampStoreProjects.Repositories
     {
         Task<IdentityResult> SignUpAsync(SignUpModel model);
         Task<string?> SignInAsync(SignInModel model);
+        Task<string?> GoogleSignInAsync(GoogleSignInModel model);
 
         Task<UserProfile?> GetUserProfileAsync(string userId);
         Task<IdentityUser?> GetUserAccountAsync(string userId);

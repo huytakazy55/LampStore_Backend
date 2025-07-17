@@ -9,6 +9,11 @@ COPY . .
 # Install dotnet tools for development
 RUN dotnet tool install --global dotnet-watch
 
+# Set environment variables for hot reload
+ENV DOTNET_USE_POLLING_FILE_WATCHER=true
+ENV DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER=true
+ENV DOTNET_WATCH_SUPPRESS_HOT_RELOAD=true
+
 # Expose port for development server
 EXPOSE 5000
 

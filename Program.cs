@@ -81,6 +81,7 @@ builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderItemRepository, OrderItemRepository>();
 builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
 builder.Services.AddScoped<ITagRepository, TagRepository>();
+builder.Services.AddScoped<IBannerRepository, BannerRepository>();
 
 builder.Services.AddScoped<IProductStoreManage, ProductStoreManage>();
 
@@ -110,6 +111,21 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog();
 
 var app = builder.Build();
+
+// Áp dụng migration tự động
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    try
+    {
+        context.Database.Migrate();
+        Log.Information("Database migration applied successfully");
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "An error occurred while applying database migrations");
+    }
+}
 
 // Middleware bắt lỗi toàn cục
 app.UseExceptionHandler(errorApp =>

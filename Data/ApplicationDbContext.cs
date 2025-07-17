@@ -1,6 +1,7 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using LampStoreProjects.Data;
 
 namespace LampStoreProjects.Data
 {
@@ -23,6 +24,7 @@ namespace LampStoreProjects.Data
         public DbSet<UserProfile>? UserProfiles { get; set; }
         public DbSet<Tag>? Tags { get; set; }
         public DbSet<ProductTag>? ProductTags { get; set; }
+        public DbSet<Banner>? Banners { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

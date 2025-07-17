@@ -33,5 +33,6 @@ public class ApplicationMapper : Profile
         CreateMap<UserProfileModel, UserProfile>().ReverseMap();
         CreateMap<TagModel, Tag>().ReverseMap();
         CreateMap<ProductTagModel, ProductTag>().ReverseMap();
+        CreateMap<BannerModel, Banner>().ReverseMap();
     }
 }

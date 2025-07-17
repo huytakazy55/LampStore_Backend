@@ -81,6 +81,27 @@ namespace LampStoreProjects.Controllers
             }
         }
 
+        [HttpPost("GoogleSignIn")]
+        public async Task<IActionResult> GoogleSignIn(GoogleSignInModel googleSignInModel)
+        {
+            try
+            {
+                var result = await _accountRepository.GoogleSignInAsync(googleSignInModel);
+
+                if (string.IsNullOrEmpty(result))
+                {
+                    return Unauthorized("Đăng nhập Google thất bại.");
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while Google sign in.");
+                return StatusCode(500, "Internal server error. Please try again later.");
+            }
+        }
+
         [Authorize]
         [HttpGet("profile")]
         public async Task<IActionResult> GetProfile()
