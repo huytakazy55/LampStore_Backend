@@ -5,10 +5,9 @@ using System.Text.Json.Serialization;
 namespace LampStoreProjects.Data
 {
     [Table("ProductImage")]
-    public class ProductImage
+
+    public class ProductImage : BaseEntity
     {
-        [Key]
-        public Guid Id { get; set; }
 
         [Required]
         [MaxLength(200)]

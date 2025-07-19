@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace LampStoreProjects.Data
 {
-    public class Banner
+    public class Banner : ITimestampEntity
     {
         [Key]
         public int Id { get; set; }

@@ -3,9 +3,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace LampStoreProjects.Data
 {
-    public class UserProfile
+    public class UserProfile : BaseEntity
     {
-        public Guid Id { get; set; }
         public string UserId { get; set; } = string.Empty;
         [MaxLength(100)]
         public string FullName { get; set; } = string.Empty;

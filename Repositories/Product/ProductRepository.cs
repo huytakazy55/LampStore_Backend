@@ -3,6 +3,7 @@ using LampStoreProjects.Models;
 using LampStoreProjects.Data;
 using Microsoft.EntityFrameworkCore;
 using LampStoreProjects.DTOs;
+using System;
 
 namespace LampStoreProjects.Repositories
 {
@@ -27,7 +28,9 @@ namespace LampStoreProjects.Repositories
                     Favorites = p.Favorites,
                     SellCount = p.SellCount,
                     Status = p.Status,                    
-                    DateAdded = p.DateAdded,
+                    DateAdded = p.CreatedAt,
+                    CreatedAt = p.CreatedAt,
+                    UpdatedAt = p.UpdatedAt,
                     Images = p.Images.Select(i => new ProductImageModel 
                     { 
                         Id = i.Id,
@@ -98,7 +101,6 @@ namespace LampStoreProjects.Repositories
                     Favorites = productDto.Favorites,
                     SellCount = productDto.SellCount,
                     CategoryId = productDto.CategoryId,
-                    DateAdded = productDto.DateAdded,
                     Status = productDto.Status == 1,
                 };
 
@@ -296,6 +298,9 @@ namespace LampStoreProjects.Repositories
 
                 _context.ProductVariants!.RemoveRange(variantsToRemove);
 
+                // Set UpdatedAt timestamp
+                product.UpdatedAt = DateTime.UtcNow;
+
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
@@ -312,6 +317,7 @@ namespace LampStoreProjects.Repositories
         public async Task<ProductModel> UpdateProductAsync(ProductModel ProductModel)
         {
             var product = _mapper.Map<Product>(ProductModel);
+            product.UpdatedAt = DateTime.UtcNow;
             _context.Products!.Update(product);
             await _context.SaveChangesAsync();
             return _mapper.Map<ProductModel>(product);

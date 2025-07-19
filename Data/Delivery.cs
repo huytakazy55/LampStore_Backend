@@ -4,9 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LampStoreProjects.Data
 {
-    public class Delivery
+    public class Delivery : BaseEntity
     {
-        public Guid Id { get; set; }
         public Guid? OrderId { get; set; }
         [ForeignKey("OrderId")]
         public Order? Order { get; set; }

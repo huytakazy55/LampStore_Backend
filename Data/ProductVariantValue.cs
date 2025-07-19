@@ -2,9 +2,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LampStoreProjects.Data
 {
-    public class ProductVariantValue
+    public class ProductVariantValue : BaseEntity
     {
-        public Guid Id { get; set; }
         public Guid? ProductVariantId { get; set; }
         [ForeignKey("ProductVariantId")]
         public Guid? VariantValueId { get; set; }

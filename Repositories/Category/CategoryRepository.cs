@@ -2,6 +2,7 @@ using AutoMapper;
 using LampStoreProjects.Data;
 using LampStoreProjects.Models;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -40,6 +41,7 @@ namespace LampStoreProjects.Repositories
         public async Task UpdateAsync(CategoryModel categoryModel)
         {
             var category = _mapper.Map<Category>(categoryModel);
+            category.UpdatedAt = DateTime.UtcNow;
             _context.Categories!.Update(category);
             await _context.SaveChangesAsync();
         }

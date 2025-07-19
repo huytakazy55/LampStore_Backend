@@ -3,9 +3,8 @@ using System.Text.Json.Serialization;
 
 namespace LampStoreProjects.Data
 {
-    public class VariantValue
+    public class VariantValue : BaseEntity
     {
-        public Guid Id { get; set; }
         public Guid? TypeId { get; set; }
         [ForeignKey("TypeId")]
         [JsonIgnore]

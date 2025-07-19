@@ -3,9 +3,8 @@ using System.Text.Json.Serialization;
 
 namespace LampStoreProjects.Data
 {
-    public class ProductReview
+    public class ProductReview : BaseEntity
     {
-        public Guid Id { get; set; }
         public Guid? ProductId { get; set; }
         [ForeignKey("ProductId")]
         [JsonIgnore]

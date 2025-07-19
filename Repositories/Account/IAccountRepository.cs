@@ -16,6 +16,7 @@ namespace LampStoreProjects.Repositories
         Task<IEnumerable<IdentityUser>> GetAllUsersAsync();
         Task<List<string>?> GetRolesByUserIdAsync(string userId);
         Task LogoutAsync(string userId);
+        Task<string?> ForgotPasswordAsync(ForgotPasswordModel model);
 
     }
 }

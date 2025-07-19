@@ -4,9 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LampStoreProjects.Data
 {
-    public class CartItem
+    public class CartItem : BaseEntity
     {
-        public Guid Id { get; set; }
         public Guid? CartId { get; set; }
         [ForeignKey("CartId")]
         public Cart? Cart { get; set; }

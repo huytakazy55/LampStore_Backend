@@ -5,9 +5,8 @@ using Microsoft.VisualBasic;
 
 namespace LampStoreProjects.Data
 {
-    public class Product
+    public class Product : BaseEntity
     {
-        public Guid Id { get; set; }
 
         [MaxLength(100)]
         [Required]
@@ -28,8 +27,6 @@ namespace LampStoreProjects.Data
         public Guid? CategoryId { get; set; }
 
         public Category? Category { get; set; }
-
-        public DateTime DateAdded { get; set; } = DateTime.Now;
 
         public bool Status { get; set; } = true;
 

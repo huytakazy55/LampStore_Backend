@@ -2,6 +2,7 @@ using AutoMapper;
 using LampStoreProjects.Data;
 using LampStoreProjects.Models;
 using Microsoft.EntityFrameworkCore;
+using System;
 
 namespace LampStoreProjects.Repositories
 {
@@ -38,6 +39,7 @@ namespace LampStoreProjects.Repositories
         public async Task UpdateAsync(TagModel tagModel)
         {
             var tag = _mapper.Map<Tag>(tagModel);
+            tag.UpdatedAt = DateTime.UtcNow;
             _context.Tags!.Update(tag);
             await _context.SaveChangesAsync();
         }

@@ -4,9 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LampStoreProjects.Data
 {
-    public class CheckIn
+    public class CheckIn : BaseEntity
     {
-        public Guid Id { get; set; }
         public string? UserId { get; set; } = string.Empty;
         [ForeignKey("UserId")]
         public ApplicationUser? User { get; set; }

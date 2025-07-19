@@ -230,5 +230,30 @@ namespace LampStoreProjects.Controllers
                 return StatusCode(500, "Internal server error.");
             }
         }
+
+        [HttpPost("ForgotPassword")]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordModel forgotPasswordModel)
+        {
+            try
+            {
+                var result = await _accountRepository.ForgotPasswordAsync(forgotPasswordModel);
+
+                return result switch
+                {
+                    "success" => Ok(new { Message = "Mật khẩu mới đã được gửi đến email của bạn." }),
+                    "user_not_found" => BadRequest(new { Message = "Không tìm thấy tài khoản với email hoặc tên đăng nhập này." }),
+                    "no_email" => BadRequest(new { Message = "Tài khoản này không có email được đăng ký." }),
+                    "account_locked" => BadRequest(new { Message = "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ admin." }),
+                    "reset_failed" => StatusCode(500, new { Message = "Không thể đặt lại mật khẩu. Vui lòng thử lại." }),
+                    "email_failed" => StatusCode(500, new { Message = "Đặt lại mật khẩu thành công nhưng không thể gửi email. Vui lòng liên hệ admin." }),
+                    _ => StatusCode(500, new { Message = "Đã xảy ra lỗi. Vui lòng thử lại sau." })
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while processing forgot password request.");
+                return StatusCode(500, new { Message = "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau." });
+            }
+        }
     }
 }

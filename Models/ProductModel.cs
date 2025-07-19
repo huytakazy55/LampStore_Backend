@@ -31,7 +31,9 @@ namespace LampStoreProjects.Models
 
         public Guid? CategoryId { get; set; }
 
-        public DateTime DateAdded { get; set; } = DateTime.Now;
+        public DateTime DateAdded { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; }
         public bool Status { get; set; } = false;
         public ICollection<ProductImageModel> Images { get; set; } = new List<ProductImageModel>();
         public ICollection<ProductTagModel> ProductTags { get; set; } = new List<ProductTagModel>();

@@ -2,6 +2,7 @@ using AutoMapper;
 using LampStoreProjects.Data;
 using LampStoreProjects.Models;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -40,6 +41,7 @@ namespace LampStoreProjects.Repositories
         public async Task UpdateAsync(UserProfileModel UserProfileModel)
         {
             var UserProfile = _mapper.Map<UserProfile>(UserProfileModel);
+            UserProfile.UpdatedAt = DateTime.UtcNow;
             _context.UserProfiles!.Update(UserProfile);
             await _context.SaveChangesAsync();
         }

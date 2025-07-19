@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using LampStoreProjects.Data;
 using LampStoreProjects.Repositories;
+using LampStoreProjects.Services;
 using System.Text;
 using Microsoft.Data.SqlClient;
 using System.Data;
@@ -83,6 +84,7 @@ builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
 builder.Services.AddScoped<ITagRepository, TagRepository>();
 builder.Services.AddScoped<IBannerRepository, BannerRepository>();
 
+builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IProductStoreManage, ProductStoreManage>();
 
 builder.Services.AddAutoMapper(typeof(Program));

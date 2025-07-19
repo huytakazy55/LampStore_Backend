@@ -13,7 +13,7 @@ namespace LampStoreProjects.DTOs
         public int Favorites { get; set; } = 0;
         public int SellCount { get; set; } = 0;
         public Guid? CategoryId { get; set; }
-        public DateTime DateAdded { get; set; } = DateTime.Now;
+        public DateTime DateAdded { get; set; } = DateTime.UtcNow;
         public bool Status {get; set; } = true;
         public List<ProductVariantDto> ProductVariants { get; set; } = new List<ProductVariantDto>(); 
         public List<VariantTypeDto> VariantTypes { get; set; } = new List<VariantTypeDto>();

@@ -5,10 +5,8 @@ using System.Text.Json.Serialization;
 namespace LampStoreProjects.Data
 {
     [Table("ProductVariant")]
-    public class ProductVariant
+    public class ProductVariant : BaseEntity
     {
-        [Key]
-        public Guid Id { get; set; }
 
         public Guid? ProductId { get; set; }
 

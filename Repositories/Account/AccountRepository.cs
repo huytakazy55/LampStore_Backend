@@ -3,6 +3,7 @@ using Microsoft.IdentityModel.Tokens;
 using LampStoreProjects.Data;
 using LampStoreProjects.Helpers;
 using LampStoreProjects.Models;
+using LampStoreProjects.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -16,13 +17,15 @@ namespace LampStoreProjects.Repositories
 		private readonly IConfiguration configuration;
 		private readonly RoleManager<IdentityRole> roleManager;
 		private readonly ApplicationDbContext context;
+		private readonly IEmailService emailService;
 
-		public AccountRepository(UserManager<ApplicationUser> userManager, IConfiguration configuration, RoleManager<IdentityRole> roleManager, ApplicationDbContext context)
+		public AccountRepository(UserManager<ApplicationUser> userManager, IConfiguration configuration, RoleManager<IdentityRole> roleManager, ApplicationDbContext context, IEmailService emailService)
 		{
 			this.userManager = userManager;
 			this.configuration = configuration;
 			this.roleManager = roleManager;
 			this.context = context;
+			this.emailService = emailService;
 		}
 
 		public async Task<string?> SignInAsync(SignInModel model)
@@ -123,7 +126,7 @@ namespace LampStoreProjects.Repositories
 					};
 
 					// Tạo user với random password (vì dùng Google OAuth)
-					var result = await userManager.CreateAsync(user, Guid.NewGuid().ToString() + "Aa@1");
+					var result = await userManager.CreateAsync(user, Guid.NewGuid().ToString() + "Ict@#$123");
 					if (!result.Succeeded)
 					{
 						await transaction.RollbackAsync();
@@ -327,6 +330,101 @@ namespace LampStoreProjects.Repositories
 
 			context.UserTokens.RemoveRange(tokens);
 			await context.SaveChangesAsync();
+		}
+
+		public async Task<string?> ForgotPasswordAsync(ForgotPasswordModel model)
+		{
+			try
+			{
+				// Tìm user bằng email hoặc username
+				ApplicationUser? user = null;
+				
+				// Kiểm tra xem input có phải là email không
+				if (model.EmailOrUsername.Contains("@"))
+				{
+					user = await userManager.FindByEmailAsync(model.EmailOrUsername);
+				}
+				else
+				{
+					user = await userManager.FindByNameAsync(model.EmailOrUsername);
+				}
+
+				if (user == null)
+				{
+					return "user_not_found";
+				}
+
+				if (string.IsNullOrEmpty(user.Email))
+				{
+					return "no_email";
+				}
+
+				// Kiểm tra tài khoản có bị khóa không
+				if (await userManager.IsLockedOutAsync(user))
+				{
+					return "account_locked";
+				}
+
+				// Tạo mật khẩu mới (8 ký tự ngẫu nhiên)
+				var newPassword = GenerateRandomPassword();
+
+				// Reset password
+				var resetToken = await userManager.GeneratePasswordResetTokenAsync(user);
+				var result = await userManager.ResetPasswordAsync(user, resetToken, newPassword);
+
+				if (!result.Succeeded)
+				{
+					return "reset_failed";
+				}
+
+				// Gửi email
+				var emailSent = await emailService.SendPasswordResetEmailAsync(
+					user.Email, 
+					user.UserName ?? user.Email, 
+					newPassword
+				);
+
+				if (!emailSent)
+				{
+					return "email_failed";
+				}
+
+				return "success";
+			}
+			catch (Exception ex)
+			{
+				// Log error if needed
+				Console.WriteLine($"ForgotPassword Error: {ex.Message}");
+				return "error";
+			}
+		}
+
+		private string GenerateRandomPassword()
+		{
+			const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%";
+			var random = new Random();
+			var result = new char[8];
+			
+			// Đảm bảo có ít nhất 1 chữ hoa, 1 chữ thường, 1 số, 1 ký tự đặc biệt
+			result[0] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[random.Next(26)];
+			result[1] = "abcdefghijklmnopqrstuvwxyz"[random.Next(26)];
+			result[2] = "0123456789"[random.Next(10)];
+			result[3] = "!@#$%"[random.Next(5)];
+			
+			// Fill còn lại với ký tự ngẫu nhiên
+			for (int i = 4; i < 8; i++)
+			{
+				result[i] = chars[random.Next(chars.Length)];
+			}
+			
+			// Shuffle array để randomize vị trí
+			for (int i = result.Length - 1; i > 0; i--)
+			{
+				int j = random.Next(i + 1);
+				(result[i], result[j]) = (result[j], result[i]);
+			}
+			
+			return new string(result);
 		}
 	}
 }

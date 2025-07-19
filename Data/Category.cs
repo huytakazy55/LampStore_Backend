@@ -3,9 +3,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace LampStoreProjects.Data
 {
-    public class Category
+    public class Category : BaseEntity
     {
-        public Guid Id { get; set; }
 
         [MaxLength(100)]
         [Required]
