@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using LampStoreProjects.Data;
 using LampStoreProjects.Repositories;
 using LampStoreProjects.Services;
+using LampStoreProjects.Hubs;
 using System.Text;
 using Microsoft.Data.SqlClient;
 using System.Data;
@@ -54,6 +55,35 @@ builder.Services.AddAuthentication(options =>
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"] ?? throw new InvalidOperationException("JWT secret is not configured.")))
         };
+        
+        // Cấu hình cho SignalR để nhận JWT token
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                // Lấy token từ query string (cho SignalR)
+                var accessToken = context.Request.Query["access_token"];
+                
+                // Hoặc lấy từ Authorization header
+                if (string.IsNullOrEmpty(accessToken))
+                {
+                    var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
+                    if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
+                    {
+                        accessToken = authHeader.Substring("Bearer ".Length).Trim();
+                    }
+                }
+
+                // Nếu request đến SignalR hub và có token
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/chathub"))
+                {
+                    context.Token = accessToken;
+                }
+                
+                return Task.CompletedTask;
+            }
+        };
     });
 
 var apiCorsPolicy = "ApiCorsPolicy";
@@ -65,7 +95,9 @@ builder.Services.AddCors(options =>
             builder.WithOrigins("http://localhost:3000", "https://localhost:3000")
             .AllowAnyHeader()
             .AllowAnyMethod()
-            .AllowCredentials();
+            .AllowCredentials()
+            .SetIsOriginAllowed((host) => true) // For SignalR WebSocket
+            .WithExposedHeaders("*"); // For SignalR
         });
 });
 
@@ -83,9 +115,13 @@ builder.Services.AddScoped<IOrderItemRepository, OrderItemRepository>();
 builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
 builder.Services.AddScoped<ITagRepository, TagRepository>();
 builder.Services.AddScoped<IBannerRepository, BannerRepository>();
+builder.Services.AddScoped<LampStoreProjects.Repositories.Chat.IChatRepository, LampStoreProjects.Repositories.Chat.ChatRepository>();
 
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IProductStoreManage, ProductStoreManage>();
+
+// Add SignalR
+builder.Services.AddSignalR();
 
 builder.Services.AddAutoMapper(typeof(Program));
 
@@ -179,6 +215,10 @@ app.UseAuthentication();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthorization();
+
+// Map SignalR Hub
+app.MapHub<ChatHub>("/chathub");
+
 app.MapControllers();
 
 app.Run();

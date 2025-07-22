@@ -1,14 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
-using System.Text;
 using System.Threading.Tasks;
 using LampStoreProjects.Models;
 using LampStoreProjects.Repositories;
-using Microsoft.AspNetCore.Authentication;
 using LampStoreProjects.Data;
 
 

@@ -25,6 +25,8 @@ namespace LampStoreProjects.Data
         public DbSet<Tag>? Tags { get; set; }
         public DbSet<ProductTag>? ProductTags { get; set; }
         public DbSet<Banner>? Banners { get; set; }
+        public DbSet<Chat>? Chats { get; set; }
+        public DbSet<Message>? Messages { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -157,6 +159,32 @@ namespace LampStoreProjects.Data
                 .WithMany(t => t.ProductTags)
                 .HasForeignKey(pt => pt.TagId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Chat relationships
+            modelBuilder.Entity<Chat>()
+                .HasOne(c => c.User)
+                .WithMany()
+                .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<Chat>()
+                .HasOne(c => c.AssignedAdmin)
+                .WithMany()
+                .HasForeignKey(c => c.AssignedAdminId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Message relationships
+            modelBuilder.Entity<Message>()
+                .HasOne(m => m.Chat)
+                .WithMany(c => c.Messages)
+                .HasForeignKey(m => m.ChatId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Message>()
+                .HasOne(m => m.Sender)
+                .WithMany()
+                .HasForeignKey(m => m.SenderId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
 
         public override int SaveChanges()
