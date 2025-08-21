@@ -1,6 +1,7 @@
 using LampStoreProjects.Models;
 using LampStoreProjects.Repositories;
 using LampStoreProjects.Data;
+using LampStoreProjects.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -9,6 +10,7 @@ using System.IO;
 using System;
 using Microsoft.EntityFrameworkCore;
 using LampStoreProjects.DTOs;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace LampStoreProjects.Controllers
 {
@@ -20,29 +22,60 @@ namespace LampStoreProjects.Controllers
         private readonly IProductStoreManage _productStoreManage;
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _env;
+        private readonly ICloudinaryService _cloudinaryService;
+        private readonly ICacheService _cacheService;
 
-        public ProductsController(IProductRepository productRepository, IProductStoreManage productStoreManage, ApplicationDbContext context, IWebHostEnvironment env)
+        public ProductsController(IProductRepository productRepository, IProductStoreManage productStoreManage, ApplicationDbContext context, IWebHostEnvironment env, ICloudinaryService cloudinaryService, ICacheService cacheService)
         {
             _productRepository = productRepository;
             _productStoreManage = productStoreManage;
             _context = context;
             _env = env;
+            _cloudinaryService = cloudinaryService;
+            _cacheService = cacheService;
         }
 
         [HttpGet]
+        [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Any)] // Cache 5 phút
         public async Task<ActionResult<IEnumerable<ProductModel>>> GetAllProducts()
         {
-            return Ok(await _productRepository.GetAllProductAsync());
+            // Kiểm tra cache trước
+            var cachedProducts = await _cacheService.GetAsync<IEnumerable<ProductModel>>(CacheKeys.AllProducts);
+            if (cachedProducts != null)
+            {
+                return Ok(cachedProducts);
+            }
+
+            // Nếu không có cache, lấy từ database
+            var products = await _productRepository.GetAllProductAsync();
+            
+            // Lưu vào cache với thời gian expire 10 phút
+            await _cacheService.SetAsync(CacheKeys.AllProducts, products, TimeSpan.FromMinutes(10));
+            
+            return Ok(products);
         }
 
         [HttpGet("{id}")]
+        [ResponseCache(Duration = 600, Location = ResponseCacheLocation.Any)] // Cache 10 phút
         public async Task<ActionResult<ProductModel>> GetProductById(Guid id)
         {
+            // Kiểm tra cache trước
+            var cacheKey = CacheKeys.ProductById(id);
+            var cachedProduct = await _cacheService.GetAsync<ProductModel>(cacheKey);
+            if (cachedProduct != null)
+            {
+                return Ok(cachedProduct);
+            }
+
             var product = await _productRepository.GetProductByIdAsync(id);
             if (product == null)
             {
                 return NotFound();
             }
+
+            // Lưu vào cache với thời gian expire 15 phút
+            await _cacheService.SetAsync(cacheKey, product, TimeSpan.FromMinutes(15));
+            
             return Ok(product);
         }
 
@@ -103,6 +136,11 @@ namespace LampStoreProjects.Controllers
                 }
 
                 var createdProduct = await _productRepository.CreateProductAsync(productDto);
+                
+                // Xóa cache liên quan sau khi tạo sản phẩm mới
+                await _cacheService.RemoveAsync(CacheKeys.AllProducts);
+                await _cacheService.RemoveByPatternAsync($"products_category_{createdProduct.CategoryId}");
+                
                 return CreatedAtAction(nameof(GetProductById), new { id = createdProduct.Id }, createdProduct);
             }
             catch (Exception ex)
@@ -118,7 +156,14 @@ namespace LampStoreProjects.Controllers
             {
                 return BadRequest();
             }
+            
             await _productRepository.UpdateProductAsync(Id, productDto);
+            
+            // Xóa cache liên quan sau khi cập nhật sản phẩm
+            await _cacheService.RemoveAsync(CacheKeys.AllProducts);
+            await _cacheService.RemoveAsync(CacheKeys.ProductById(Id));
+            await _cacheService.RemoveByPatternAsync($"products_category_");
+            
             return NoContent();
         }
 
@@ -126,6 +171,13 @@ namespace LampStoreProjects.Controllers
         public async Task<ActionResult> DeleteProduct(Guid id)
         {
             await _productRepository.DeleteProductAsync(id);
+            
+            // Xóa cache liên quan sau khi xóa sản phẩm
+            await _cacheService.RemoveAsync(CacheKeys.AllProducts);
+            await _cacheService.RemoveAsync(CacheKeys.ProductById(id));
+            await _cacheService.RemoveByPatternAsync($"products_category_");
+            await _cacheService.RemoveByPatternAsync($"product_images_{id}");
+            
             return NoContent();
         }
 
@@ -177,45 +229,21 @@ namespace LampStoreProjects.Controllers
                     return NotFound("Product not found.");
                 }
 
-                if (string.IsNullOrEmpty(_env.WebRootPath))
-                {
-                    _env.WebRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-                }
-
-                if (!Directory.Exists(_env.WebRootPath))
-                {
-                    Directory.CreateDirectory(_env.WebRootPath);
-                }
-
-                // Đảm bảo thư mục ImageImport tồn tại
-                var uploadPath = Path.Combine(_env.WebRootPath, "ImageImport");
-                if (!Directory.Exists(uploadPath))
-                {
-                    Directory.CreateDirectory(uploadPath);
-                }
-
                 foreach (var imageFile in imageFiles)
                 {
-                    var fileName = Guid.NewGuid() + Path.GetExtension(imageFile.FileName);
-                    var filePath = Path.Combine(uploadPath, fileName);
-
-                    using (var stream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await imageFile.CopyToAsync(stream);
-                    }
-
-                    var imageUrl = $"/ImageImport/{fileName}";          
+                    // Upload lên Cloudinary thay vì lưu local
+                    var cloudinaryUrl = await _cloudinaryService.UploadImageAsync(imageFile, "lamp-store/products");
 
                     var productImage = new ProductImage
                     {
-                        ImagePath = imageUrl,
+                        ImagePath = cloudinaryUrl, // Lưu URL từ Cloudinary
                         ProductId = productId
                     };
                     _context.ProductImages!.Add(productImage);
                 }
                 await _context.SaveChangesAsync();
 
-                return Ok();
+                return Ok(new { message = "Upload ảnh thành công lên Cloudinary!" });
             }
             catch (System.Exception ex)
             {

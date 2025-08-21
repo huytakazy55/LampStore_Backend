@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using LampStoreProjects.Data;
 using LampStoreProjects.Repositories;
 using LampStoreProjects.Models;
+using LampStoreProjects.Services;
 
 namespace LampStoreProjects.Controllers
 {
@@ -11,11 +12,13 @@ namespace LampStoreProjects.Controllers
     {
         private readonly IBannerRepository _bannerRepository;
         private readonly IWebHostEnvironment _environment;
+        private readonly ICloudinaryService _cloudinaryService;
 
-        public BannersController(IBannerRepository bannerRepository, IWebHostEnvironment environment)
+        public BannersController(IBannerRepository bannerRepository, IWebHostEnvironment environment, ICloudinaryService cloudinaryService)
         {
             _bannerRepository = bannerRepository;
             _environment = environment;
+            _cloudinaryService = cloudinaryService;
         }
 
         // GET: api/banners
@@ -123,22 +126,10 @@ namespace LampStoreProjects.Controllers
 
             try
             {
-                var uploadsFolder = Path.Combine(_environment.WebRootPath, "BannerImages");
-                if (!Directory.Exists(uploadsFolder))
-                {
-                    Directory.CreateDirectory(uploadsFolder);
-                }
+                // Upload lên Cloudinary thay vì lưu local
+                var cloudinaryUrl = await _cloudinaryService.UploadImageAsync(file, "lamp-store/banners");
 
-                var fileName = Guid.NewGuid().ToString() + fileExtension;
-                var filePath = Path.Combine(uploadsFolder, fileName);
-
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await file.CopyToAsync(stream);
-                }
-
-                var imageUrl = $"/BannerImages/{fileName}";
-                return Ok(new { imageUrl });
+                return Ok(new { imageUrl = cloudinaryUrl });
             }
             catch (Exception ex)
             {

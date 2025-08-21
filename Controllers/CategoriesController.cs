@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using LampStoreProjects.Models;
 using LampStoreProjects.Repositories;
+using LampStoreProjects.Services;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace LampStoreProjects.Controllers
 {
@@ -12,17 +14,33 @@ namespace LampStoreProjects.Controllers
     {
         private readonly ICategoryRepository _categoryRepository;
         private readonly IWebHostEnvironment _environment;
+        private readonly ICloudinaryService _cloudinaryService;
+        private readonly ICacheService _cacheService;
 
-        public CategoriesController(ICategoryRepository categoryRepository, IWebHostEnvironment environment)
+        public CategoriesController(ICategoryRepository categoryRepository, IWebHostEnvironment environment, ICloudinaryService cloudinaryService, ICacheService cacheService)
         {
             _categoryRepository = categoryRepository;
             _environment = environment;
+            _cloudinaryService = cloudinaryService;
+            _cacheService = cacheService;
         }
 
         [HttpGet]
+        [ResponseCache(Duration = 600, Location = ResponseCacheLocation.Any)] // Cache 10 phút
         public async Task<ActionResult<IEnumerable<CategoryModel>>> GetCategories()
         {
+            // Kiểm tra cache trước
+            var cachedCategories = await _cacheService.GetAsync<IEnumerable<CategoryModel>>(CacheKeys.AllCategories);
+            if (cachedCategories != null)
+            {
+                return Ok(cachedCategories);
+            }
+
             var categories = await _categoryRepository.GetAllAsync();
+            
+            // Lưu vào cache với thời gian expire 15 phút
+            await _cacheService.SetAsync(CacheKeys.AllCategories, categories, TimeSpan.FromMinutes(15));
+            
             return Ok(categories);
         }
 
@@ -99,22 +117,10 @@ namespace LampStoreProjects.Controllers
 
             try
             {
-                var uploadsFolder = Path.Combine(_environment.WebRootPath, "CategoryImages");
-                if (!Directory.Exists(uploadsFolder))
-                {
-                    Directory.CreateDirectory(uploadsFolder);
-                }
+                // Upload lên Cloudinary thay vì lưu local
+                var cloudinaryUrl = await _cloudinaryService.UploadImageAsync(file, "lamp-store/categories");
 
-                var fileName = Guid.NewGuid().ToString() + fileExtension;
-                var filePath = Path.Combine(uploadsFolder, fileName);
-
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await file.CopyToAsync(stream);
-                }
-
-                var imageUrl = $"/CategoryImages/{fileName}";
-                return Ok(new { imageUrl });
+                return Ok(new { imageUrl = cloudinaryUrl });
             }
             catch (Exception ex)
             {

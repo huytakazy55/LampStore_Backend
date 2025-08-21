@@ -92,7 +92,13 @@ builder.Services.AddCors(options =>
     options.AddPolicy(name: apiCorsPolicy,
         builder =>
         {
-            builder.WithOrigins("http://localhost:3000", "https://localhost:3000")
+            builder.WithOrigins(
+                "http://localhost:3000", 
+                "https://localhost:3000",
+                "http://localhost:80",
+                "http://frontend:80", // Docker service name
+                "http://127.0.0.1:80"
+            )
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials()
@@ -119,6 +125,14 @@ builder.Services.AddScoped<LampStoreProjects.Repositories.Chat.IChatRepository, 
 
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IProductStoreManage, ProductStoreManage>();
+builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
+builder.Services.AddScoped<ICacheService, CacheService>();
+
+// Add Memory Cache
+builder.Services.AddMemoryCache();
+
+// Add Response Caching
+builder.Services.AddResponseCaching();
 
 // Add SignalR
 builder.Services.AddSignalR();
@@ -211,6 +225,10 @@ else
 
 app.UseCors(apiCorsPolicy);
 app.UseHttpsRedirection();
+
+// Use Response Caching
+app.UseResponseCaching();
+
 app.UseAuthentication();
 app.UseStaticFiles();
 app.UseRouting();
