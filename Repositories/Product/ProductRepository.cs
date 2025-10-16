@@ -360,5 +360,112 @@ namespace LampStoreProjects.Repositories
             await _context.SaveChangesAsync();
         }
 
+        public async Task<SearchResultModel> AdvancedSearchAsync(SearchCriteriaModel criteria)
+        {
+            var query = _context.Products!
+                .Include(p => p.Images)
+                .Include(p => p.ProductVariants)
+                .Include(p => p.Category)
+                .Include(p => p.ProductTags)
+                .ThenInclude(pt => pt.Tag)
+                .AsQueryable();
+
+            // 1. Áp dụng từ khóa tìm kiếm
+            if (!string.IsNullOrEmpty(criteria.Keyword))
+            {
+                var keyword = criteria.Keyword.ToLower();
+                query = query.Where(p => 
+                    p.Name.ToLower().Contains(keyword) || 
+                    p.Description.ToLower().Contains(keyword) ||
+                    p.Category.Name.ToLower().Contains(keyword) ||
+                    p.ProductTags.Any(pt => pt.Tag.Name.ToLower().Contains(keyword))
+                );
+            }
+
+            // 2. Áp dụng lọc giá
+            if (criteria.MinPrice.HasValue)
+                query = query.Where(p => p.ProductVariants.Any(v => v.DiscountPrice >= criteria.MinPrice.Value));
+            
+            if (criteria.MaxPrice.HasValue)
+                query = query.Where(p => p.ProductVariants.Any(v => v.DiscountPrice <= criteria.MaxPrice.Value));
+
+            // 3. Áp dụng lọc danh mục
+            if (criteria.CategoryId.HasValue)
+                query = query.Where(p => p.CategoryId == criteria.CategoryId.Value);
+
+            // 4. Áp dụng lọc tags
+            if (criteria.Tags != null && criteria.Tags.Any())
+            {
+                query = query.Where(p => p.ProductTags.Any(pt => 
+                    criteria.Tags.Contains(pt.Tag.Name)));
+            }
+
+            // 5. Áp dụng lọc trạng thái
+            if (criteria.Status.HasValue)
+                query = query.Where(p => p.Status == criteria.Status.Value);
+
+            // 6. Áp dụng sắp xếp
+            query = criteria.SortBy?.ToLower() switch
+            {
+                "price" => criteria.SortOrder == "desc" ? 
+                    query.OrderByDescending(p => p.ProductVariants.Min(v => v.DiscountPrice)) : 
+                    query.OrderBy(p => p.ProductVariants.Min(v => v.DiscountPrice)),
+                "name" => criteria.SortOrder == "desc" ? 
+                    query.OrderByDescending(p => p.Name) : 
+                    query.OrderBy(p => p.Name),
+                "viewcount" => criteria.SortOrder == "desc" ? 
+                    query.OrderByDescending(p => p.ViewCount) : 
+                    query.OrderBy(p => p.ViewCount),
+                "createddate" => criteria.SortOrder == "desc" ? 
+                    query.OrderByDescending(p => p.CreatedAt) : 
+                    query.OrderBy(p => p.CreatedAt),
+                _ => query.OrderBy(p => p.Name)
+            };
+
+            // 7. Đếm tổng số sản phẩm
+            var totalCount = await query.CountAsync();
+
+            // 8. Áp dụng phân trang
+            var products = await query
+                .Skip((criteria.Page - 1) * criteria.PageSize)
+                .Take(criteria.PageSize)
+                .Select(p => new ProductModel
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Description = p.Description,
+                    CategoryId = p.CategoryId,
+                    Tags = p.Tags,
+                    ViewCount = p.ViewCount,
+                    Favorites = p.Favorites,
+                    SellCount = p.SellCount,
+                    Status = p.Status,                    
+                    DateAdded = p.CreatedAt,
+                    CreatedAt = p.CreatedAt,
+                    UpdatedAt = p.UpdatedAt,
+                    Images = p.Images.Select(i => new ProductImageModel 
+                    { 
+                        Id = i.Id,
+                        ImagePath = i.ImagePath,
+                        ProductId = i.ProductId
+                    }).ToList(),
+                    MinPrice = p.ProductVariants.Any() ? p.ProductVariants.Min(v => v.DiscountPrice) : null,
+                    MaxPrice = p.ProductVariants.Any() ? p.ProductVariants.Max(v => v.Price) : null,
+                    Stock = p.ProductVariants.Any() ? p.ProductVariants.Sum(s => s.Stock) : 0
+                })
+                .ToListAsync();
+
+            // 9. Trả về kết quả
+            return new SearchResultModel
+            {
+                Products = products,
+                TotalCount = totalCount,
+                Page = criteria.Page,
+                PageSize = criteria.PageSize,
+                TotalPages = (int)Math.Ceiling((double)totalCount / criteria.PageSize),
+                Criteria = criteria
+            };
+        }
+
     }
 }

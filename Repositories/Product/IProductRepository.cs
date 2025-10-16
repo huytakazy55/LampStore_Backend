@@ -19,5 +19,6 @@ namespace LampStoreProjects.Repositories
         Task DeleteProductAsync(Guid id);
         Task DeleteProductVariantAsync(Guid id);
         Task BulkDeleteAsync(List<Guid> ids);
+        Task<SearchResultModel> AdvancedSearchAsync(SearchCriteriaModel criteria);
     }
 }

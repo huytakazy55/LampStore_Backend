@@ -167,7 +167,7 @@ namespace LampStoreProjects.Controllers
 
                 var message = await _chatRepository.SendMessageAsync(chatId, userId, request.Content, request.Type);
 
-                // Gửi tin nhắn realtime qua SignalR
+                // Gửi tin nhắn realtime tới room chat
                 await _hubContext.Clients.Group($"chat_{chatId}").SendAsync("ReceiveMessage", new
                 {
                     MessageId = message.Id,
@@ -179,6 +179,34 @@ namespace LampStoreProjects.Controllers
                     Timestamp = message.CreatedAt,
                     IsRead = false
                 });
+
+                // Nếu người gửi KHÔNG phải admin, gửi thêm thông báo tới group 'admins'
+                if (string.IsNullOrEmpty(userRole) || userRole != "Administrator")
+                {
+                    try
+                    {
+                        // Lấy thông tin chat để gửi kèm cho admin
+                        var fullChat = await _chatRepository.GetChatByIdAsync(chatId);
+                        var adminNotification = new
+                        {
+                            ChatId = chatId,
+                            SenderId = userId,
+                            SenderName = userName,
+                            Content = request.Content,
+                            Timestamp = message.CreatedAt,
+                            Type = request.Type.ToString(),
+                            ChatSubject = fullChat?.Subject,
+                            UserName = fullChat?.User?.UserName,
+                            Priority = fullChat?.Priority
+                        };
+
+                        await _hubContext.Clients.Group("admins").SendAsync("ReceiveMessage", adminNotification);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error notifying admins for message in chat {ChatId}", chatId);
+                    }
+                }
 
                 return Ok(message);
             }

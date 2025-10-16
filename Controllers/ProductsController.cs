@@ -280,5 +280,49 @@ namespace LampStoreProjects.Controllers
             await _productRepository.BulkDeleteAsync(ids);
             return NoContent();
         }
+
+        [HttpGet("search")]
+        [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Any)] // Cache 5 phút
+        public async Task<ActionResult<SearchResultModel>> AdvancedSearch(
+            [FromQuery] string? keyword,
+            [FromQuery] decimal? minPrice,
+            [FromQuery] decimal? maxPrice,
+            [FromQuery] Guid? categoryId,
+            [FromQuery] List<string>? tags,
+            [FromQuery] bool? status,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? sortBy = "name",
+            [FromQuery] string? sortOrder = "asc")
+        {
+            try
+            {
+                var criteria = new SearchCriteriaModel
+                {
+                    Keyword = keyword,
+                    MinPrice = minPrice,
+                    MaxPrice = maxPrice,
+                    CategoryId = categoryId,
+                    Tags = tags,
+                    Status = status,
+                    Page = page,
+                    PageSize = pageSize,
+                    SortBy = sortBy,
+                    SortOrder = sortOrder
+                };
+
+                var searchResult = await _productRepository.AdvancedSearchAsync(criteria);
+                
+                // Lưu vào cache với key động
+                var cacheKey = $"search_{keyword}_{minPrice}_{maxPrice}_{categoryId}_{string.Join(",", tags ?? new List<string>())}_{status}_{page}_{pageSize}_{sortBy}_{sortOrder}";
+                await _cacheService.SetAsync(cacheKey, searchResult, TimeSpan.FromMinutes(10));
+                
+                return Ok(searchResult);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Lỗi khi tìm kiếm: {ex.Message}");
+            }
+        }
     }
 }

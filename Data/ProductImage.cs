@@ -4,11 +4,8 @@ using System.Text.Json.Serialization;
 
 namespace LampStoreProjects.Data
 {
-    [Table("ProductImage")]
-
     public class ProductImage : BaseEntity
     {
-
         [Required]
         [MaxLength(200)]
         public string ImagePath { get; set; } = string.Empty;

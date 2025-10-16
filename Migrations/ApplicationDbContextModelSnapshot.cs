@@ -79,6 +79,9 @@ namespace LampStoreProjects.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Email")
+                        .HasDatabaseName("IX_Users_Email");
+
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
 
@@ -132,7 +135,10 @@ namespace LampStoreProjects.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Banners");
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("IX_Banners_IsActive");
+
+                    b.ToTable("Banners", (string)null);
                 });
 
             modelBuilder.Entity("LampStoreProjects.Data.Cart", b =>
@@ -152,9 +158,10 @@ namespace LampStoreProjects.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_Carts_UserId");
 
-                    b.ToTable("Carts");
+                    b.ToTable("Carts", (string)null);
                 });
 
             modelBuilder.Entity("LampStoreProjects.Data.CartItem", b =>
@@ -180,13 +187,16 @@ namespace LampStoreProjects.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CartId");
-
                     b.HasIndex("ProductId")
                         .IsUnique()
                         .HasFilter("[ProductId] IS NOT NULL");
 
-                    b.ToTable("CartItems");
+                    b.HasIndex("CartId", "ProductId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_CartItems_CartId_ProductId")
+                        .HasFilter("[CartId] IS NOT NULL AND [ProductId] IS NOT NULL");
+
+                    b.ToTable("CartItems", (string)null);
                 });
 
             modelBuilder.Entity("LampStoreProjects.Data.Category", b =>
@@ -220,7 +230,11 @@ namespace LampStoreProjects.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categories");
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Categories_Name");
+
+                    b.ToTable("Categories", (string)null);
                 });
 
             modelBuilder.Entity("LampStoreProjects.Data.Chat", b =>
@@ -257,11 +271,16 @@ namespace LampStoreProjects.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AssignedAdminId");
+                    b.HasIndex("AssignedAdminId")
+                        .HasDatabaseName("IX_Chats_AssignedAdminId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_Chats_UserId");
 
-                    b.ToTable("Chats");
+                    b.HasIndex("Status", "Priority")
+                        .HasDatabaseName("IX_Chats_Status_Priority");
+
+                    b.ToTable("Chats", (string)null);
                 });
 
             modelBuilder.Entity("LampStoreProjects.Data.CheckIn", b =>
@@ -288,7 +307,11 @@ namespace LampStoreProjects.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("CheckInDate")
+                        .HasDatabaseName("IX_CheckIns_CheckInDate");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_CheckIns_UserId");
 
                     b.ToTable("CheckIns");
                 });
@@ -317,7 +340,8 @@ namespace LampStoreProjects.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrderId");
+                    b.HasIndex("OrderId")
+                        .HasDatabaseName("IX_Deliveries_OrderId");
 
                     b.ToTable("Deliveries");
                 });
@@ -359,11 +383,16 @@ namespace LampStoreProjects.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ChatId");
+                    b.HasIndex("ChatId")
+                        .HasDatabaseName("IX_Messages_ChatId");
 
-                    b.HasIndex("SenderId");
+                    b.HasIndex("SenderId")
+                        .HasDatabaseName("IX_Messages_SenderId");
 
-                    b.ToTable("Messages");
+                    b.HasIndex("ChatId", "CreatedAt")
+                        .HasDatabaseName("IX_Messages_ChatId_CreatedAt");
+
+                    b.ToTable("Messages", (string)null);
                 });
 
             modelBuilder.Entity("LampStoreProjects.Data.Order", b =>
@@ -380,7 +409,7 @@ namespace LampStoreProjects.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -391,9 +420,10 @@ namespace LampStoreProjects.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId", "Status")
+                        .HasDatabaseName("IX_Orders_UserId_Status");
 
-                    b.ToTable("Orders");
+                    b.ToTable("Orders", (string)null);
                 });
 
             modelBuilder.Entity("LampStoreProjects.Data.OrderItem", b =>
@@ -423,11 +453,13 @@ namespace LampStoreProjects.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrderId");
+                    b.HasIndex("OrderId")
+                        .HasDatabaseName("IX_OrderItems_OrderId");
 
-                    b.HasIndex("ProductId");
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("IX_OrderItems_ProductId");
 
-                    b.ToTable("OrderItems");
+                    b.ToTable("OrderItems", (string)null);
                 });
 
             modelBuilder.Entity("LampStoreProjects.Data.Product", b =>
@@ -478,7 +510,13 @@ namespace LampStoreProjects.Migrations
 
                     b.HasIndex("CategoryId");
 
-                    b.ToTable("Products");
+                    b.HasIndex("Name")
+                        .HasDatabaseName("IX_Products_Name");
+
+                    b.HasIndex("Status", "CategoryId")
+                        .HasDatabaseName("IX_Products_Status_CategoryId");
+
+                    b.ToTable("Products", (string)null);
                 });
 
             modelBuilder.Entity("LampStoreProjects.Data.ProductImage", b =>
@@ -503,9 +541,10 @@ namespace LampStoreProjects.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProductId");
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("IX_ProductImages_ProductId");
 
-                    b.ToTable("ProductImage");
+                    b.ToTable("ProductImages", (string)null);
                 });
 
             modelBuilder.Entity("LampStoreProjects.Data.ProductReview", b =>
@@ -528,8 +567,8 @@ namespace LampStoreProjects.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("Rating")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)");
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -540,11 +579,15 @@ namespace LampStoreProjects.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProductId");
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("IX_ProductReviews_ProductId");
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("ProductReviews");
+                    b.HasIndex("ProductId", "Rating")
+                        .HasDatabaseName("IX_ProductReviews_ProductId_Rating");
+
+                    b.ToTable("ProductReviews", (string)null);
                 });
 
             modelBuilder.Entity("LampStoreProjects.Data.ProductTag", b =>
@@ -567,11 +610,16 @@ namespace LampStoreProjects.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProductId");
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("IX_ProductTags_ProductId");
 
-                    b.HasIndex("TagId");
+                    b.HasIndex("TagId")
+                        .HasDatabaseName("IX_ProductTags_TagId");
 
-                    b.ToTable("ProductTags");
+                    b.HasIndex("ProductId", "TagId")
+                        .IsUnique();
+
+                    b.ToTable("ProductTags", (string)null);
                 });
 
             modelBuilder.Entity("LampStoreProjects.Data.ProductVariant", b =>
@@ -601,7 +649,7 @@ namespace LampStoreProjects.Migrations
 
                     b.Property<string>("SKU")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("Stock")
                         .HasColumnType("int");
@@ -614,9 +662,13 @@ namespace LampStoreProjects.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProductId");
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("IX_ProductVariants_ProductId");
 
-                    b.ToTable("ProductVariant");
+                    b.HasIndex("SKU")
+                        .HasDatabaseName("IX_ProductVariants_SKU");
+
+                    b.ToTable("ProductVariants", (string)null);
                 });
 
             modelBuilder.Entity("LampStoreProjects.Data.ProductVariantValue", b =>
@@ -639,11 +691,13 @@ namespace LampStoreProjects.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProductVariantId");
-
                     b.HasIndex("VariantValueId");
 
-                    b.ToTable("ProductVariantValues");
+                    b.HasIndex("ProductVariantId", "VariantValueId")
+                        .IsUnique()
+                        .HasFilter("[ProductVariantId] IS NOT NULL AND [VariantValueId] IS NOT NULL");
+
+                    b.ToTable("ProductVariantValues", (string)null);
                 });
 
             modelBuilder.Entity("LampStoreProjects.Data.Tag", b =>
@@ -661,14 +715,18 @@ namespace LampStoreProjects.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Tags");
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Tags_Name");
+
+                    b.ToTable("Tags", (string)null);
                 });
 
             modelBuilder.Entity("LampStoreProjects.Data.UserProfile", b =>
@@ -714,9 +772,10 @@ namespace LampStoreProjects.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("UserId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("IX_UserProfiles_UserId");
 
-                    b.ToTable("UserProfiles");
+                    b.ToTable("UserProfiles", (string)null);
                 });
 
             modelBuilder.Entity("LampStoreProjects.Data.VariantType", b =>
@@ -740,9 +799,10 @@ namespace LampStoreProjects.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProductId");
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("IX_VariantTypes_ProductId");
 
-                    b.ToTable("VariantTypes");
+                    b.ToTable("VariantTypes", (string)null);
                 });
 
             modelBuilder.Entity("LampStoreProjects.Data.VariantValue", b =>
@@ -766,9 +826,10 @@ namespace LampStoreProjects.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TypeId");
+                    b.HasIndex("TypeId")
+                        .HasDatabaseName("IX_VariantValues_TypeId");
 
-                    b.ToTable("VariantValues");
+                    b.ToTable("VariantValues", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>

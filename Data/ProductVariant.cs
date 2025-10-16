@@ -4,7 +4,6 @@ using System.Text.Json.Serialization;
 
 namespace LampStoreProjects.Data
 {
-    [Table("ProductVariant")]
     public class ProductVariant : BaseEntity
     {
 

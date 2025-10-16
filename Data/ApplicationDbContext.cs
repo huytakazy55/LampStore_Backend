@@ -31,6 +31,171 @@ namespace LampStoreProjects.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            // Thêm các index tùy chỉnh
+            // Chuẩn hóa tên bảng
+            modelBuilder.Entity<Product>().ToTable("Products");
+            modelBuilder.Entity<Category>().ToTable("Categories");
+            modelBuilder.Entity<Order>().ToTable("Orders");
+            modelBuilder.Entity<OrderItem>().ToTable("OrderItems");
+            modelBuilder.Entity<Cart>().ToTable("Carts");
+            modelBuilder.Entity<CartItem>().ToTable("CartItems");
+            modelBuilder.Entity<ProductImage>().ToTable("ProductImages");
+            modelBuilder.Entity<ProductVariant>().ToTable("ProductVariants");
+            modelBuilder.Entity<VariantType>().ToTable("VariantTypes");
+            modelBuilder.Entity<VariantValue>().ToTable("VariantValues");
+            modelBuilder.Entity<ProductVariantValue>().ToTable("ProductVariantValues");
+            modelBuilder.Entity<ProductReview>().ToTable("ProductReviews");
+            modelBuilder.Entity<UserProfile>().ToTable("UserProfiles");
+            modelBuilder.Entity<Tag>().ToTable("Tags");
+            modelBuilder.Entity<ProductTag>().ToTable("ProductTags");
+            modelBuilder.Entity<Banner>().ToTable("Banners");
+            modelBuilder.Entity<Chat>().ToTable("Chats");
+            modelBuilder.Entity<Message>().ToTable("Messages");
+
+            modelBuilder.Entity<Product>()
+                .HasIndex(p => p.Name)
+                .HasDatabaseName("IX_Products_Name");
+
+            modelBuilder.Entity<Product>()
+                .HasIndex(p => new { p.Status, p.CategoryId })
+                .HasDatabaseName("IX_Products_Status_CategoryId");
+
+            modelBuilder.Entity<Order>()
+                .HasIndex(o => new { o.UserId, o.Status })
+                .HasDatabaseName("IX_Orders_UserId_Status");
+
+            modelBuilder.Entity<CartItem>()
+                .HasIndex(ci => new { ci.CartId, ci.ProductId })
+                .HasDatabaseName("IX_CartItems_CartId_ProductId");
+
+            modelBuilder.Entity<Category>()
+                .HasIndex(c => c.Name)
+                .HasDatabaseName("IX_Categories_Name");
+
+            // Unique constraints
+            modelBuilder.Entity<Category>()
+                .HasIndex(c => c.Name)
+                .IsUnique();
+            modelBuilder.Entity<Tag>()
+                .HasIndex(t => t.Name)
+                .IsUnique();
+            modelBuilder.Entity<ProductVariant>()
+                .HasIndex(pv => pv.SKU)
+                .IsUnique(false); // cho phép trùng nếu không dùng SKU, có thể đặt Unique nếu yêu cầu
+
+            modelBuilder.Entity<ApplicationUser>()
+                .HasIndex(u => u.Email)
+                .HasDatabaseName("IX_Users_Email");
+
+            // Thêm indexes cho tất cả các bảng còn lại
+            modelBuilder.Entity<ProductImage>()
+                .HasIndex(pi => pi.ProductId)
+                .HasDatabaseName("IX_ProductImages_ProductId");
+
+            modelBuilder.Entity<ProductVariant>()
+                .HasIndex(pv => pv.ProductId)
+                .HasDatabaseName("IX_ProductVariants_ProductId");
+
+            modelBuilder.Entity<ProductVariant>()
+                .HasIndex(pv => pv.SKU)
+                .HasDatabaseName("IX_ProductVariants_SKU");
+
+            modelBuilder.Entity<VariantType>()
+                .HasIndex(vt => vt.ProductId)
+                .HasDatabaseName("IX_VariantTypes_ProductId");
+
+            modelBuilder.Entity<VariantValue>()
+                .HasIndex(vv => vv.TypeId)
+                .HasDatabaseName("IX_VariantValues_TypeId");
+
+            modelBuilder.Entity<ProductReview>()
+                .HasIndex(pr => pr.ProductId)
+                .HasDatabaseName("IX_ProductReviews_ProductId");
+
+            modelBuilder.Entity<ProductReview>()
+                .HasIndex(pr => new { pr.ProductId, pr.Rating })
+                .HasDatabaseName("IX_ProductReviews_ProductId_Rating");
+
+            // Composite unique keys cho bảng nối/chi tiết
+            modelBuilder.Entity<CartItem>()
+                .HasIndex(ci => new { ci.CartId, ci.ProductId })
+                .IsUnique();
+            modelBuilder.Entity<ProductTag>()
+                .HasIndex(pt => new { pt.ProductId, pt.TagId })
+                .IsUnique();
+            modelBuilder.Entity<ProductVariantValue>()
+                .HasIndex(pvv => new { pvv.ProductVariantId, pvv.VariantValueId })
+                .IsUnique();
+
+            modelBuilder.Entity<OrderItem>()
+                .HasIndex(oi => oi.OrderId)
+                .HasDatabaseName("IX_OrderItems_OrderId");
+
+            modelBuilder.Entity<OrderItem>()
+                .HasIndex(oi => oi.ProductId)
+                .HasDatabaseName("IX_OrderItems_ProductId");
+
+            modelBuilder.Entity<Cart>()
+                .HasIndex(c => c.UserId)
+                .HasDatabaseName("IX_Carts_UserId");
+
+            modelBuilder.Entity<Delivery>()
+                .HasIndex(d => d.OrderId)
+                .HasDatabaseName("IX_Deliveries_OrderId");
+
+            modelBuilder.Entity<CheckIn>()
+                .HasIndex(ci => ci.UserId)
+                .HasDatabaseName("IX_CheckIns_UserId");
+
+            modelBuilder.Entity<CheckIn>()
+                .HasIndex(ci => ci.CheckInDate)
+                .HasDatabaseName("IX_CheckIns_CheckInDate");
+
+            modelBuilder.Entity<UserProfile>()
+                .HasIndex(up => up.UserId)
+                .HasDatabaseName("IX_UserProfiles_UserId")
+                .IsUnique();
+
+            modelBuilder.Entity<Tag>()
+                .HasIndex(t => t.Name)
+                .HasDatabaseName("IX_Tags_Name");
+
+            modelBuilder.Entity<ProductTag>()
+                .HasIndex(pt => pt.ProductId)
+                .HasDatabaseName("IX_ProductTags_ProductId");
+
+            modelBuilder.Entity<ProductTag>()
+                .HasIndex(pt => pt.TagId)
+                .HasDatabaseName("IX_ProductTags_TagId");
+
+            modelBuilder.Entity<Banner>()
+                .HasIndex(b => b.IsActive)
+                .HasDatabaseName("IX_Banners_IsActive");
+
+            modelBuilder.Entity<Chat>()
+                .HasIndex(c => c.UserId)
+                .HasDatabaseName("IX_Chats_UserId");
+
+            modelBuilder.Entity<Chat>()
+                .HasIndex(c => c.AssignedAdminId)
+                .HasDatabaseName("IX_Chats_AssignedAdminId");
+
+            modelBuilder.Entity<Chat>()
+                .HasIndex(c => new { c.Status, c.Priority })
+                .HasDatabaseName("IX_Chats_Status_Priority");
+
+            modelBuilder.Entity<Message>()
+                .HasIndex(m => m.ChatId)
+                .HasDatabaseName("IX_Messages_ChatId");
+
+            modelBuilder.Entity<Message>()
+                .HasIndex(m => m.SenderId)
+                .HasDatabaseName("IX_Messages_SenderId");
+
+            modelBuilder.Entity<Message>()
+                .HasIndex(m => new { m.ChatId, m.CreatedAt })
+                .HasDatabaseName("IX_Messages_ChatId_CreatedAt");
+
             modelBuilder.Entity<ProductImage>()
                 .HasOne(li => li.Product)
                 .WithMany(l => l.Images)
@@ -49,6 +214,12 @@ namespace LampStoreProjects.Data
             modelBuilder.Entity<ProductVariant>()
                 .Property(p => p.Price)
                 .HasPrecision(18, 4);
+            modelBuilder.Entity<OrderItem>()
+                .Property(p => p.Price)
+                .HasPrecision(18, 4);
+            modelBuilder.Entity<ProductReview>()
+                .Property(p => p.Rating)
+                .HasPrecision(5, 2);
 
             modelBuilder.Entity<VariantType>()
                 .HasOne(li => li.Product)
@@ -70,7 +241,7 @@ namespace LampStoreProjects.Data
 
             modelBuilder.Entity<ProductReview>()
                 .Property(o => o.Rating)
-                .HasPrecision(18, 4);
+                .HasPrecision(5, 2);
 
             modelBuilder.Entity<Product>()
                 .HasOne(l => l.Category)
