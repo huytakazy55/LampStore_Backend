@@ -16,6 +16,8 @@ using Microsoft.AspNetCore.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Configuration.AddEnvironmentVariables();
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
     
@@ -90,20 +92,36 @@ var apiCorsPolicy = "ApiCorsPolicy";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: apiCorsPolicy,
-        builder =>
+        policyBuilder =>
         {
-            builder.WithOrigins(
-                "http://localhost:3000", 
-                "https://localhost:3000",
-                "http://localhost:80",
-                "http://frontend:80", // Docker service name
-                "http://127.0.0.1:80"
-            )
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials()
-            .SetIsOriginAllowed((host) => true) // For SignalR WebSocket
-            .WithExposedHeaders("*"); // For SignalR
+            // Lấy allowed origins từ config (có thể từ appsettings hoặc env vars)
+            var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>();
+            
+            if (allowedOrigins != null && allowedOrigins.Length > 0)
+            {
+                // Production: Chỉ cho phép specific origins
+                policyBuilder.WithOrigins(allowedOrigins)
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials();
+            }
+            else
+            {
+                // Development: Cho phép localhost
+                policyBuilder.WithOrigins(
+                    "http://localhost:3000", 
+                    "https://localhost:3000",
+                    "http://localhost:80",
+                    "http://frontend:80", // Docker service name
+                    "http://127.0.0.1:80"
+                )
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+            }
+            
+            // ❌ XÓA: .SetIsOriginAllowed((host) => true) - Quá nguy hiểm
+            // ❌ XÓA: .WithExposedHeaders("*") - Không cần thiết
         });
 });
 
@@ -193,13 +211,14 @@ app.UseExceptionHandler(errorApp =>
             var errorResponse = new
             {
                 Message = "Có lỗi xảy ra trên server!",
-                Error = exception.Message,
-                StackTrace = exception.StackTrace
+                // ✅ CHỈ trả về error message chi tiết trong Development
+                Error = app.Environment.IsDevelopment() ? exception.Message : "Internal server error",
+                // ✅ CHỈ trả về StackTrace trong Development
+                StackTrace = app.Environment.IsDevelopment() ? exception.StackTrace : null
             };
 
             await context.Response.WriteAsJsonAsync(errorResponse);
 
-            // Ghi log lỗi có format JSON đẹp
             Log.Error("{@Error}", errorResponse);
         }
     });

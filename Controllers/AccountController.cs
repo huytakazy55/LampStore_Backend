@@ -3,9 +3,13 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using System.Linq;
 using LampStoreProjects.Models;
 using LampStoreProjects.Repositories;
 using LampStoreProjects.Data;
+using LampStoreProjects.Helpers;
+using System.Threading.Tasks;
+using System.Linq;
 
 
 namespace LampStoreProjects.Controllers
@@ -32,26 +36,33 @@ namespace LampStoreProjects.Controllers
         {
             try
             {
-                var result = await _accountRepository.SignInAsync(signInModel);
-
-                if (string.IsNullOrEmpty(result))
-                {
-                    return Unauthorized("Sai tên đăng nhập hoặc mật khẩu.");
-                }
-                if (result == "blank")
+                if (string.IsNullOrEmpty(signInModel.Username) || string.IsNullOrEmpty(signInModel.Password))
                 {
                     return Unauthorized("Tên đăng nhập hoặc mật khẩu không được để trống.");
                 }
-                if (result == "lockout")
+
+                var result = await _accountRepository.SignInAsync(signInModel);
+
+                if (result == null)
                 {
-                    return Unauthorized("Tài khoản của bạn đã bị khóa! Liên hệ Admin để biết thêm thông tin");
+                    // Kiểm tra lại để xác định lỗi cụ thể
+                    var user = await _userManager.FindByNameAsync(signInModel.Username);
+                    if (user == null)
+                    {
+                        return Unauthorized("Sai tên đăng nhập hoặc mật khẩu.");
+                    }
+                    if (await _userManager.IsLockedOutAsync(user))
+                    {
+                        return Unauthorized("Tài khoản của bạn đã bị khóa! Liên hệ Admin để biết thêm thông tin");
+                    }
+                    return Unauthorized("Sai tên đăng nhập hoặc mật khẩu.");
                 }
 
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                _logger.LogError(ex, "Error during sign in");
                 return StatusCode(500, "Internal server error.");
             }
         }
@@ -84,7 +95,7 @@ namespace LampStoreProjects.Controllers
             {
                 var result = await _accountRepository.GoogleSignInAsync(googleSignInModel);
 
-                if (string.IsNullOrEmpty(result))
+                if (result == null)
                 {
                     return Unauthorized("Đăng nhập Google thất bại.");
                 }
@@ -95,6 +106,87 @@ namespace LampStoreProjects.Controllers
             {
                 _logger.LogError(ex, "An error occurred while Google sign in.");
                 return StatusCode(500, "Internal server error. Please try again later.");
+            }
+        }
+
+        [HttpPost("Refresh")]
+        public async Task<IActionResult> RefreshToken(RefreshTokenRequestModel model)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(model.RefreshToken))
+                {
+                    return BadRequest("Refresh token is required.");
+                }
+
+                var result = await _accountRepository.RefreshTokenAsync(model.RefreshToken);
+
+                if (result == null)
+                {
+                    return Unauthorized("Invalid or expired refresh token.");
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during token refresh");
+                return StatusCode(500, "Internal server error.");
+            }
+        }
+
+        [Authorize]
+        [HttpPost("RevokeRefreshToken")]
+        public async Task<IActionResult> RevokeRefreshToken(RefreshTokenRequestModel model)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized();
+                }
+
+                if (string.IsNullOrEmpty(model.RefreshToken))
+                {
+                    return BadRequest("Refresh token is required.");
+                }
+
+                var result = await _accountRepository.RevokeRefreshTokenAsync(model.RefreshToken, userId);
+
+                if (!result)
+                {
+                    return NotFound("Refresh token not found.");
+                }
+
+                return Ok(new { Message = "Refresh token revoked successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during token revocation");
+                return StatusCode(500, "Internal server error.");
+            }
+        }
+
+        [Authorize]
+        [HttpGet("ActiveSessions")]
+        public async Task<IActionResult> GetActiveSessions()
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized();
+                }
+
+                var sessions = await _accountRepository.GetActiveSessionsAsync(userId);
+                return Ok(sessions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting active sessions");
+                return StatusCode(500, "Internal server error.");
             }
         }
 
@@ -163,6 +255,86 @@ namespace LampStoreProjects.Controllers
             }
 
             return Ok(users);
+        }
+
+        [Authorize(Roles = AppRole.Admin)]
+        [HttpPost("AssignRoles")]
+        public async Task<IActionResult> AssignRoles(UpdateUserRolesModel model)
+        {
+            var result = await _accountRepository.UpdateUserRolesAsync(model);
+            if (result.Succeeded)
+            {
+                return Ok("Cập nhật quyền thành công.");
+            }
+
+            return BadRequest(result.Errors.Select(e => e.Description));
+        }
+
+        [Authorize(Roles = AppRole.Admin)]
+        [HttpGet("AvailableRoles")]
+        public async Task<IActionResult> GetAvailableRoles()
+        {
+            var roles = await _accountRepository.GetAvailableRolesAsync();
+            return Ok(roles);
+        }
+
+        [Authorize(Roles = AppRole.Admin)]
+        [HttpPost("Roles")]
+        public async Task<IActionResult> AddRole(RoleCreateModel model)
+        {
+            if (string.Equals(model.RoleName, AppRole.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest("Không thể tạo mới quyền SuperAdmin.");
+            }
+            var result = await _accountRepository.AddRoleAsync(model);
+            if (result.Succeeded)
+            {
+                return Ok("Tạo quyền thành công.");
+            }
+
+            return BadRequest(result.Errors.Select(e => e.Description));
+        }
+
+        [Authorize(Roles = AppRole.Admin)]
+        [HttpGet("AvailableMenus")]
+        public async Task<IActionResult> GetAvailableMenus()
+        {
+            var menus = await _accountRepository.GetAvailableMenusAsync();
+            return Ok(menus);
+        }
+
+        [Authorize(Roles = AppRole.Admin)]
+        [HttpGet("RoleMenus/{roleName}")]
+        public async Task<IActionResult> GetRoleMenus(string roleName)
+        {
+            var menus = await _accountRepository.GetMenusByRoleAsync(roleName);
+            return Ok(menus);
+        }
+
+        [Authorize(Roles = AppRole.Admin)]
+        [HttpPost("RoleMenus/{roleName}")]
+        public async Task<IActionResult> SetRoleMenus(string roleName, MenuPermissionsUpdateModel model)
+        {
+            var result = await _accountRepository.SetMenusForRoleAsync(roleName, model.Menus);
+            if (result.Succeeded)
+            {
+                return Ok("Cập nhật menu thành công.");
+            }
+
+            return BadRequest(result.Errors.Select(e => e.Description));
+        }
+
+        [Authorize]
+        [HttpGet("UserMenus")]
+        public async Task<IActionResult> GetUserMenus()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+            var menus = await _accountRepository.GetMenusForUserAsync(userId);
+            return Ok(menus);
         }
 
         [Authorize]

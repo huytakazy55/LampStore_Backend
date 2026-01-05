@@ -7,7 +7,10 @@ using LampStoreProjects.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Linq;
+using System;
 using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 
 namespace LampStoreProjects.Repositories
 {
@@ -28,11 +31,11 @@ namespace LampStoreProjects.Repositories
 			this.emailService = emailService;
 		}
 
-		public async Task<string?> SignInAsync(SignInModel model)
+		public async Task<TokenResponseModel?> SignInAsync(SignInModel model)
 		{
 			if (string.IsNullOrEmpty(model.Username) || string.IsNullOrEmpty(model.Password))
 			{
-				return "blank";
+				return null; // Sẽ xử lý "blank" ở controller
 			}
 
 			var user = await userManager.FindByNameAsync(model.Username);
@@ -43,64 +46,23 @@ namespace LampStoreProjects.Repositories
 
 			if (await userManager.IsLockedOutAsync(user))
 			{
-				return "lockout";
+				return null; // Sẽ xử lý "lockout" ở controller
 			}
 
-			var authClaims = new List<Claim>
+			// Tạo Access Token và Refresh Token
+			var accessToken = await CreateAccessTokenAsync(user);
+			var refreshToken = await CreateAndSaveRefreshTokenAsync(user.Id);
+
+			return new TokenResponseModel
 			{
-				new Claim(ClaimTypes.NameIdentifier, user.Id),
-				new Claim(ClaimTypes.Name, model.Username),
-				new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+				AccessToken = accessToken,
+				RefreshToken = refreshToken,
+				ExpiresIn = 900, // 15 phút (seconds)
+				TokenType = "Bearer"
 			};
-
-			var userRoles = await userManager.GetRolesAsync(user);
-			foreach (var role in userRoles)
-			{
-				authClaims.Add(new Claim(ClaimTypes.Role, role));
-			}
-
-			var authenKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Secret"] ?? throw new InvalidOperationException("JWT secret is not configured.")));
-			var tokenHandler = new JwtSecurityTokenHandler();
-			var tokenDescriptor = new SecurityTokenDescriptor
-			{
-				Subject = new ClaimsIdentity(authClaims),
-				Expires = DateTime.UtcNow.AddHours(3),
-				NotBefore = DateTime.UtcNow,
-				SigningCredentials = new SigningCredentials(authenKey, SecurityAlgorithms.HmacSha512Signature),
-				Issuer = configuration["Jwt:Issuer"],
-				Audience = configuration["Jwt:Audience"]
-			};
-
-			var token = tokenHandler.CreateToken(tokenDescriptor);
-			var tokenString = tokenHandler.WriteToken(token);
-
-			// Xóa tất cả các token cũ của người dùng trước khi thêm token mới
-			var existingTokens = await context.UserTokens
-				.Where(t => t.UserId == user.Id && t.LoginProvider == "JWT" && t.Name == "AccessToken")
-				.ToListAsync();
-
-			if (existingTokens.Any())
-			{
-				// Xóa tất cả các token cũ
-				context.UserTokens.RemoveRange(existingTokens);
-			}
-
-			// Thêm token mới
-			var userToken = new IdentityUserToken<string>
-			{
-				UserId = user.Id,
-				LoginProvider = "JWT",
-				Name = "AccessToken",
-				Value = tokenString
-			};
-
-			await context.UserTokens.AddAsync(userToken);
-			await context.SaveChangesAsync();
-
-			return tokenString;
 		}
 
-		public async Task<string?> GoogleSignInAsync(GoogleSignInModel model)
+		public async Task<TokenResponseModel?> GoogleSignInAsync(GoogleSignInModel model)
 		{
 			using var transaction = await context.Database.BeginTransactionAsync();
 			try
@@ -189,32 +151,19 @@ namespace LampStoreProjects.Repositories
 					Audience = configuration["Jwt:Audience"]
 				};
 
-				var token = tokenHandler.CreateToken(tokenDescriptor);
-				var tokenString = tokenHandler.WriteToken(token);
+				// Tạo Access Token và Refresh Token
+				var accessToken = await CreateAccessTokenAsync(user);
+				var refreshToken = await CreateAndSaveRefreshTokenAsync(user.Id);
 
-				// Xóa token cũ và lưu token mới
-				var existingTokens = await context.UserTokens
-					.Where(t => t.UserId == user.Id && t.LoginProvider == "JWT" && t.Name == "AccessToken")
-					.ToListAsync();
-
-				if (existingTokens.Any())
-				{
-					context.UserTokens.RemoveRange(existingTokens);
-				}
-
-				var userToken = new IdentityUserToken<string>
-				{
-					UserId = user.Id,
-					LoginProvider = "JWT",
-					Name = "AccessToken",
-					Value = tokenString
-				};
-
-				await context.UserTokens.AddAsync(userToken);
-				await context.SaveChangesAsync();
 				await transaction.CommitAsync();
 
-				return tokenString;
+				return new TokenResponseModel
+				{
+					AccessToken = accessToken,
+					RefreshToken = refreshToken,
+					ExpiresIn = 900, // 15 phút (seconds)
+					TokenType = "Bearer"
+				};
 			}
 			catch (Exception ex)
 			{
@@ -324,12 +273,178 @@ namespace LampStoreProjects.Repositories
 
 		public async Task LogoutAsync(string userId)
 		{
+			// Xóa tất cả refresh tokens của user
 			var tokens = await context.UserTokens
-				.Where(t => t.UserId == userId && t.LoginProvider == "JWT")
+				.Where(t => t.UserId == userId && t.LoginProvider == "JWT" && t.Name == "RefreshToken")
 				.ToListAsync();
 
 			context.UserTokens.RemoveRange(tokens);
 			await context.SaveChangesAsync();
+		}
+
+		/// <summary>
+		/// Tạo Access Token (JWT) cho user
+		/// </summary>
+		private async Task<string> CreateAccessTokenAsync(ApplicationUser user)
+		{
+			var authClaims = new List<Claim>
+			{
+				new Claim(ClaimTypes.NameIdentifier, user.Id),
+				new Claim(ClaimTypes.Name, user.UserName ?? ""),
+				new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+			};
+
+			var userRoles = await userManager.GetRolesAsync(user);
+			foreach (var role in userRoles)
+			{
+				authClaims.Add(new Claim(ClaimTypes.Role, role));
+			}
+
+			var authenKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Secret"] ?? throw new InvalidOperationException("JWT secret is not configured.")));
+			var tokenHandler = new JwtSecurityTokenHandler();
+			var tokenDescriptor = new SecurityTokenDescriptor
+			{
+				Subject = new ClaimsIdentity(authClaims),
+				Expires = DateTime.UtcNow.AddMinutes(15), // 15 phút thay vì 3 giờ
+				NotBefore = DateTime.UtcNow,
+				SigningCredentials = new SigningCredentials(authenKey, SecurityAlgorithms.HmacSha512Signature),
+				Issuer = configuration["Jwt:Issuer"],
+				Audience = configuration["Jwt:Audience"]
+			};
+
+			var token = tokenHandler.CreateToken(tokenDescriptor);
+			return tokenHandler.WriteToken(token);
+		}
+
+		/// <summary>
+		/// Tạo và lưu Refresh Token vào database
+		/// </summary>
+		private async Task<string> CreateAndSaveRefreshTokenAsync(string userId)
+		{
+			var refreshToken = Guid.NewGuid().ToString();
+			var expiresAt = DateTime.UtcNow.AddDays(7); // 7 ngày
+
+			// Xóa refresh tokens cũ của user (optional - có thể giữ nhiều devices)
+			// Hoặc chỉ xóa nếu muốn single session
+			// var existingTokens = await context.UserTokens
+			//     .Where(t => t.UserId == userId && t.LoginProvider == "JWT" && t.Name == "RefreshToken")
+			//     .ToListAsync();
+			// if (existingTokens.Any())
+			// {
+			//     context.UserTokens.RemoveRange(existingTokens);
+			// }
+
+			var userToken = new IdentityUserToken<string>
+			{
+				UserId = userId,
+				LoginProvider = "JWT",
+				Name = "RefreshToken",
+				Value = refreshToken
+			};
+
+			await context.UserTokens.AddAsync(userToken);
+			await context.SaveChangesAsync();
+
+			return refreshToken;
+		}
+
+		/// <summary>
+		/// Refresh Access Token bằng Refresh Token
+		/// </summary>
+		public async Task<TokenResponseModel?> RefreshTokenAsync(string refreshToken)
+		{
+			// Tìm refresh token trong database
+			var tokenRecord = await context.UserTokens
+				.Where(t => t.LoginProvider == "JWT" 
+					&& t.Name == "RefreshToken" 
+					&& t.Value == refreshToken)
+				.FirstOrDefaultAsync();
+
+			if (tokenRecord == null)
+			{
+				return null; // Token không tồn tại
+			}
+
+			// Lấy user
+			var user = await userManager.FindByIdAsync(tokenRecord.UserId);
+			if (user == null || await userManager.IsLockedOutAsync(user))
+			{
+				// User không tồn tại hoặc bị khóa → Xóa token
+				context.UserTokens.Remove(tokenRecord);
+				await context.SaveChangesAsync();
+				return null;
+			}
+
+			// Token rotation: Xóa refresh token cũ
+			context.UserTokens.Remove(tokenRecord);
+
+			// Tạo Access Token mới
+			var newAccessToken = await CreateAccessTokenAsync(user);
+
+			// Tạo Refresh Token mới
+			var newRefreshToken = await CreateAndSaveRefreshTokenAsync(user.Id);
+
+			await context.SaveChangesAsync();
+
+			return new TokenResponseModel
+			{
+				AccessToken = newAccessToken,
+				RefreshToken = newRefreshToken,
+				ExpiresIn = 900, // 15 phút
+				TokenType = "Bearer"
+			};
+		}
+
+		/// <summary>
+		/// Revoke (hủy) Refresh Token
+		/// </summary>
+		public async Task<bool> RevokeRefreshTokenAsync(string refreshToken, string? userId = null)
+		{
+			var query = context.UserTokens
+				.Where(t => t.LoginProvider == "JWT" 
+					&& t.Name == "RefreshToken" 
+					&& t.Value == refreshToken);
+
+			// Nếu có userId, chỉ revoke token của user đó
+			if (!string.IsNullOrEmpty(userId))
+			{
+				query = query.Where(t => t.UserId == userId);
+			}
+
+			var tokenRecord = await query.FirstOrDefaultAsync();
+
+			if (tokenRecord == null)
+			{
+				return false;
+			}
+
+			context.UserTokens.Remove(tokenRecord);
+			await context.SaveChangesAsync();
+
+			return true;
+		}
+
+		/// <summary>
+		/// Lấy danh sách active sessions của user
+		/// </summary>
+		public async Task<List<ActiveSessionModel>> GetActiveSessionsAsync(string userId)
+		{
+			var tokens = await context.UserTokens
+				.Where(t => t.UserId == userId 
+					&& t.LoginProvider == "JWT" 
+					&& t.Name == "RefreshToken")
+				.OrderByDescending(t => t.UserId) // Sắp xếp theo thời gian tạo (cần thêm CreatedAt nếu có)
+				.ToListAsync();
+
+			// Note: IdentityUserToken không có CreatedAt, cần migration để thêm field này
+			// Tạm thời dùng UserId để sort
+			return tokens.Select(t => new ActiveSessionModel
+			{
+				RefreshToken = t.Value ?? "",
+				CreatedAt = DateTime.UtcNow, // Tạm thời, cần thêm CreatedAt vào table
+				ExpiresAt = DateTime.UtcNow.AddDays(7), // Tạm thời, cần lưu ExpiresAt
+				IsCurrentSession = false // Cần logic để xác định session hiện tại
+			}).ToList();
 		}
 
 		public async Task<string?> ForgotPasswordAsync(ForgotPasswordModel model)
@@ -397,6 +512,195 @@ namespace LampStoreProjects.Repositories
 				Console.WriteLine($"ForgotPassword Error: {ex.Message}");
 				return "error";
 			}
+		}
+
+		public async Task<IdentityResult> UpdateUserRolesAsync(UpdateUserRolesModel model)
+		{
+			if (model.Roles == null || !model.Roles.Any())
+			{
+				return IdentityResult.Failed(new IdentityError { Description = "Danh sách quyền không được để trống." });
+			}
+
+			var user = await userManager.FindByIdAsync(model.UserId);
+			if (user == null)
+			{
+				return IdentityResult.Failed(new IdentityError { Description = "Không tìm thấy người dùng." });
+			}
+
+			var normalizedRoles = model.Roles.Select(r => r.Trim())
+				.Where(r => !string.IsNullOrWhiteSpace(r))
+				.Distinct(StringComparer.OrdinalIgnoreCase)
+				.ToList();
+
+			if (normalizedRoles.Any(r => r.Length > 50))
+			{
+				return IdentityResult.Failed(new IdentityError { Description = "Tên quyền quá dài (tối đa 50 ký tự)." });
+			}
+
+			// Tạo role nếu chưa tồn tại (không giới hạn danh sách cứng)
+			foreach (var role in normalizedRoles)
+			{
+				if (!await roleManager.RoleExistsAsync(role))
+				{
+					var createResult = await roleManager.CreateAsync(new IdentityRole(role));
+					if (!createResult.Succeeded)
+					{
+						return createResult;
+					}
+				}
+			}
+
+			var currentRoles = await userManager.GetRolesAsync(user);
+
+			// Không được phép gỡ SuperAdmin khỏi user đang có nếu đã gán (bảo toàn super admin)
+			var rolesToRemove = currentRoles
+				.Where(r => !normalizedRoles.Contains(r, StringComparer.OrdinalIgnoreCase) && !string.Equals(r, AppRole.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+				.ToList();
+
+			// Nếu user là super admin thì luôn giữ nguyên
+			if (currentRoles.Contains(AppRole.SuperAdmin, StringComparer.OrdinalIgnoreCase) && !normalizedRoles.Contains(AppRole.SuperAdmin, StringComparer.OrdinalIgnoreCase))
+			{
+				normalizedRoles.Add(AppRole.SuperAdmin);
+			}
+
+			var rolesToAdd = normalizedRoles.Where(r => !currentRoles.Contains(r, StringComparer.OrdinalIgnoreCase)).ToList();
+
+			if (rolesToRemove.Any())
+			{
+				var removeResult = await userManager.RemoveFromRolesAsync(user, rolesToRemove);
+				if (!removeResult.Succeeded)
+				{
+					return removeResult;
+				}
+			}
+
+			if (rolesToAdd.Any())
+			{
+				var addResult = await userManager.AddToRolesAsync(user, rolesToAdd);
+				if (!addResult.Succeeded)
+				{
+					return addResult;
+				}
+			}
+
+			return IdentityResult.Success;
+		}
+
+		public async Task<IEnumerable<string>> GetAvailableRolesAsync()
+		{
+			var roles = await roleManager.Roles
+				.Where(r => r.Name != AppRole.SuperAdmin) // ẩn SuperAdmin
+				.Select(r => r.Name)
+				.ToListAsync();
+			return roles.Where(r => !string.IsNullOrWhiteSpace(r))!;
+		}
+
+		public async Task<IdentityResult> AddRoleAsync(RoleCreateModel model)
+		{
+			var roleName = model.RoleName.Trim();
+			if (string.IsNullOrWhiteSpace(roleName))
+			{
+				return IdentityResult.Failed(new IdentityError { Description = "Tên quyền không được trống." });
+			}
+
+			if (roleName.Length > 50)
+			{
+				return IdentityResult.Failed(new IdentityError { Description = "Tên quyền quá dài (tối đa 50 ký tự)." });
+			}
+
+			if (await roleManager.RoleExistsAsync(roleName))
+			{
+				// Không tạo mới nếu đã tồn tại, nhưng tránh trả lỗi
+				return IdentityResult.Success;
+			}
+
+			return await roleManager.CreateAsync(new IdentityRole(roleName));
+		}
+
+		public Task<IEnumerable<string>> GetAvailableMenusAsync()
+		{
+			return Task.FromResult(AppMenu.All.AsEnumerable());
+		}
+
+		public async Task<IEnumerable<string>> GetMenusByRoleAsync(string roleName)
+		{
+			var role = await roleManager.FindByNameAsync(roleName);
+			if (role == null) return Enumerable.Empty<string>();
+
+			var claims = await roleManager.GetClaimsAsync(role);
+			return claims
+				.Where(c => c.Type == "menu")
+				.Select(c => c.Value)
+				.Where(v => !string.IsNullOrWhiteSpace(v))
+				.ToList();
+		}
+
+		public async Task<IdentityResult> SetMenusForRoleAsync(string roleName, IEnumerable<string> menus)
+		{
+			var role = await roleManager.FindByNameAsync(roleName);
+			if (role == null)
+			{
+				return IdentityResult.Failed(new IdentityError { Description = "Không tìm thấy role." });
+			}
+
+			var normalizedMenus = menus
+				.Where(m => !string.IsNullOrWhiteSpace(m))
+				.Select(m => m.Trim())
+				.Distinct(StringComparer.OrdinalIgnoreCase)
+				.ToList();
+
+			if (normalizedMenus.Any(m => m.Length > 50))
+			{
+				return IdentityResult.Failed(new IdentityError { Description = "Tên menu quá dài." });
+			}
+
+			// Filter only valid menus
+			var validMenus = AppMenu.All;
+			normalizedMenus = normalizedMenus.Where(m => validMenus.Contains(m)).ToList();
+
+			// Current claims
+			var currentClaims = await roleManager.GetClaimsAsync(role);
+			var menuClaims = currentClaims.Where(c => c.Type == "menu").ToList();
+
+			// remove ones not needed
+			foreach (var claim in menuClaims)
+			{
+				if (!normalizedMenus.Contains(claim.Value, StringComparer.OrdinalIgnoreCase))
+				{
+					await roleManager.RemoveClaimAsync(role, claim);
+				}
+			}
+
+			// add new claims
+			foreach (var menu in normalizedMenus)
+			{
+				if (!menuClaims.Any(c => string.Equals(c.Value, menu, StringComparison.OrdinalIgnoreCase)))
+				{
+					await roleManager.AddClaimAsync(role, new Claim("menu", menu));
+				}
+			}
+
+			return IdentityResult.Success;
+		}
+
+		public async Task<IEnumerable<string>> GetMenusForUserAsync(string userId)
+		{
+			var user = await userManager.FindByIdAsync(userId);
+			if (user == null) return Enumerable.Empty<string>();
+
+			var roles = await userManager.GetRolesAsync(user);
+			var menuSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+			foreach (var roleName in roles)
+			{
+				var menus = await GetMenusByRoleAsync(roleName);
+				foreach (var menu in menus)
+				{
+					menuSet.Add(menu);
+				}
+			}
+
+			return menuSet;
 		}
 
 		private string GenerateRandomPassword()
