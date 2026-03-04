@@ -282,9 +282,6 @@ namespace LampStoreProjects.Repositories
 			await context.SaveChangesAsync();
 		}
 
-		/// <summary>
-		/// Tạo Access Token (JWT) cho user
-		/// </summary>
 		private async Task<string> CreateAccessTokenAsync(ApplicationUser user)
 		{
 			var authClaims = new List<Claim>
@@ -316,23 +313,21 @@ namespace LampStoreProjects.Repositories
 			return tokenHandler.WriteToken(token);
 		}
 
-		/// <summary>
-		/// Tạo và lưu Refresh Token vào database
-		/// </summary>
 		private async Task<string> CreateAndSaveRefreshTokenAsync(string userId)
 		{
 			var refreshToken = Guid.NewGuid().ToString();
-			var expiresAt = DateTime.UtcNow.AddDays(7); // 7 ngày
+			var expiresAt = DateTime.UtcNow.AddDays(7);
 
-			// Xóa refresh tokens cũ của user (optional - có thể giữ nhiều devices)
-			// Hoặc chỉ xóa nếu muốn single session
-			// var existingTokens = await context.UserTokens
-			//     .Where(t => t.UserId == userId && t.LoginProvider == "JWT" && t.Name == "RefreshToken")
-			//     .ToListAsync();
-			// if (existingTokens.Any())
-			// {
-			//     context.UserTokens.RemoveRange(existingTokens);
-			// }
+			var existingTokens = await context.UserTokens
+				.Where(t => t.UserId == userId
+							&& t.LoginProvider == "JWT"
+							&& t.Name == "RefreshToken")
+				.ToListAsync();
+
+			if (existingTokens.Any())
+			{
+				context.UserTokens.RemoveRange(existingTokens);
+			}
 
 			var userToken = new IdentityUserToken<string>
 			{
@@ -348,9 +343,6 @@ namespace LampStoreProjects.Repositories
 			return refreshToken;
 		}
 
-		/// <summary>
-		/// Refresh Access Token bằng Refresh Token
-		/// </summary>
 		public async Task<TokenResponseModel?> RefreshTokenAsync(string refreshToken)
 		{
 			// Tìm refresh token trong database
@@ -424,9 +416,6 @@ namespace LampStoreProjects.Repositories
 			return true;
 		}
 
-		/// <summary>
-		/// Lấy danh sách active sessions của user
-		/// </summary>
 		public async Task<List<ActiveSessionModel>> GetActiveSessionsAsync(string userId)
 		{
 			var tokens = await context.UserTokens
