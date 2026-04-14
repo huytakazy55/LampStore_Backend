@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Authorization;
+using System.Collections.Concurrent;
 using System.Security.Claims;
 using LampStoreProjects.Repositories.Chat;
 using LampStoreProjects.Data;
@@ -9,7 +10,8 @@ namespace LampStoreProjects.Hubs
     [Authorize]
     public class ChatHub : Hub
     {
-        private static readonly Dictionary<string, string> _connections = new();
+        // Bug fix: dùng ConcurrentDictionary thay Dictionary để thread-safe
+        private static readonly ConcurrentDictionary<string, string> _connections = new();
         private readonly IChatRepository _chatRepository;
         public ChatHub(IChatRepository chatRepository)
         {
@@ -45,10 +47,8 @@ namespace LampStoreProjects.Hubs
 
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
-            if (_connections.TryGetValue(Context.ConnectionId, out var userId))
+            if (_connections.TryRemove(Context.ConnectionId, out var userId))
             {
-                _connections.Remove(Context.ConnectionId);
-                
                 // Thông báo user offline
                 await Clients.All.SendAsync("UserOffline", userId);
                 await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"user_{userId}");
@@ -74,11 +74,18 @@ namespace LampStoreProjects.Hubs
         }
 
         // Cho phép client join group 'admins' để nhận thông báo toàn hệ thống
+        // Bug fix: kiểm tra role trước khi cho phép join group admins (security)
         public async Task JoinAdminsGroup()
         {
             var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var userRole = Context.User?.FindFirst(ClaimTypes.Role)?.Value;
             var userName = Context.User?.FindFirst(ClaimTypes.Name)?.Value;
+            
+            if (userRole != "Administrator")
+            {
+                Console.WriteLine($"⛔ Unauthorized attempt to join admins group by user {userName} ({userId}) with role '{userRole}'");
+                throw new HubException("Bạn không có quyền join group admins.");
+            }
             
             await Groups.AddToGroupAsync(Context.ConnectionId, "admins");
             Console.WriteLine($"🎯 User {userName} ({userId}) with role {userRole} joined admins group via connection {Context.ConnectionId}");
@@ -114,12 +121,12 @@ namespace LampStoreProjects.Hubs
                 Type = "Text"
             });
 
-            // Nếu là user gửi (không phải admin), gửi thêm tới group 'admins' để admin nhận notification
+            // Nếu là user gửi (không phải admin), gửi notification tới group 'admins'
+            // Dùng event "AdminChatNotification" khác với "ReceiveMessage" để tránh admin nhận tin nhắn 2 lần
             if (string.IsNullOrEmpty(userRole) || userRole != "Administrator")
             {
                 try
                 {
-                    // Lấy thông tin chat để gửi kèm
                     var chat = await _chatRepository.GetChatByIdAsync(chatId);
                     var adminNotification = new
                     {
@@ -134,9 +141,12 @@ namespace LampStoreProjects.Hubs
                         Priority = chat?.Priority
                     };
                     
-                    await Clients.Group("admins").SendAsync("ReceiveMessage", adminNotification);
-                    Console.WriteLine($"📢 Sent notification to admins group for message from user {userName} in chat {chatId}: '{message}'");
-                    Console.WriteLine($"📋 Admin notification data: ChatSubject='{chat?.Subject}', UserName='{chat?.User?.UserName}', Priority={chat?.Priority}");
+                    // Gửi event AdminChatNotification (KHÁC ReceiveMessage) tới admins group
+                    // Admin nhận ReceiveMessage từ chat room (hiển thị trong chat window)
+                    // Admin nhận AdminChatNotification từ admins group (hiển thị notification popup)
+                    // => Không bao giờ duplicate
+                    await Clients.Group("admins").SendAsync("AdminChatNotification", adminNotification);
+                    Console.WriteLine($"📢 Sent AdminChatNotification to admins group from user {userName} in chat {chatId}");
                 }
                 catch (Exception ex)
                 {
@@ -195,7 +205,8 @@ namespace LampStoreProjects.Hubs
         // Check if user is online
         public static bool IsUserOnline(string userId)
         {
-            return _connections.ContainsValue(userId);
+            // ConcurrentDictionary không có ContainsValue, dùng LINQ thay thế
+            return _connections.Values.Contains(userId);
         }
     }
 } 

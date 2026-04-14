@@ -37,6 +37,17 @@ namespace LampStoreProjects.Repositories
                         ImagePath = i.ImagePath,
                         ProductId = i.ProductId
                     }).ToList(),
+                    Variants = p.ProductVariants.Select(v => new ProductVariantModel
+                    {
+                        Id = v.Id,
+                        ProductId = v.ProductId,
+                        Price = v.Price,
+                        DiscountPrice = v.DiscountPrice,
+                        Stock = v.Stock,
+                        Weight = v.Weight,
+                        Materials = v.Materials,
+                        SKU = v.SKU
+                    }).ToList(),
                     MinPrice = p.ProductVariants.Any() ? p.ProductVariants.Min(v => v.DiscountPrice) : null,
                     MaxPrice = p.ProductVariants.Any() ? p.ProductVariants.Max(v => v.Price) : null,
                     Stock = p.ProductVariants.Any() ? p.ProductVariants.Sum(s => s.Stock) : 0
@@ -46,14 +57,36 @@ namespace LampStoreProjects.Repositories
 
         public async Task<ProductModel> GetProductByIdAsync(Guid id)
         {
-            var product = await _context.Products!.Include(l => l.Images).FirstOrDefaultAsync(l => l.Id == id);
-            return _mapper.Map<ProductModel>(product);
+            var product = await _context.Products!
+                .Include(l => l.Images)
+                .Include(l => l.ProductVariants)
+                .Include(l => l.VariantTypes)
+                    .ThenInclude(vt => vt.Values)
+                .FirstOrDefaultAsync(l => l.Id == id);
+            
+            var productModel = _mapper.Map<ProductModel>(product);
+            
+            if (productModel != null && product != null)
+            {
+                // Compute prices & stock from variants
+                if (product.ProductVariants.Any())
+                {
+                    productModel.MinPrice = product.ProductVariants.Min(v => v.DiscountPrice > 0 ? v.DiscountPrice : v.Price);
+                    productModel.MaxPrice = product.ProductVariants.Max(v => v.Price);
+                    productModel.Stock = product.ProductVariants.Sum(v => v.Stock);
+                }
+                
+                // Populate variant labels
+                productModel.VariantLabels = await GetVariantLabelsAsync(id);
+            }
+            
+            return productModel;
         }
 
-        public async Task<ProductVariantModel> GetProductVariantByIdAsync(Guid id)
+        public async Task<List<ProductVariantModel>> GetProductVariantByIdAsync(Guid id)
         {
-            var variant = await _context.ProductVariants!.FirstOrDefaultAsync(l => l.ProductId == id);
-            return _mapper.Map<ProductVariantModel>(variant);
+            var variants = await _context.ProductVariants!.Where(l => l.ProductId == id).ToListAsync();
+            return _mapper.Map<List<ProductVariantModel>>(variants);
         }
 
         public async Task<List<VariantTypeModel>> GetVariantTypeByIdAsync(Guid productId)
@@ -71,6 +104,20 @@ namespace LampStoreProjects.Repositories
                 .Select(v => v.Value)
                 .ToListAsync();
             return variantValues;
+        }
+
+        public async Task<Dictionary<string, string>> GetVariantLabelsAsync(Guid productId)
+        {
+            // Join ProductVariantValues -> VariantValues to get label for each ProductVariant
+            var labels = await _context.ProductVariantValues!
+                .Where(pvv => pvv.ProductVariant != null && pvv.ProductVariant.ProductId == productId)
+                .Select(pvv => new {
+                    VariantId = pvv.ProductVariantId,
+                    Label = pvv.VariantValue != null ? pvv.VariantValue.Value : ""
+                })
+                .ToListAsync();
+            
+            return labels.ToDictionary(x => x.VariantId.ToString()!.ToLower(), x => x.Label);
         }
 
         public async Task<List<ProductImageModel>?> GetProductImageByIdAsync(Guid id)

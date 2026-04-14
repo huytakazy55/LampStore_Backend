@@ -22,21 +22,21 @@ namespace LampStoreProjects.Controllers
         private readonly IProductStoreManage _productStoreManage;
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _env;
-        private readonly ICloudinaryService _cloudinaryService;
+        private readonly IImageUploadService _imageService;
         private readonly ICacheService _cacheService;
 
-        public ProductsController(IProductRepository productRepository, IProductStoreManage productStoreManage, ApplicationDbContext context, IWebHostEnvironment env, ICloudinaryService cloudinaryService, ICacheService cacheService)
+        public ProductsController(IProductRepository productRepository, IProductStoreManage productStoreManage, ApplicationDbContext context, IWebHostEnvironment env, IImageUploadService imageService, ICacheService cacheService)
         {
             _productRepository = productRepository;
             _productStoreManage = productStoreManage;
             _context = context;
             _env = env;
-            _cloudinaryService = cloudinaryService;
+            _imageService = imageService;
             _cacheService = cacheService;
         }
 
         [HttpGet]
-        [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Any)] // Cache 5 phút
+        [ResponseCache(NoStore = true)]
         public async Task<ActionResult<IEnumerable<ProductModel>>> GetAllProducts()
         {
             // Kiểm tra cache trước
@@ -56,7 +56,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpGet("{id}")]
-        [ResponseCache(Duration = 600, Location = ResponseCacheLocation.Any)] // Cache 10 phút
+        [ResponseCache(NoStore = true)]
         public async Task<ActionResult<ProductModel>> GetProductById(Guid id)
         {
             // Kiểm tra cache trước
@@ -110,6 +110,13 @@ namespace LampStoreProjects.Controllers
                 return NotFound();
             }
             return Ok(variantvalue);
+        }
+
+        [HttpGet("VariantLabels/{productId}")]
+        public async Task<ActionResult<Dictionary<string, string>>> GetVariantLabels(Guid productId)
+        {
+            var labels = await _productRepository.GetVariantLabelsAsync(productId);
+            return Ok(labels);
         }
 
         [HttpGet("{id}/images")]
@@ -170,9 +177,24 @@ namespace LampStoreProjects.Controllers
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteProduct(Guid id)
         {
+            // Xóa file ảnh vật lý trước khi xóa sản phẩm
+            var productImages = await _context.ProductImages!.Where(img => img.ProductId == id).ToListAsync();
+            var webRootPath = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            foreach (var image in productImages)
+            {
+                if (!string.IsNullOrEmpty(image.ImagePath) && !image.ImagePath.StartsWith("http"))
+                {
+                    var filePath = Path.Combine(webRootPath, image.ImagePath.TrimStart('/'));
+                    if (System.IO.File.Exists(filePath))
+                    {
+                        System.IO.File.Delete(filePath);
+                    }
+                }
+            }
+
             await _productRepository.DeleteProductAsync(id);
             
-            // Xóa cache liên quan sau khi xóa sản phẩm
+            // Xóa cache
             await _cacheService.RemoveAsync(CacheKeys.AllProducts);
             await _cacheService.RemoveAsync(CacheKeys.ProductById(id));
             await _cacheService.RemoveByPatternAsync($"products_category_");
@@ -192,9 +214,10 @@ namespace LampStoreProjects.Controllers
 
             await _productRepository.DeleteImageProductAsync(imageId);
 
-            if (!string.IsNullOrEmpty(productImage.ImagePath))
+            if (!string.IsNullOrEmpty(productImage.ImagePath) && !productImage.ImagePath.StartsWith("http"))
             {
-                var filePath = Path.Combine(_env.WebRootPath, productImage.ImagePath.TrimStart('/'));
+                var webRootPath = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                var filePath = Path.Combine(webRootPath, productImage.ImagePath.TrimStart('/'));
                 if (System.IO.File.Exists(filePath))
                 {
                     System.IO.File.Delete(filePath);
@@ -205,7 +228,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPost("{productId}/images")]
-        public async Task<ActionResult> UploadImages(Guid productId, List<IFormFile> imageFiles)
+        public async Task<ActionResult> UploadImages(Guid productId, [FromForm] List<IFormFile> imageFiles)
         {
             const int MAX_IMAGES = 5;
             try
@@ -217,7 +240,6 @@ namespace LampStoreProjects.Controllers
 
                 var existingImagesCount = await _context.ProductImages!.CountAsync(img => img.ProductId == productId);
 
-                // Kiểm tra tổng số ảnh sau khi upload
                 if (existingImagesCount + imageFiles.Count > MAX_IMAGES)
                 {
                     return BadRequest($"Bạn chỉ có thể upload tối đa {MAX_IMAGES} ảnh, hiện tại đã có {existingImagesCount} ảnh.");
@@ -229,21 +251,53 @@ namespace LampStoreProjects.Controllers
                     return NotFound("Product not found.");
                 }
 
+                // Tạo thư mục uploads nếu chưa có
+                var uploadsDir = Path.Combine(_env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), "ImageImport");
+                if (!Directory.Exists(uploadsDir))
+                {
+                    Directory.CreateDirectory(uploadsDir);
+                }
+
                 foreach (var imageFile in imageFiles)
                 {
-                    // Upload lên Cloudinary thay vì lưu local
-                    var cloudinaryUrl = await _cloudinaryService.UploadImageAsync(imageFile, "lamp-store/products");
+                    // Validate file type
+                    var allowedTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp" };
+                    if (!allowedTypes.Contains(imageFile.ContentType.ToLower()))
+                    {
+                        return BadRequest("File không hợp lệ. Chỉ chấp nhận JPEG, PNG, GIF, WebP.");
+                    }
 
+                    if (imageFile.Length > 5 * 1024 * 1024)
+                    {
+                        return BadRequest("File vượt quá 5MB.");
+                    }
+
+                    // Tạo tên file unique
+                    var fileName = $"{Guid.NewGuid()}{Path.GetExtension(imageFile.FileName)}";
+                    var filePath = Path.Combine(uploadsDir, fileName);
+
+                    // Lưu file vào server
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await imageFile.CopyToAsync(stream);
+                    }
+
+                    // Lưu path tương đối vào DB
+                    var relativePath = $"/ImageImport/{fileName}";
                     var productImage = new ProductImage
                     {
-                        ImagePath = cloudinaryUrl, // Lưu URL từ Cloudinary
+                        ImagePath = relativePath,
                         ProductId = productId
                     };
                     _context.ProductImages!.Add(productImage);
                 }
                 await _context.SaveChangesAsync();
+                
+                // Xóa cache
+                await _cacheService.RemoveAsync(CacheKeys.AllProducts);
+                await _cacheService.RemoveAsync(CacheKeys.ProductById(productId));
 
-                return Ok(new { message = "Upload ảnh thành công lên Cloudinary!" });
+                return Ok(new { message = "Upload ảnh thành công!" });
             }
             catch (System.Exception ex)
             {
@@ -266,6 +320,9 @@ namespace LampStoreProjects.Controllers
                     await _productRepository.CreateProductAsync(product);
                 }
 
+                // Xóa cache
+                await _cacheService.RemoveAsync(CacheKeys.AllProducts);
+
                 return Ok(new { message = "Import sản phẩm thành công" });
             }
             catch (Exception ex)
@@ -278,11 +335,12 @@ namespace LampStoreProjects.Controllers
         public async Task<ActionResult> BulkDeleteProducts(List<Guid> ids)
         {
             await _productRepository.BulkDeleteAsync(ids);
+            await _cacheService.RemoveAsync(CacheKeys.AllProducts);
             return NoContent();
         }
 
         [HttpGet("search")]
-        [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Any)] // Cache 5 phút
+        [ResponseCache(NoStore = true)]
         public async Task<ActionResult<SearchResultModel>> AdvancedSearch(
             [FromQuery] string? keyword,
             [FromQuery] decimal? minPrice,

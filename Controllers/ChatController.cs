@@ -200,7 +200,7 @@ namespace LampStoreProjects.Controllers
                             Priority = fullChat?.Priority
                         };
 
-                        await _hubContext.Clients.Group("admins").SendAsync("ReceiveMessage", adminNotification);
+                        await _hubContext.Clients.Group("admins").SendAsync("AdminChatNotification", adminNotification);
                     }
                     catch (Exception ex)
                     {

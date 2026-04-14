@@ -9,5 +9,6 @@ namespace LampStoreProjects.Models
         public Guid? ProductId {get; set;}
         [JsonIgnore]
         public ProductModel ProductModel {get; set;} = new ProductModel();
+        public ICollection<VariantValueModel> Values { get; set; } = new List<VariantValueModel>();
     }
 }

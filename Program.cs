@@ -143,7 +143,7 @@ builder.Services.AddScoped<LampStoreProjects.Repositories.Chat.IChatRepository, 
 
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IProductStoreManage, ProductStoreManage>();
-builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
+builder.Services.AddScoped<IImageUploadService, LocalImageService>();
 builder.Services.AddScoped<ICacheService, CacheService>();
 
 // Add Memory Cache
@@ -249,7 +249,18 @@ app.UseHttpsRedirection();
 app.UseResponseCaching();
 
 app.UseAuthentication();
-app.UseStaticFiles();
+
+// Đảm bảo serve static files từ wwwroot (fix cho dotnet watch mode)
+var webRootPath = app.Environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+if (!Directory.Exists(webRootPath))
+{
+    Directory.CreateDirectory(webRootPath);
+}
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(webRootPath),
+    RequestPath = ""
+});
 app.UseRouting();
 app.UseAuthorization();
 

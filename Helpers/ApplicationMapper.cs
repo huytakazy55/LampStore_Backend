@@ -7,7 +7,9 @@ public class ApplicationMapper : Profile
 {
     public ApplicationMapper()
     {
-        CreateMap<ProductModel, Product>().ReverseMap();
+        CreateMap<ProductModel, Product>().ReverseMap()
+            .ForMember(dest => dest.Variants, opt => opt.MapFrom(src => src.ProductVariants))
+            .ForMember(dest => dest.VariantLabels, opt => opt.Ignore());
         CreateMap<Product, ProductCreateDto>()
             .ForMember(dest => dest.ProductVariants, opt => opt.MapFrom(src => src.ProductVariants))
             .ForMember(dest => dest.VariantTypes, opt => opt.MapFrom(src => src.VariantTypes))

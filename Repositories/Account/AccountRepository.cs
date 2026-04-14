@@ -57,7 +57,7 @@ namespace LampStoreProjects.Repositories
 			{
 				AccessToken = accessToken,
 				RefreshToken = refreshToken,
-				ExpiresIn = 900, // 15 phút (seconds)
+				ExpiresIn = 50, // 1 phút (seconds)
 				TokenType = "Bearer"
 			};
 		}
@@ -151,7 +151,6 @@ namespace LampStoreProjects.Repositories
 					Audience = configuration["Jwt:Audience"]
 				};
 
-				// Tạo Access Token và Refresh Token
 				var accessToken = await CreateAccessTokenAsync(user);
 				var refreshToken = await CreateAndSaveRefreshTokenAsync(user.Id);
 
@@ -161,7 +160,7 @@ namespace LampStoreProjects.Repositories
 				{
 					AccessToken = accessToken,
 					RefreshToken = refreshToken,
-					ExpiresIn = 900, // 15 phút (seconds)
+					ExpiresIn = 50, // 1 phút (seconds)
 					TokenType = "Bearer"
 				};
 			}

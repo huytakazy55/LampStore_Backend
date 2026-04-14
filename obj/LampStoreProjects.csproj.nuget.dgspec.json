@@ -51,10 +51,6 @@
               "target": "Package",
               "version": "[8.1.1, )"
             },
-            "CloudinaryDotNet": {
-              "target": "Package",
-              "version": "[1.27.6, )"
-            },
             "Dapper": {
               "target": "Package",
               "version": "[2.1.35, )"
@@ -153,7 +149,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.418/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.419/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

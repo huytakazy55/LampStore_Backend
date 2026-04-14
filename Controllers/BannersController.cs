@@ -12,13 +12,13 @@ namespace LampStoreProjects.Controllers
     {
         private readonly IBannerRepository _bannerRepository;
         private readonly IWebHostEnvironment _environment;
-        private readonly ICloudinaryService _cloudinaryService;
+        private readonly IImageUploadService _imageService;
 
-        public BannersController(IBannerRepository bannerRepository, IWebHostEnvironment environment, ICloudinaryService cloudinaryService)
+        public BannersController(IBannerRepository bannerRepository, IWebHostEnvironment environment, IImageUploadService imageService)
         {
             _bannerRepository = bannerRepository;
             _environment = environment;
-            _cloudinaryService = cloudinaryService;
+            _imageService = imageService;
         }
 
         // GET: api/banners
@@ -103,7 +103,7 @@ namespace LampStoreProjects.Controllers
 
         // POST: api/banners/upload
         [HttpPost("upload")]
-        public async Task<ActionResult<string>> UploadImage(IFormFile file)
+        public async Task<ActionResult<string>> UploadImage([FromForm] IFormFile file)
         {
             if (file == null || file.Length == 0)
             {
@@ -126,10 +126,10 @@ namespace LampStoreProjects.Controllers
 
             try
             {
-                // Upload lên Cloudinary thay vì lưu local
-                var cloudinaryUrl = await _cloudinaryService.UploadImageAsync(file, "lamp-store/banners");
+                // Upload vào wwwroot/ImageImport
+                var imageUrl = await _imageService.UploadImageAsync(file, "ImageImport");
 
-                return Ok(new { imageUrl = cloudinaryUrl });
+                return Ok(new { imageUrl = imageUrl });
             }
             catch (Exception ex)
             {
