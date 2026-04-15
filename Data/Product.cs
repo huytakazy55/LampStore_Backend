@@ -31,7 +31,7 @@ namespace LampStoreProjects.Data
         public bool Status { get; set; } = true;
 
         public ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();
-        public ICollection<ProductVariant> ProductVariants { get; set; } = new List<ProductVariant>();
+        public ProductVariant? ProductVariant { get; set; }
         public ICollection<VariantType> VariantTypes { get; set; } = new List<VariantType>();
         public ICollection<ProductReview> ProductReviews { get; set; } = new List<ProductReview>();
         public CartItem? CartItem { get; set; }

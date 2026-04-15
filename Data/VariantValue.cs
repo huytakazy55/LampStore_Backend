@@ -10,6 +10,7 @@ namespace LampStoreProjects.Data
         [JsonIgnore]
         public VariantType? VariantType { get; set; }
         public string Value { get; set; } = string.Empty;
+        public decimal AdditionalPrice { get; set; } = 0;
         public ICollection<ProductVariantValue> ProductVariantValues { get; set; } = new List<ProductVariantValue>();
     }
 }

@@ -14,14 +14,20 @@ namespace LampStoreProjects.DTOs
         public Guid? CategoryId { get; set; }
         public DateTime DateAdded { get; set; } = DateTime.UtcNow;
         public int Status {get; set; } = 1;
-        public List<ProductVariantDto> ProductVariants { get; set; } = new List<ProductVariantDto>(); 
+        public ProductVariantDto ProductVariant { get; set; } = new ProductVariantDto(); 
         public List<VariantTypeDto> VariantTypes { get; set; } = new List<VariantTypeDto>();
     }
 
     public class VariantTypeDto
     {
         public string Name { get; set; } = string.Empty;
-        public List<string> Values { get; set; } = new List<string>();
+        public List<VariantValueItemDto> Values { get; set; } = new List<VariantValueItemDto>();
+    }
+
+    public class VariantValueItemDto
+    {
+        public string Value { get; set; } = string.Empty;
+        public decimal AdditionalPrice { get; set; } = 0;
     }
 
     public class ProductVariantDto

@@ -16,7 +16,7 @@ namespace LampStoreProjects.Repositories
         {
             return await _context.Products!
                 .Include(p => p.Images)
-                .Include(p => p.ProductVariants)
+                .Include(p => p.ProductVariant)
                 .Select(p => new ProductModel
                 {
                     Id = p.Id,
@@ -37,20 +37,20 @@ namespace LampStoreProjects.Repositories
                         ImagePath = i.ImagePath,
                         ProductId = i.ProductId
                     }).ToList(),
-                    Variants = p.ProductVariants.Select(v => new ProductVariantModel
+                    Variant = p.ProductVariant != null ? new ProductVariantModel
                     {
-                        Id = v.Id,
-                        ProductId = v.ProductId,
-                        Price = v.Price,
-                        DiscountPrice = v.DiscountPrice,
-                        Stock = v.Stock,
-                        Weight = v.Weight,
-                        Materials = v.Materials,
-                        SKU = v.SKU
-                    }).ToList(),
-                    MinPrice = p.ProductVariants.Any() ? p.ProductVariants.Min(v => v.DiscountPrice) : null,
-                    MaxPrice = p.ProductVariants.Any() ? p.ProductVariants.Max(v => v.Price) : null,
-                    Stock = p.ProductVariants.Any() ? p.ProductVariants.Sum(s => s.Stock) : 0
+                        Id = p.ProductVariant.Id,
+                        ProductId = p.ProductVariant.ProductId,
+                        Price = p.ProductVariant.Price,
+                        DiscountPrice = p.ProductVariant.DiscountPrice,
+                        Stock = p.ProductVariant.Stock,
+                        Weight = p.ProductVariant.Weight,
+                        Materials = p.ProductVariant.Materials,
+                        SKU = p.ProductVariant.SKU
+                    } : null,
+                    MinPrice = p.ProductVariant != null ? p.ProductVariant.DiscountPrice : null,
+                    MaxPrice = p.ProductVariant != null ? p.ProductVariant.Price : null,
+                    Stock = p.ProductVariant != null ? p.ProductVariant.Stock : 0
                 })
                 .ToListAsync();
         }
@@ -59,25 +59,19 @@ namespace LampStoreProjects.Repositories
         {
             var product = await _context.Products!
                 .Include(l => l.Images)
-                .Include(l => l.ProductVariants)
+                .Include(l => l.ProductVariant)
                 .Include(l => l.VariantTypes)
                     .ThenInclude(vt => vt.Values)
                 .FirstOrDefaultAsync(l => l.Id == id);
             
             var productModel = _mapper.Map<ProductModel>(product);
             
-            if (productModel != null && product != null)
+            if (productModel != null && product != null && product.ProductVariant != null)
             {
-                // Compute prices & stock from variants
-                if (product.ProductVariants.Any())
-                {
-                    productModel.MinPrice = product.ProductVariants.Min(v => v.DiscountPrice > 0 ? v.DiscountPrice : v.Price);
-                    productModel.MaxPrice = product.ProductVariants.Max(v => v.Price);
-                    productModel.Stock = product.ProductVariants.Sum(v => v.Stock);
-                }
-                
-                // Populate variant labels
-                productModel.VariantLabels = await GetVariantLabelsAsync(id);
+                var v = product.ProductVariant;
+                productModel.MinPrice = v.DiscountPrice > 0 ? v.DiscountPrice : v.Price;
+                productModel.MaxPrice = v.Price;
+                productModel.Stock = v.Stock;
             }
             
             return productModel;
@@ -106,19 +100,7 @@ namespace LampStoreProjects.Repositories
             return variantValues;
         }
 
-        public async Task<Dictionary<string, string>> GetVariantLabelsAsync(Guid productId)
-        {
-            // Join ProductVariantValues -> VariantValues to get label for each ProductVariant
-            var labels = await _context.ProductVariantValues!
-                .Where(pvv => pvv.ProductVariant != null && pvv.ProductVariant.ProductId == productId)
-                .Select(pvv => new {
-                    VariantId = pvv.ProductVariantId,
-                    Label = pvv.VariantValue != null ? pvv.VariantValue.Value : ""
-                })
-                .ToListAsync();
-            
-            return labels.ToDictionary(x => x.VariantId.ToString()!.ToLower(), x => x.Label);
-        }
+
 
         public async Task<List<ProductImageModel>?> GetProductImageByIdAsync(Guid id)
         {
@@ -166,12 +148,13 @@ namespace LampStoreProjects.Repositories
                     await _context.VariantTypes!.AddAsync(variantType);
 
                     // Xử lý các giá trị của loại biến thể
-                    foreach (var value in variantTypeDto.Values)
+                    foreach (var valueDto in variantTypeDto.Values)
                     {
                         var variantValue = new VariantValue
                         {
                             Id = Guid.NewGuid(),
-                            Value = value,
+                            Value = valueDto.Value,
+                            AdditionalPrice = valueDto.AdditionalPrice,
                             TypeId = variantType.Id
                         };
 
@@ -179,23 +162,21 @@ namespace LampStoreProjects.Repositories
                     }
                 }
 
-                // Xử lý các biến thể sản phẩm (ProductVariant)
-                foreach (var variantDto in productDto.ProductVariants)
+                // Tạo 1 ProductVariant duy nhất cho sản phẩm
+                var variantDto = productDto.ProductVariant;
+                var productVariant = new ProductVariant
                 {
-                    var productVariant = new ProductVariant
-                    {
-                        Id = Guid.NewGuid(),
-                        ProductId = product.Id,
-                        Price = variantDto.Price,
-                        DiscountPrice = variantDto.DiscountPrice,
-                        Stock = variantDto.Stock,
-                        Weight = variantDto.Weight,
-                        Materials = variantDto.Materials,
-                        SKU = variantDto.SKU
-                    };
+                    Id = Guid.NewGuid(),
+                    ProductId = product.Id,
+                    Price = variantDto.Price,
+                    DiscountPrice = variantDto.DiscountPrice,
+                    Stock = variantDto.Stock,
+                    Weight = variantDto.Weight,
+                    Materials = variantDto.Materials,
+                    SKU = variantDto.SKU
+                };
 
-                    await _context.ProductVariants!.AddAsync(productVariant);
-                }
+                await _context.ProductVariants!.AddAsync(productVariant);
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -218,7 +199,7 @@ namespace LampStoreProjects.Repositories
                 var product = await _context.Products!
                     .Include(p => p.VariantTypes)
                         .ThenInclude(vt => vt.Values)
-                    .Include(p => p.ProductVariants)
+                    .Include(p => p.ProductVariant)
                     .FirstOrDefaultAsync(p => p.Id == productId);
 
                 if (product == null)
@@ -252,15 +233,26 @@ namespace LampStoreProjects.Repositories
                         var newValues = variantTypeDto.Values.ToList();
 
                         // Xóa các giá trị không còn tồn tại
-                        var valuesToRemove = existingValues.Where(ev => !newValues.Contains(ev.Value)).ToList();
+                        var valuesToRemove = existingValues.Where(ev => !newValues.Any(nv => nv.Value == ev.Value)).ToList();
                         _context.VariantValues!.RemoveRange(valuesToRemove);
 
+                        // Cập nhật giá của các giá trị hiện có
+                        foreach (var existingVal in existingValues)
+                        {
+                            var matchingNew = newValues.FirstOrDefault(nv => nv.Value == existingVal.Value);
+                            if (matchingNew != null)
+                            {
+                                existingVal.AdditionalPrice = matchingNew.AdditionalPrice;
+                            }
+                        }
+
                         // Thêm các giá trị mới
-                        var valuesToAdd = newValues.Except(existingValues.Select(ev => ev.Value))
-                            .Select(value => new VariantValue
+                        var valuesToAdd = newValues.Where(nv => !existingValues.Any(ev => ev.Value == nv.Value))
+                            .Select(valueDto => new VariantValue
                             {
                                 Id = Guid.NewGuid(),
-                                Value = value,
+                                Value = valueDto.Value,
+                                AdditionalPrice = valueDto.AdditionalPrice,
                                 TypeId = existingType.Id
                             }).ToList();
 
@@ -280,10 +272,11 @@ namespace LampStoreProjects.Repositories
                         await _context.VariantTypes!.AddAsync(newVariantType);
 
                         // Thêm các giá trị cho loại biến thể mới
-                        var variantValues = variantTypeDto.Values.Select(value => new VariantValue
+                        var variantValues = variantTypeDto.Values.Select(valueDto => new VariantValue
                         {
                             Id = Guid.NewGuid(),
-                            Value = value,
+                            Value = valueDto.Value,
+                            AdditionalPrice = valueDto.AdditionalPrice,
                             TypeId = newVariantType.Id
                         }).ToList();
 
@@ -298,52 +291,34 @@ namespace LampStoreProjects.Repositories
 
                 _context.VariantTypes!.RemoveRange(typesToRemove);
 
-                // Xử lý các biến thể sản phẩm (ProductVariant)
-                var existingVariants = product.ProductVariants.ToList();
-                var newVariants = new List<ProductVariant>();
-
-                foreach (var variantDto in productDto.ProductVariants)
+                // Cập nhật hoặc tạo ProductVariant duy nhất
+                var variantDto = productDto.ProductVariant;
+                if (product.ProductVariant != null)
                 {
-                    var existingVariant = existingVariants.FirstOrDefault(v => v.SKU == variantDto.SKU);
-                    
-                    if (existingVariant != null)
-                    {
-                        // Cập nhật biến thể hiện có
-                        existingVariant.Price = variantDto.Price;
-                        existingVariant.DiscountPrice = variantDto.DiscountPrice;
-                        existingVariant.Stock = variantDto.Stock;
-                        existingVariant.Weight = variantDto.Weight;
-                        existingVariant.Materials = variantDto.Materials;
-                        existingVariant.SKU = variantDto.SKU;
-
-                        _context.ProductVariants!.Update(existingVariant);
-                    }
-                    else
-                    {
-                        // Tạo biến thể mới
-                        var newVariant = new ProductVariant
-                        {
-                            Id = Guid.NewGuid(),
-                            ProductId = product.Id,
-                            Price = variantDto.Price,
-                            DiscountPrice = variantDto.DiscountPrice,
-                            Stock = variantDto.Stock,
-                            Weight = variantDto.Weight,
-                            Materials = variantDto.Materials,
-                            SKU = variantDto.SKU
-                        };
-
-                        newVariants.Add(newVariant);
-                        await _context.ProductVariants!.AddAsync(newVariant);
-                    }
+                    // Cập nhật variant hiện có
+                    product.ProductVariant.Price = variantDto.Price;
+                    product.ProductVariant.DiscountPrice = variantDto.DiscountPrice;
+                    product.ProductVariant.Stock = variantDto.Stock;
+                    product.ProductVariant.Weight = variantDto.Weight;
+                    product.ProductVariant.Materials = variantDto.Materials;
+                    product.ProductVariant.SKU = variantDto.SKU;
                 }
-
-                // Xóa các biến thể không còn tồn tại
-                var variantsToRemove = existingVariants
-                    .Where(ev => !productDto.ProductVariants.Any(v => v.SKU == ev.SKU))
-                    .ToList();
-
-                _context.ProductVariants!.RemoveRange(variantsToRemove);
+                else
+                {
+                    // Tạo variant mới
+                    var newVariant = new ProductVariant
+                    {
+                        Id = Guid.NewGuid(),
+                        ProductId = product.Id,
+                        Price = variantDto.Price,
+                        DiscountPrice = variantDto.DiscountPrice,
+                        Stock = variantDto.Stock,
+                        Weight = variantDto.Weight,
+                        Materials = variantDto.Materials,
+                        SKU = variantDto.SKU
+                    };
+                    await _context.ProductVariants!.AddAsync(newVariant);
+                }
 
                 // Set UpdatedAt timestamp
                 product.UpdatedAt = DateTime.UtcNow;
@@ -411,7 +386,7 @@ namespace LampStoreProjects.Repositories
         {
             var query = _context.Products!
                 .Include(p => p.Images)
-                .Include(p => p.ProductVariants)
+                .Include(p => p.ProductVariant)
                 .Include(p => p.Category)
                 .Include(p => p.ProductTags)
                 .ThenInclude(pt => pt.Tag)
@@ -431,10 +406,10 @@ namespace LampStoreProjects.Repositories
 
             // 2. Áp dụng lọc giá
             if (criteria.MinPrice.HasValue)
-                query = query.Where(p => p.ProductVariants.Any(v => v.DiscountPrice >= criteria.MinPrice.Value));
+                query = query.Where(p => p.ProductVariant != null && p.ProductVariant.DiscountPrice >= criteria.MinPrice.Value);
             
             if (criteria.MaxPrice.HasValue)
-                query = query.Where(p => p.ProductVariants.Any(v => v.DiscountPrice <= criteria.MaxPrice.Value));
+                query = query.Where(p => p.ProductVariant != null && p.ProductVariant.DiscountPrice <= criteria.MaxPrice.Value);
 
             // 3. Áp dụng lọc danh mục
             if (criteria.CategoryId.HasValue)
@@ -455,8 +430,8 @@ namespace LampStoreProjects.Repositories
             query = criteria.SortBy?.ToLower() switch
             {
                 "price" => criteria.SortOrder == "desc" ? 
-                    query.OrderByDescending(p => p.ProductVariants.Min(v => v.DiscountPrice)) : 
-                    query.OrderBy(p => p.ProductVariants.Min(v => v.DiscountPrice)),
+                    query.OrderByDescending(p => p.ProductVariant != null ? p.ProductVariant.DiscountPrice : 0) : 
+                    query.OrderBy(p => p.ProductVariant != null ? p.ProductVariant.DiscountPrice : 0),
                 "name" => criteria.SortOrder == "desc" ? 
                     query.OrderByDescending(p => p.Name) : 
                     query.OrderBy(p => p.Name),
@@ -496,9 +471,9 @@ namespace LampStoreProjects.Repositories
                         ImagePath = i.ImagePath,
                         ProductId = i.ProductId
                     }).ToList(),
-                    MinPrice = p.ProductVariants.Any() ? p.ProductVariants.Min(v => v.DiscountPrice) : null,
-                    MaxPrice = p.ProductVariants.Any() ? p.ProductVariants.Max(v => v.Price) : null,
-                    Stock = p.ProductVariants.Any() ? p.ProductVariants.Sum(s => s.Stock) : 0
+                    MinPrice = p.ProductVariant != null ? p.ProductVariant.DiscountPrice : null,
+                    MaxPrice = p.ProductVariant != null ? p.ProductVariant.Price : null,
+                    Stock = p.ProductVariant != null ? p.ProductVariant.Stock : 0
                 })
                 .ToListAsync();
 

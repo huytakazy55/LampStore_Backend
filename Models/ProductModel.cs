@@ -37,7 +37,7 @@ namespace LampStoreProjects.Models
         public bool Status { get; set; } = false;
         public ICollection<ProductImageModel> Images { get; set; } = new List<ProductImageModel>();
         public ICollection<ProductTagModel> ProductTags { get; set; } = new List<ProductTagModel>();
-        public ICollection<ProductVariantModel> Variants { get; set; } = new List<ProductVariantModel>();
+        public ProductVariantModel? Variant { get; set; }
         public ICollection<VariantTypeModel> VariantTypes { get; set; } = new List<VariantTypeModel>();
         [Precision(18, 2)]
         public decimal? MinPrice { get; set; }
@@ -45,8 +45,5 @@ namespace LampStoreProjects.Models
         public decimal? MaxPrice { get; set; }
 
         public int Stock {get;set;}
-        
-        // Map: variantId -> human-readable label (e.g. "Nhỏ (15cm)")
-        public Dictionary<string, string>? VariantLabels { get; set; }
     }
 }

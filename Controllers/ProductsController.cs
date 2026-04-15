@@ -112,13 +112,6 @@ namespace LampStoreProjects.Controllers
             return Ok(variantvalue);
         }
 
-        [HttpGet("VariantLabels/{productId}")]
-        public async Task<ActionResult<Dictionary<string, string>>> GetVariantLabels(Guid productId)
-        {
-            var labels = await _productRepository.GetVariantLabelsAsync(productId);
-            return Ok(labels);
-        }
-
         [HttpGet("{id}/images")]
         public async Task<ActionResult<List<ProductImageModel>>> GetProductImagesByProductId(Guid id)
         {

@@ -81,7 +81,13 @@ namespace LampStoreProjects.Data
                 .IsUnique();
             modelBuilder.Entity<ProductVariant>()
                 .HasIndex(pv => pv.SKU)
-                .IsUnique(false); // cho phép trùng nếu không dùng SKU, có thể đặt Unique nếu yêu cầu
+                .IsUnique(false);
+
+            // Enforce 1-to-1: mỗi product chỉ có 1 variant
+            modelBuilder.Entity<ProductVariant>()
+                .HasIndex(pv => pv.ProductId)
+                .IsUnique()
+                .HasDatabaseName("IX_ProductVariants_ProductId");
 
             modelBuilder.Entity<ApplicationUser>()
                 .HasIndex(u => u.Email)
@@ -91,10 +97,6 @@ namespace LampStoreProjects.Data
             modelBuilder.Entity<ProductImage>()
                 .HasIndex(pi => pi.ProductId)
                 .HasDatabaseName("IX_ProductImages_ProductId");
-
-            modelBuilder.Entity<ProductVariant>()
-                .HasIndex(pv => pv.ProductId)
-                .HasDatabaseName("IX_ProductVariants_ProductId");
 
             modelBuilder.Entity<ProductVariant>()
                 .HasIndex(pv => pv.SKU)
@@ -204,8 +206,8 @@ namespace LampStoreProjects.Data
 
             modelBuilder.Entity<ProductVariant>()
                 .HasOne(li => li.Product)
-                .WithMany(l => l.ProductVariants)
-                .HasForeignKey(li => li.ProductId)
+                .WithOne(l => l.ProductVariant)
+                .HasForeignKey<ProductVariant>(li => li.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
             
             modelBuilder.Entity<ProductVariant>()

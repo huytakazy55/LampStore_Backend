@@ -13,7 +13,6 @@ namespace LampStoreProjects.Repositories
         Task<List<ProductImageModel>?> GetProductImageByIdAsync(Guid id);
         Task<List<VariantTypeModel>> GetVariantTypeByIdAsync(Guid id);
         Task<List<string>> GetVariantValueByIdAsync(Guid id);
-        Task<Dictionary<string, string>> GetVariantLabelsAsync(Guid productId);
         Task<ProductModel> CreateProductAsync(ProductCreateDto productDto);
         Task<ProductModel> UpdateProductAsync(Guid productId, ProductUpdateDto productDto);
         Task DeleteImageProductAsync(Guid imageId);
