@@ -113,7 +113,8 @@ builder.Services.AddCors(options =>
                     "https://localhost:3000",
                     "http://localhost:80",
                     "http://frontend:80", // Docker service name
-                    "http://127.0.0.1:80"
+                    "http://127.0.0.1:80",
+                    "http://localhost:3001"
                 )
                 .AllowAnyHeader()
                 .AllowAnyMethod()
@@ -140,6 +141,7 @@ builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
 builder.Services.AddScoped<ITagRepository, TagRepository>();
 builder.Services.AddScoped<IBannerRepository, BannerRepository>();
 builder.Services.AddScoped<LampStoreProjects.Repositories.Chat.IChatRepository, LampStoreProjects.Repositories.Chat.ChatRepository>();
+builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
 
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IProductStoreManage, ProductStoreManage>();

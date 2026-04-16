@@ -27,6 +27,7 @@ namespace LampStoreProjects.Data
         public DbSet<Banner>? Banners { get; set; }
         public DbSet<Chat>? Chats { get; set; }
         public DbSet<Message>? Messages { get; set; }
+        public DbSet<WishlistItem>? WishlistItems { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -51,6 +52,7 @@ namespace LampStoreProjects.Data
             modelBuilder.Entity<Banner>().ToTable("Banners");
             modelBuilder.Entity<Chat>().ToTable("Chats");
             modelBuilder.Entity<Message>().ToTable("Messages");
+            modelBuilder.Entity<WishlistItem>().ToTable("WishlistItems");
 
             modelBuilder.Entity<Product>()
                 .HasIndex(p => p.Name)
@@ -197,6 +199,29 @@ namespace LampStoreProjects.Data
             modelBuilder.Entity<Message>()
                 .HasIndex(m => new { m.ChatId, m.CreatedAt })
                 .HasDatabaseName("IX_Messages_ChatId_CreatedAt");
+
+            // WishlistItem indexes
+            modelBuilder.Entity<WishlistItem>()
+                .HasIndex(w => new { w.UserId, w.ProductId })
+                .IsUnique()
+                .HasDatabaseName("IX_WishlistItems_UserId_ProductId");
+
+            modelBuilder.Entity<WishlistItem>()
+                .HasIndex(w => w.UserId)
+                .HasDatabaseName("IX_WishlistItems_UserId");
+
+            // WishlistItem relationships
+            modelBuilder.Entity<WishlistItem>()
+                .HasOne(w => w.User)
+                .WithMany(u => u.WishlistItems)
+                .HasForeignKey(w => w.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<WishlistItem>()
+                .HasOne(w => w.Product)
+                .WithMany()
+                .HasForeignKey(w => w.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<ProductImage>()
                 .HasOne(li => li.Product)
