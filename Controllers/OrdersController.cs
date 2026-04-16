@@ -36,26 +36,44 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult> CreateOrder(OrderModel orderModel)
+        public async Task<ActionResult<OrderModel>> CreateOrder([FromBody] OrderModel orderModel)
         {
-            await _orderRepository.AddAsync(orderModel);
-            return CreatedAtAction(nameof(GetOrder), new { id = orderModel.Id }, orderModel);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var created = await _orderRepository.CreateOrderAsync(orderModel);
+            return CreatedAtAction(nameof(GetOrder), new { id = created.Id }, created);
         }
 
-        [HttpPut("{id}")]
-        public async Task<ActionResult> UpdateOrder(Guid id, OrderModel orderModel)
+        [HttpPatch("{id}/status")]
+        public async Task<ActionResult> UpdateOrderStatus(Guid id, [FromBody] OrderStatusUpdateModel model)
         {
-            if (id != orderModel.Id)
+            var order = await _orderRepository.GetByIdAsync(id);
+            if (order == null)
             {
-                return BadRequest();
+                return NotFound();
             }
-            await _orderRepository.UpdateAsync(orderModel);
-            return NoContent();
+
+            var validStatuses = new[] { "Pending", "Confirmed", "Shipping", "Completed", "Cancelled" };
+            if (!validStatuses.Contains(model.Status))
+            {
+                return BadRequest(new { message = $"Invalid status. Valid: {string.Join(", ", validStatuses)}" });
+            }
+
+            await _orderRepository.UpdateStatusAsync(id, model.Status);
+            return Ok(new { message = "Status updated", status = model.Status });
         }
 
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteOrder(Guid id)
         {
+            var order = await _orderRepository.GetByIdAsync(id);
+            if (order == null)
+            {
+                return NotFound();
+            }
             await _orderRepository.DeleteAsync(id);
             return NoContent();
         }

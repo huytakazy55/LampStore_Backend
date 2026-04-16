@@ -13,5 +13,6 @@ namespace LampStoreProjects.Data
         [ForeignKey("ProductId")]
         public Product? Product { get; set; }
         public int Quantity { get; set; }
+        public string? SelectedOptions { get; set; }
     }
 }

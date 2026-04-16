@@ -57,7 +57,7 @@ namespace LampStoreProjects.Repositories
 			{
 				AccessToken = accessToken,
 				RefreshToken = refreshToken,
-				ExpiresIn = 50, // 1 phút (seconds)
+				ExpiresIn = 10800, // 3 giờ (seconds)
 				TokenType = "Bearer"
 			};
 		}
@@ -301,7 +301,7 @@ namespace LampStoreProjects.Repositories
 			var tokenDescriptor = new SecurityTokenDescriptor
 			{
 				Subject = new ClaimsIdentity(authClaims),
-				Expires = DateTime.UtcNow.AddMinutes(15), // 15 phút thay vì 3 giờ
+				Expires = DateTime.UtcNow.AddHours(3), // 3 giờ
 				NotBefore = DateTime.UtcNow,
 				SigningCredentials = new SigningCredentials(authenKey, SecurityAlgorithms.HmacSha512Signature),
 				Issuer = configuration["Jwt:Issuer"],
@@ -381,7 +381,7 @@ namespace LampStoreProjects.Repositories
 			{
 				AccessToken = newAccessToken,
 				RefreshToken = newRefreshToken,
-				ExpiresIn = 900, // 15 phút
+				ExpiresIn = 10800, // 3 giờ
 				TokenType = "Bearer"
 			};
 		}

@@ -29,6 +29,33 @@ namespace LampStoreProjects.Repositories
             return _mapper.Map<CartModel>(Cart);
         }
 
+        public async Task<CartModel?> GetByUserIdAsync(string userId)
+        {
+            var cart = await _context.Carts!
+                .FirstOrDefaultAsync(c => c.UserId == userId);
+            return cart == null ? null : _mapper.Map<CartModel>(cart);
+        }
+
+        public async Task<CartModel> GetOrCreateByUserIdAsync(string userId)
+        {
+            var cart = await _context.Carts!
+                .FirstOrDefaultAsync(c => c.UserId == userId);
+
+            if (cart == null)
+            {
+                cart = new Cart
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.Carts!.Add(cart);
+                await _context.SaveChangesAsync();
+            }
+
+            return _mapper.Map<CartModel>(cart);
+        }
+
         public async Task AddAsync(CartModel CartModel)
         {
             var Cart = _mapper.Map<Cart>(CartModel);

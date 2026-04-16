@@ -28,6 +28,7 @@ namespace LampStoreProjects.Data
         public DbSet<Chat>? Chats { get; set; }
         public DbSet<Message>? Messages { get; set; }
         public DbSet<WishlistItem>? WishlistItems { get; set; }
+        public DbSet<News>? News { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -53,6 +54,7 @@ namespace LampStoreProjects.Data
             modelBuilder.Entity<Chat>().ToTable("Chats");
             modelBuilder.Entity<Message>().ToTable("Messages");
             modelBuilder.Entity<WishlistItem>().ToTable("WishlistItems");
+            modelBuilder.Entity<News>().ToTable("News");
 
             modelBuilder.Entity<Product>()
                 .HasIndex(p => p.Name)
@@ -122,7 +124,7 @@ namespace LampStoreProjects.Data
 
             // Composite unique keys cho bảng nối/chi tiết
             modelBuilder.Entity<CartItem>()
-                .HasIndex(ci => new { ci.CartId, ci.ProductId })
+                .HasIndex(ci => new { ci.CartId, ci.ProductId, ci.SelectedOptions })
                 .IsUnique();
             modelBuilder.Entity<ProductTag>()
                 .HasIndex(pt => new { pt.ProductId, pt.TagId })

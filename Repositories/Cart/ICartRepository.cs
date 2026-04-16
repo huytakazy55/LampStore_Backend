@@ -8,6 +8,8 @@ namespace LampStoreProjects.Repositories
     {
         Task<IEnumerable<CartModel>> GetAllAsync();
         Task<CartModel> GetByIdAsync(Guid id);
+        Task<CartModel?> GetByUserIdAsync(string userId);
+        Task<CartModel> GetOrCreateByUserIdAsync(string userId);
         Task AddAsync(CartModel CartModel);
         Task UpdateAsync(CartModel CartModel);
         Task DeleteAsync(Guid id);

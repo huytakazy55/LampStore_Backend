@@ -7,9 +7,9 @@ namespace LampStoreProjects.Repositories
     public interface IOrderRepository
     {
         Task<IEnumerable<OrderModel>> GetAllAsync();
-        Task<OrderModel> GetByIdAsync(Guid id);
-        Task AddAsync(OrderModel OrderModel);
-        Task UpdateAsync(OrderModel OrderModel);
+        Task<OrderModel?> GetByIdAsync(Guid id);
+        Task<OrderModel> CreateOrderAsync(OrderModel orderModel);
+        Task UpdateStatusAsync(Guid id, string status);
         Task DeleteAsync(Guid id);
     }
 }
