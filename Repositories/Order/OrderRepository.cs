@@ -29,6 +29,18 @@ namespace LampStoreProjects.Repositories
             return orders.Select(o => MapOrderToModel(o)).ToList();
         }
 
+        public async Task<IEnumerable<OrderModel>> GetByUserIdAsync(string userId)
+        {
+            var orders = await _context.Orders!
+                .Where(o => o.UserId == userId)
+                .Include(o => o.OrderItems!)
+                    .ThenInclude(oi => oi.Product)
+                .OrderByDescending(o => o.OrderDate)
+                .ToListAsync();
+
+            return orders.Select(o => MapOrderToModel(o)).ToList();
+        }
+
         public async Task<OrderModel?> GetByIdAsync(Guid id)
         {
             var order = await _context.Orders!

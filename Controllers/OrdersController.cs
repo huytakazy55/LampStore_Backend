@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using LampStoreProjects.Models;
 using LampStoreProjects.Repositories;
@@ -15,6 +17,17 @@ namespace LampStoreProjects.Controllers
         public OrdersController(IOrderRepository orderRepository)
         {
             _orderRepository = orderRepository;
+        }
+
+        [HttpGet("my-orders")]
+        [Authorize]
+        public async Task<ActionResult<IEnumerable<OrderModel>>> GetMyOrders()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var orders = await _orderRepository.GetByUserIdAsync(userId);
+            return Ok(orders);
         }
 
         [HttpGet]
@@ -36,11 +49,19 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPost]
+        [Authorize]
         public async Task<ActionResult<OrderModel>> CreateOrder([FromBody] OrderModel orderModel)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
+            }
+
+            // Always extract userId from JWT token (don't trust frontend value)
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!string.IsNullOrEmpty(userId))
+            {
+                orderModel.UserId = userId;
             }
 
             var created = await _orderRepository.CreateOrderAsync(orderModel);

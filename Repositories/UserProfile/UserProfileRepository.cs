@@ -40,9 +40,16 @@ namespace LampStoreProjects.Repositories
 
         public async Task UpdateAsync(UserProfileModel UserProfileModel)
         {
-            var UserProfile = _mapper.Map<UserProfile>(UserProfileModel);
-            UserProfile.UpdatedAt = DateTime.UtcNow;
-            _context.UserProfiles!.Update(UserProfile);
+            var existingProfile = await _context.UserProfiles!.FindAsync(UserProfileModel.Id);
+            if (existingProfile == null) return;
+
+            // Update only text fields, preserve avatar
+            existingProfile.FullName = UserProfileModel.FullName;
+            existingProfile.Email = UserProfileModel.Email;
+            existingProfile.PhoneNumber = UserProfileModel.PhoneNumber;
+            existingProfile.Address = UserProfileModel.Address;
+            existingProfile.UpdatedAt = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
         }
 

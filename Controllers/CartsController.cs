@@ -142,6 +142,54 @@ namespace LampStoreProjects.Controllers
         }
 
         /// <summary>
+        /// Remove a specific item from the current user's cart
+        /// </summary>
+        [Authorize]
+        [HttpDelete("my/items/{itemId}")]
+        public async Task<ActionResult> RemoveMyCartItem(Guid itemId)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var cart = await _cartRepository.GetByUserIdAsync(userId);
+            if (cart == null)
+                return NotFound();
+
+            // Verify item belongs to this user's cart
+            var item = await _cartitemRepository.GetByIdAsync(itemId);
+            if (item == null || item.CartId != cart.Id)
+                return NotFound();
+
+            await _cartitemRepository.DeleteAsync(itemId);
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Update quantity of a specific item in the current user's cart
+        /// </summary>
+        [Authorize]
+        [HttpPut("my/items/{itemId}")]
+        public async Task<ActionResult> UpdateMyCartItemQuantity(Guid itemId, [FromBody] UpdateQuantityDto dto)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var cart = await _cartRepository.GetByUserIdAsync(userId);
+            if (cart == null)
+                return NotFound();
+
+            var item = await _cartitemRepository.GetByIdAsync(itemId);
+            if (item == null || item.CartId != cart.Id)
+                return NotFound();
+
+            item.Quantity = dto.Quantity;
+            await _cartitemRepository.UpdateAsync(item);
+            return NoContent();
+        }
+
+        /// <summary>
         /// Clear all items in the current user's cart
         /// </summary>
         [Authorize]

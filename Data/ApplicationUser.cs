@@ -8,4 +8,5 @@ public class ApplicationUser : IdentityUser
     public ICollection<CheckIn>? CheckIns { get; set; }
     public ICollection<Order>? Orders { get; set; }
     public ICollection<WishlistItem>? WishlistItems { get; set; }
+    public ICollection<ProductReview>? ProductReviews { get; set; }
 }
