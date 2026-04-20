@@ -109,15 +109,26 @@ namespace LampStoreProjects.Controllers
 
                 foreach (var localItem in localItems)
                 {
-                    // Find matching item by ProductId + SelectedOptions
+                    // Find matching item by ProductId + SelectedOptions (exact match)
                     var existing = existingItems.FirstOrDefault(e =>
                         e.ProductId == localItem.ProductId &&
                         (e.SelectedOptions ?? "") == (localItem.SelectedOptions ?? ""));
+
+                    // Fallback: match by ProductId alone (handles IX_CartItems_ProductId unique constraint)
+                    if (existing == null)
+                    {
+                        existing = existingItems.FirstOrDefault(e => e.ProductId == localItem.ProductId);
+                    }
 
                     if (existing != null)
                     {
                         // Cộng thêm quantity
                         existing.Quantity += localItem.Quantity;
+                        // Update SelectedOptions if the existing one was empty
+                        if (string.IsNullOrEmpty(existing.SelectedOptions) && !string.IsNullOrEmpty(localItem.SelectedOptions))
+                        {
+                            existing.SelectedOptions = localItem.SelectedOptions;
+                        }
                         await _cartitemRepository.UpdateAsync(existing);
                     }
                     else
