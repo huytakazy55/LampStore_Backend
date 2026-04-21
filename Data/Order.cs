@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using LampStoreProjects.Helpers;
 
 namespace LampStoreProjects.Data
 {
@@ -9,7 +10,7 @@ namespace LampStoreProjects.Data
         public string? UserId { get; set; }
         [ForeignKey("UserId")]
         public ApplicationUser? User { get; set; }
-        public DateTime OrderDate { get; set; } = DateTime.UtcNow;
+        public DateTime OrderDate { get; set; } = DateTimeHelper.VietnamNow;
         public string Status { get; set; } = "Pending";
 
         // Shipping info

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
+using LampStoreProjects.Helpers;
 
 namespace LampStoreProjects.Data
 {
@@ -13,6 +14,6 @@ namespace LampStoreProjects.Data
         public ApplicationUser? User { get; set; }  
         public decimal Rating { get; set; } = 0;
         public string Comment { get; set; } = string.Empty;
-        public DateTime CreateAt { get; set; } = DateTime.Now;
+        public DateTime CreateAt { get; set; } = DateTimeHelper.VietnamNow;
     }
 }

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using LampStoreProjects.Helpers;
 
 namespace LampStoreProjects.DTOs
 {
@@ -12,7 +13,7 @@ namespace LampStoreProjects.DTOs
         public int Favorites { get; set; } = 0;
         public int SellCount { get; set; } = 0;
         public Guid? CategoryId { get; set; }
-        public DateTime DateAdded { get; set; } = DateTime.UtcNow;
+        public DateTime DateAdded { get; set; } = DateTimeHelper.VietnamNow;
         public int Status {get; set; } = 1;
         public ProductVariantDto ProductVariant { get; set; } = new ProductVariantDto(); 
         public List<VariantTypeDto> VariantTypes { get; set; } = new List<VariantTypeDto>();

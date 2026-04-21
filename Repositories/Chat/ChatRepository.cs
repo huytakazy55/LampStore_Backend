@@ -1,4 +1,5 @@
 using LampStoreProjects.Data;
+using LampStoreProjects.Helpers;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 
@@ -22,7 +23,7 @@ namespace LampStoreProjects.Repositories.Chat
                 Subject = subject,
                 Priority = priority,
                 Status = ChatStatus.Open,
-                LastMessageAt = DateTime.UtcNow
+                LastMessageAt = DateTimeHelper.VietnamNow
             };
 
             _context.Chats!.Add(chat);
@@ -146,7 +147,7 @@ namespace LampStoreProjects.Repositories.Chat
             var chat = await _context.Chats!.FirstOrDefaultAsync(c => c.Id == chatId);
             if (chat != null)
             {
-                chat.LastMessageAt = DateTime.UtcNow;
+                chat.LastMessageAt = DateTimeHelper.VietnamNow;
             }
 
             await _context.SaveChangesAsync();
@@ -186,7 +187,7 @@ namespace LampStoreProjects.Repositories.Chat
                 return false;
 
             message.IsRead = true;
-            message.ReadAt = DateTime.UtcNow;
+            message.ReadAt = DateTimeHelper.VietnamNow;
             await _context.SaveChangesAsync();
             return true;
         }
@@ -202,7 +203,7 @@ namespace LampStoreProjects.Repositories.Chat
             foreach (var message in messages)
             {
                 message.IsRead = true;
-                message.ReadAt = DateTime.UtcNow;
+                message.ReadAt = DateTimeHelper.VietnamNow;
             }
 
             await _context.SaveChangesAsync();

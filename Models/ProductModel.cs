@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
+using LampStoreProjects.Helpers;
 using LampStoreProjects.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -31,8 +32,8 @@ namespace LampStoreProjects.Models
 
         public Guid? CategoryId { get; set; }
 
-        public DateTime DateAdded { get; set; } = DateTime.UtcNow;
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime DateAdded { get; set; } = DateTimeHelper.VietnamNow;
+        public DateTime CreatedAt { get; set; } = DateTimeHelper.VietnamNow;
         public DateTime? UpdatedAt { get; set; }
         public bool Status { get; set; } = false;
         public ICollection<ProductImageModel> Images { get; set; } = new List<ProductImageModel>();

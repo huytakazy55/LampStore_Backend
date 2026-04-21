@@ -1,4 +1,5 @@
 using LampStoreProjects.Data;
+using LampStoreProjects.Helpers;
 using LampStoreProjects.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -67,7 +68,7 @@ namespace LampStoreProjects.Repositories
                 Id = Guid.NewGuid(),
                 UserId = userId,
                 ProductId = productId,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTimeHelper.VietnamNow
             };
 
             _context.WishlistItems!.Add(wishlistItem);

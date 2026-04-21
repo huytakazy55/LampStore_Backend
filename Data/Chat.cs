@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using LampStoreProjects.Helpers;
 
 namespace LampStoreProjects.Data
 {
@@ -16,7 +17,7 @@ namespace LampStoreProjects.Data
 
         public string? AssignedAdminId { get; set; } // Admin được assign
 
-        public DateTime LastMessageAt { get; set; } = DateTime.UtcNow;
+        public DateTime LastMessageAt { get; set; } = DateTimeHelper.VietnamNow;
 
         // Navigation properties
         public ApplicationUser User { get; set; } = null!;

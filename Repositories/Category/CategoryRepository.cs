@@ -1,5 +1,6 @@
 using AutoMapper;
 using LampStoreProjects.Data;
+using LampStoreProjects.Helpers;
 using LampStoreProjects.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -41,7 +42,7 @@ namespace LampStoreProjects.Repositories
         public async Task UpdateAsync(CategoryModel categoryModel)
         {
             var category = _mapper.Map<Category>(categoryModel);
-            category.UpdatedAt = DateTime.UtcNow;
+            category.UpdatedAt = DateTimeHelper.VietnamNow;
             _context.Categories!.Update(category);
             await _context.SaveChangesAsync();
         }

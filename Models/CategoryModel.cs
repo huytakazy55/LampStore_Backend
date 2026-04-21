@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using LampStoreProjects.Helpers;
 
 namespace LampStoreProjects.Models
 {
@@ -19,7 +20,7 @@ namespace LampStoreProjects.Models
 
         public bool IsDisplayed { get; set; } = true;
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTimeHelper.VietnamNow;
         public DateTime? UpdatedAt { get; set; }
         public ICollection<ProductModel> Products { get; set; } = new List<ProductModel>();
     }

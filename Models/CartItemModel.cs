@@ -15,5 +15,6 @@ namespace LampStoreProjects.Models
         public string? ProductName { get; set; }
         public string? ProductImage { get; set; }
         public decimal? BasePrice { get; set; }
+        public double Weight { get; set; }
     }
 }

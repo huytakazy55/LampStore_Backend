@@ -1,5 +1,6 @@
 using AutoMapper;
 using LampStoreProjects.Data;
+using LampStoreProjects.Helpers;
 using LampStoreProjects.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -50,7 +51,8 @@ namespace LampStoreProjects.Repositories
                 SelectedOptions = ci.SelectedOptions,
                 ProductName = ci.Product?.Name,
                 ProductImage = ci.Product?.Images?.FirstOrDefault()?.ImagePath,
-                BasePrice = ci.Product?.ProductVariant?.Price
+                BasePrice = ci.Product?.ProductVariant?.Price,
+                Weight = ci.Product?.ProductVariant?.Weight ?? 0
             });
         }
 
@@ -63,19 +65,36 @@ namespace LampStoreProjects.Repositories
 
         public async Task UpdateAsync(CartItemModel CartItemModel)
         {
-            var CartItem = _mapper.Map<CartItem>(CartItemModel);
-            CartItem.UpdatedAt = DateTime.UtcNow;
-            _context.CartItems!.Update(CartItem);
-            await _context.SaveChangesAsync();
+            var tracked = await _context.CartItems!.FindAsync(CartItemModel.Id);
+            if (tracked != null)
+            {
+                tracked.Quantity = CartItemModel.Quantity;
+                tracked.SelectedOptions = CartItemModel.SelectedOptions;
+                tracked.UpdatedAt = DateTimeHelper.VietnamNow;
+                await _context.SaveChangesAsync();
+            }
         }
 
         public async Task DeleteAsync(Guid id)
         {
+            // Detach any previously tracked instance to avoid conflicts
+            var tracked = _context.ChangeTracker.Entries<CartItem>()
+                .FirstOrDefault(e => e.Entity.Id == id);
+            if (tracked != null)
+                tracked.State = Microsoft.EntityFrameworkCore.EntityState.Detached;
+
             var CartItem = await _context.CartItems!.FindAsync(id);
             if (CartItem != null)
             {
                 _context.CartItems.Remove(CartItem);
-                await _context.SaveChangesAsync();
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException)
+                {
+                    // Item was already deleted by another operation — safe to ignore
+                }
             }
         }
 

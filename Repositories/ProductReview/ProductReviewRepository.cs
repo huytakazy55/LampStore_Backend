@@ -1,4 +1,5 @@
 using LampStoreProjects.Data;
+using LampStoreProjects.Helpers;
 using LampStoreProjects.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -45,7 +46,7 @@ namespace LampStoreProjects.Repositories
                 UserId = userId,
                 Rating = model.Rating,
                 Comment = model.Comment,
-                CreateAt = DateTime.UtcNow
+                CreateAt = DateTimeHelper.VietnamNow
             };
 
             _context.ProductReviews!.Add(review);

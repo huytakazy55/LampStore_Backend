@@ -1,4 +1,5 @@
 using LampStoreProjects.Data;
+using LampStoreProjects.Helpers;
 using LampStoreProjects.Models;
 using Microsoft.EntityFrameworkCore;
 using AutoMapper;
@@ -44,7 +45,7 @@ namespace LampStoreProjects.Repositories
         public async Task<BannerModel> CreateAsync(BannerModel banner)
         {
             var bannerEntity = _mapper.Map<Banner>(banner);
-            bannerEntity.CreatedAt = DateTime.UtcNow;
+            bannerEntity.CreatedAt = DateTimeHelper.VietnamNow;
             _context.Banners!.Add(bannerEntity);
             await _context.SaveChangesAsync();
             return _mapper.Map<BannerModel>(bannerEntity);
@@ -53,7 +54,7 @@ namespace LampStoreProjects.Repositories
         public async Task<BannerModel> UpdateAsync(BannerModel banner)
         {
             var bannerEntity = _mapper.Map<Banner>(banner);
-            bannerEntity.UpdatedAt = DateTime.UtcNow;
+            bannerEntity.UpdatedAt = DateTimeHelper.VietnamNow;
             _context.Banners!.Update(bannerEntity);
             await _context.SaveChangesAsync();
             return _mapper.Map<BannerModel>(bannerEntity);

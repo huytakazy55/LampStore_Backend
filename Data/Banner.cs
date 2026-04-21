@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using LampStoreProjects.Helpers;
 
 namespace LampStoreProjects.Data
 {
@@ -12,20 +13,20 @@ namespace LampStoreProjects.Data
         public required string Title { get; set; }
         
         [StringLength(500)]
-        public required string Description { get; set; }
+        public string? Description { get; set; }
         
         [Required]
         [StringLength(500)]
         public required string ImageUrl { get; set; }
         
         [StringLength(200)]
-        public required string LinkUrl { get; set; }
+        public string? LinkUrl { get; set; }
         
         public int Order { get; set; } = 0;
         
         public bool IsActive { get; set; } = true;
         
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTimeHelper.VietnamNow;
         
         public DateTime? UpdatedAt { get; set; }
     }

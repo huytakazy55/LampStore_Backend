@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Security.Claims;
 using LampStoreProjects.Repositories.Chat;
 using LampStoreProjects.Data;
+using LampStoreProjects.Helpers;
 
 namespace LampStoreProjects.Hubs
 {
@@ -117,7 +118,7 @@ namespace LampStoreProjects.Hubs
                 SenderId = userId,
                 SenderName = userName,
                 Content = message,
-                Timestamp = DateTime.UtcNow,
+                Timestamp = DateTimeHelper.VietnamNow,
                 Type = "Text"
             });
 
@@ -134,7 +135,7 @@ namespace LampStoreProjects.Hubs
                         SenderId = userId,
                         SenderName = userName,
                         Content = message,
-                        Timestamp = DateTime.UtcNow,
+                        Timestamp = DateTimeHelper.VietnamNow,
                         Type = "Text",
                         ChatSubject = chat?.Subject,
                         UserName = chat?.User?.UserName,
@@ -192,7 +193,7 @@ namespace LampStoreProjects.Hubs
                 ChatId = chatId,
                 MessageId = messageId,
                 ReadBy = userId,
-                ReadAt = DateTime.UtcNow
+                ReadAt = DateTimeHelper.VietnamNow
             });
         }
 

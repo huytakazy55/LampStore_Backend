@@ -1,5 +1,6 @@
 using AutoMapper;
 using LampStoreProjects.Data;
+using LampStoreProjects.Helpers;
 using LampStoreProjects.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -47,7 +48,7 @@ namespace LampStoreProjects.Repositories
                 {
                     Id = Guid.NewGuid(),
                     UserId = userId,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTimeHelper.VietnamNow
                 };
                 _context.Carts!.Add(cart);
                 await _context.SaveChangesAsync();
@@ -66,7 +67,7 @@ namespace LampStoreProjects.Repositories
         public async Task UpdateAsync(CartModel CartModel)
         {
             var Cart = _mapper.Map<Cart>(CartModel);
-            Cart.UpdatedAt = DateTime.UtcNow;
+            Cart.UpdatedAt = DateTimeHelper.VietnamNow;
             _context.Carts!.Update(Cart);
             await _context.SaveChangesAsync();
         }

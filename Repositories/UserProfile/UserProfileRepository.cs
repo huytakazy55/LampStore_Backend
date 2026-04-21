@@ -1,5 +1,6 @@
 using AutoMapper;
 using LampStoreProjects.Data;
+using LampStoreProjects.Helpers;
 using LampStoreProjects.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -48,7 +49,7 @@ namespace LampStoreProjects.Repositories
             existingProfile.Email = UserProfileModel.Email;
             existingProfile.PhoneNumber = UserProfileModel.PhoneNumber;
             existingProfile.Address = UserProfileModel.Address;
-            existingProfile.UpdatedAt = DateTime.UtcNow;
+            existingProfile.UpdatedAt = DateTimeHelper.VietnamNow;
 
             await _context.SaveChangesAsync();
         }

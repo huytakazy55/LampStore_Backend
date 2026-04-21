@@ -1,4 +1,5 @@
 using LampStoreProjects.Data;
+using LampStoreProjects.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace LampStoreProjects
@@ -12,6 +13,6 @@ namespace LampStoreProjects
         [Precision(18, 2)]
         public decimal Rating { get; set; } = 0;
         public string Comment { get; set; } = string.Empty;
-        public DateTime CreateAt { get; set; } = DateTime.Now;
+        public DateTime CreateAt { get; set; } = DateTimeHelper.VietnamNow;
     }
 }

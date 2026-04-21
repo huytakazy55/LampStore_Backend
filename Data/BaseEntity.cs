@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using LampStoreProjects.Helpers;
 
 namespace LampStoreProjects.Data
 {
@@ -13,7 +14,7 @@ namespace LampStoreProjects.Data
         [Key]
         public Guid Id { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTimeHelper.VietnamNow;
 
         public DateTime? UpdatedAt { get; set; }
     }

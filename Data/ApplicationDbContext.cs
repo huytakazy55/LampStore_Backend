@@ -2,6 +2,7 @@ using AutoMapper;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using LampStoreProjects.Data;
+using LampStoreProjects.Helpers;
 
 namespace LampStoreProjects.Data
 {
@@ -410,12 +411,12 @@ namespace LampStoreProjects.Data
 
                 if (entry.State == EntityState.Added)
                 {
-                    entity.CreatedAt = DateTime.UtcNow;
+                    entity.CreatedAt = DateTimeHelper.VietnamNow;
                 }
 
                 if (entry.State == EntityState.Modified)
                 {
-                    entity.UpdatedAt = DateTime.UtcNow;
+                    entity.UpdatedAt = DateTimeHelper.VietnamNow;
                 }
             }
         }

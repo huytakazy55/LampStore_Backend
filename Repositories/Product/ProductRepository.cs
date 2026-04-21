@@ -1,6 +1,7 @@
 using AutoMapper;
 using LampStoreProjects.Models;
 using LampStoreProjects.Data;
+using LampStoreProjects.Helpers;
 using Microsoft.EntityFrameworkCore;
 using LampStoreProjects.DTOs;
 using System;
@@ -321,7 +322,7 @@ namespace LampStoreProjects.Repositories
                 }
 
                 // Set UpdatedAt timestamp
-                product.UpdatedAt = DateTime.UtcNow;
+                product.UpdatedAt = DateTimeHelper.VietnamNow;
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -339,7 +340,7 @@ namespace LampStoreProjects.Repositories
         public async Task<ProductModel> UpdateProductAsync(ProductModel ProductModel)
         {
             var product = _mapper.Map<Product>(ProductModel);
-            product.UpdatedAt = DateTime.UtcNow;
+            product.UpdatedAt = DateTimeHelper.VietnamNow;
             _context.Products!.Update(product);
             await _context.SaveChangesAsync();
             return _mapper.Map<ProductModel>(product);

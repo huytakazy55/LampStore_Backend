@@ -1,6 +1,7 @@
 using AutoMapper;
 using LampStoreProjects.Data;
 using LampStoreProjects.Models;
+using LampStoreProjects.Helpers;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -58,7 +59,7 @@ namespace LampStoreProjects.Repositories
             {
                 Id = Guid.NewGuid(),
                 UserId = orderModel.UserId,
-                OrderDate = DateTime.UtcNow,
+                OrderDate = DateTimeHelper.VietnamNow,
                 Status = "Pending",
                 FullName = orderModel.FullName,
                 Phone = orderModel.Phone,
@@ -98,7 +99,7 @@ namespace LampStoreProjects.Repositories
             if (order != null)
             {
                 order.Status = status;
-                order.UpdatedAt = DateTime.UtcNow;
+                order.UpdatedAt = DateTimeHelper.VietnamNow;
                 await _context.SaveChangesAsync();
             }
         }
