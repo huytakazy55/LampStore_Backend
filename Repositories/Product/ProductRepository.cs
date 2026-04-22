@@ -51,7 +51,8 @@ namespace LampStoreProjects.Repositories
                     } : null,
                     MinPrice = p.ProductVariant != null ? p.ProductVariant.DiscountPrice : null,
                     MaxPrice = p.ProductVariant != null ? p.ProductVariant.Price : null,
-                    Stock = p.ProductVariant != null ? p.ProductVariant.Stock : 0
+                    Stock = p.ProductVariant != null ? p.ProductVariant.Stock : 0,
+                    Slug = p.Slug ?? string.Empty
                 })
                 .ToListAsync();
         }
@@ -73,10 +74,52 @@ namespace LampStoreProjects.Repositories
                 productModel.MinPrice = v.DiscountPrice > 0 ? v.DiscountPrice : v.Price;
                 productModel.MaxPrice = v.Price;
                 productModel.Stock = v.Stock;
+                productModel.Slug = product.Slug ?? string.Empty;
             }
             
             return productModel;
         }
+
+        public async Task<ProductModel> GetProductBySlugAsync(string slug)
+        {
+            var product = await _context.Products!
+                .Include(l => l.Images)
+                .Include(l => l.ProductVariant)
+                .Include(l => l.VariantTypes)
+                    .ThenInclude(vt => vt.Values)
+                .FirstOrDefaultAsync(l => l.Slug == slug);
+            
+            if (product == null) return null;
+
+            var productModel = _mapper.Map<ProductModel>(product);
+            
+            if (productModel != null && product.ProductVariant != null)
+            {
+                var v = product.ProductVariant;
+                productModel.MinPrice = v.DiscountPrice > 0 ? v.DiscountPrice : v.Price;
+                productModel.MaxPrice = v.Price;
+                productModel.Stock = v.Stock;
+                productModel.Slug = product.Slug ?? string.Empty;
+            }
+            
+            return productModel;
+        }
+
+        private async Task<string> GenerateUniqueSlugAsync(string name, Guid? excludeId = null)
+        {
+            var baseSlug = SlugHelper.GenerateSlug(name);
+            var slug = baseSlug;
+            var counter = 1;
+
+            while (await _context.Products!.AnyAsync(p => p.Slug == slug && p.Id != excludeId))
+            {
+                slug = $"{baseSlug}-{counter}";
+                counter++;
+            }
+
+            return slug;
+        }
+
 
         public async Task<List<ProductVariantModel>> GetProductVariantByIdAsync(Guid id)
         {
@@ -124,6 +167,7 @@ namespace LampStoreProjects.Repositories
                 {
                     Id = Guid.NewGuid(),
                     Name = productDto.Name,
+                    Slug = await GenerateUniqueSlugAsync(productDto.Name),
                     Description = productDto.Description,
                     ReviewCount = productDto.ReviewCount,
                     Tags = productDto.Tags,
@@ -209,7 +253,11 @@ namespace LampStoreProjects.Repositories
                 }
 
                 // Cập nhật thông tin cơ bản của sản phẩm
-                product.Name = productDto.Name;
+                if (product.Name != productDto.Name) 
+                {
+                    product.Name = productDto.Name;
+                    product.Slug = await GenerateUniqueSlugAsync(productDto.Name, productId);
+                }
                 product.Description = productDto.Description;
                 product.ReviewCount = productDto.ReviewCount;
                 product.Tags = productDto.Tags;
@@ -474,7 +522,8 @@ namespace LampStoreProjects.Repositories
                     }).ToList(),
                     MinPrice = p.ProductVariant != null ? p.ProductVariant.DiscountPrice : null,
                     MaxPrice = p.ProductVariant != null ? p.ProductVariant.Price : null,
-                    Stock = p.ProductVariant != null ? p.ProductVariant.Stock : 0
+                    Stock = p.ProductVariant != null ? p.ProductVariant.Stock : 0,
+                    Slug = p.Slug ?? string.Empty
                 })
                 .ToListAsync();
 

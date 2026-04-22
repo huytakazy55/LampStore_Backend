@@ -55,6 +55,17 @@ namespace LampStoreProjects.Controllers
             return Ok(category);
         }
 
+        [HttpGet("slug/{slug}")]
+        public async Task<ActionResult<CategoryModel>> GetCategoryBySlug(string slug)
+        {
+            var category = await _categoryRepository.GetBySlugAsync(slug);
+            if (category == null)
+            {
+                return NotFound();
+            }
+            return Ok(category);
+        }
+
         [HttpPost]
         public async Task<ActionResult> CreateCategory(CategoryModel categoryModel)
         {

@@ -9,10 +9,12 @@ namespace LampStoreProjects.Services
     public class LocalImageService : IImageUploadService
     {
         private readonly IWebHostEnvironment _env;
+        private readonly ImageOptimizationService _optimizer;
 
-        public LocalImageService(IWebHostEnvironment env)
+        public LocalImageService(IWebHostEnvironment env, ImageOptimizationService optimizer)
         {
             _env = env;
+            _optimizer = optimizer;
         }
 
         public async Task<string> UploadImageAsync(IFormFile file, string folder = "ImageImport")
@@ -37,12 +39,14 @@ namespace LampStoreProjects.Services
                 Directory.CreateDirectory(uploadsDir);
             }
 
-            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+            // Always output as .jpg for consistency and best compression
+            var fileName = $"{Guid.NewGuid()}.jpg";
             var filePath = Path.Combine(uploadsDir, fileName);
 
-            using (var stream = new FileStream(filePath, FileMode.Create))
+            // Optimize: resize + compress to JPEG
+            using (var stream = file.OpenReadStream())
             {
-                await file.CopyToAsync(stream);
+                await _optimizer.OptimizeImageAsync(stream, filePath, maxWidth: 1200, quality: 80);
             }
 
             return $"/{folder}/{fileName}";
@@ -71,3 +75,4 @@ namespace LampStoreProjects.Services
         }
     }
 }
+

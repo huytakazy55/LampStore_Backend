@@ -28,6 +28,7 @@ namespace LampStoreProjects.DTOs
     public class NewsDto : NewsCreateDto
     {
         public Guid Id { get; set; }
+        public string Slug { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public int ViewCount { get; set; }

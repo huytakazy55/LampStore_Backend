@@ -28,6 +28,7 @@ namespace LampStoreProjects.Controllers
                 {
                     Id = n.Id,
                     Title = n.Title,
+                    Slug = n.Slug,
                     Excerpt = n.Excerpt,
                     Content = n.Content,
                     ImageUrl = n.ImageUrl,
@@ -40,6 +41,57 @@ namespace LampStoreProjects.Controllers
                 .ToListAsync();
 
             return Ok(newsList);
+        }
+
+        private async Task<string> GenerateUniqueNewsSlugAsync(string title, Guid? newsId = null)
+        {
+            var baseSlug = LampStoreProjects.Helpers.SlugHelper.GenerateSlug(title);
+            var slug = baseSlug;
+            int counter = 1;
+
+            var query = context.News!.AsQueryable();
+            if (newsId.HasValue)
+            {
+                query = query.Where(n => n.Id != newsId.Value);
+            }
+
+            while (await query.AnyAsync(n => n.Slug == slug))
+            {
+                slug = $"{baseSlug}-{counter}";
+                counter++;
+            }
+
+            return slug;
+        }
+
+        // GET: api/News/slug/5
+        [HttpGet("slug/{slug}")]
+        public async Task<ActionResult<NewsDto>> GetNewsItemBySlug(string slug)
+        {
+            var news = await context.News!.FirstOrDefaultAsync(n => n.Slug == slug);
+
+            if (news == null)
+            {
+                return NotFound();
+            }
+
+            news.ViewCount += 1;
+            await context.SaveChangesAsync();
+
+            return new NewsDto
+            {
+                Id = news.Id,
+                Title = news.Title,
+                Slug = news.Slug,
+                Excerpt = news.Excerpt,
+                Content = news.Content,
+                ImageUrl = news.ImageUrl,
+                Category = news.Category,
+                IsActive = news.IsActive,
+                CreatedAt = news.CreatedAt,
+                UpdatedAt = news.UpdatedAt,
+                ViewCount = news.ViewCount
+            };
         }
 
         // GET: api/News/5
@@ -60,6 +112,7 @@ namespace LampStoreProjects.Controllers
             {
                 Id = news.Id,
                 Title = news.Title,
+                Slug = news.Slug,
                 Excerpt = news.Excerpt,
                 Content = news.Content,
                 ImageUrl = news.ImageUrl,
@@ -78,6 +131,7 @@ namespace LampStoreProjects.Controllers
             var news = new News
             {
                 Title = dto.Title,
+                Slug = await GenerateUniqueNewsSlugAsync(dto.Title),
                 Excerpt = dto.Excerpt,
                 Content = dto.Content,
                 ImageUrl = dto.ImageUrl,
@@ -92,6 +146,7 @@ namespace LampStoreProjects.Controllers
             {
                 Id = news.Id,
                 Title = news.Title,
+                Slug = news.Slug,
                 Excerpt = news.Excerpt,
                 Content = news.Content,
                 ImageUrl = news.ImageUrl,
@@ -116,6 +171,7 @@ namespace LampStoreProjects.Controllers
             }
 
             news.Title = dto.Title;
+            news.Slug = await GenerateUniqueNewsSlugAsync(dto.Title, news.Id);
             news.Excerpt = dto.Excerpt;
             news.Content = dto.Content;
             news.ImageUrl = dto.ImageUrl;

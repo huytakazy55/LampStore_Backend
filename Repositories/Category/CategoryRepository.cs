@@ -32,9 +32,37 @@ namespace LampStoreProjects.Repositories
             return _mapper.Map<CategoryModel>(category);
         }
 
+        public async Task<CategoryModel> GetBySlugAsync(string slug)
+        {
+            var category = await _context.Categories!.FirstOrDefaultAsync(c => c.Slug == slug);
+            return _mapper.Map<CategoryModel>(category);
+        }
+
+        private async Task<string> GenerateUniqueSlugAsync(string name, Guid? categoryId = null)
+        {
+            var baseSlug = SlugHelper.GenerateSlug(name);
+            var slug = baseSlug;
+            int counter = 1;
+
+            var query = _context.Categories!.AsQueryable();
+            if (categoryId.HasValue)
+            {
+                query = query.Where(c => c.Id != categoryId.Value);
+            }
+
+            while (await query.AnyAsync(c => c.Slug == slug))
+            {
+                slug = $"{baseSlug}-{counter}";
+                counter++;
+            }
+
+            return slug;
+        }
+
         public async Task AddAsync(CategoryModel categoryModel)
         {
             var category = _mapper.Map<Category>(categoryModel);
+            category.Slug = await GenerateUniqueSlugAsync(category.Name);
             _context.Categories!.Add(category);
             await _context.SaveChangesAsync();
         }
@@ -42,6 +70,7 @@ namespace LampStoreProjects.Repositories
         public async Task UpdateAsync(CategoryModel categoryModel)
         {
             var category = _mapper.Map<Category>(categoryModel);
+            category.Slug = await GenerateUniqueSlugAsync(category.Name, category.Id);
             category.UpdatedAt = DateTimeHelper.VietnamNow;
             _context.Categories!.Update(category);
             await _context.SaveChangesAsync();

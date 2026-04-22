@@ -8,6 +8,9 @@ namespace LampStoreProjects.Data
         [StringLength(255)]
         public string Title { get; set; } = string.Empty;
 
+        [StringLength(300)]
+        public string Slug { get; set; } = string.Empty;
+
         [Required]
         public string Excerpt { get; set; } = string.Empty;
 

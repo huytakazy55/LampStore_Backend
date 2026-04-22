@@ -146,6 +146,7 @@ builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
 
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IProductStoreManage, ProductStoreManage>();
+builder.Services.AddSingleton<ImageOptimizationService>();
 builder.Services.AddScoped<IImageUploadService, LocalImageService>();
 builder.Services.AddScoped<ICacheService, CacheService>();
 
@@ -194,6 +195,99 @@ using (var scope = app.Services.CreateScope())
     {
         context.Database.Migrate();
         Log.Information("Database migration applied successfully");
+
+        // Seed product slugs for existing data
+        var productsWithoutSlug = context.Products.Where(p => string.IsNullOrEmpty(p.Slug)).ToList();
+        if (productsWithoutSlug.Any())
+        {
+            foreach (var p in productsWithoutSlug)
+            {
+                var baseSlug = LampStoreProjects.Helpers.SlugHelper.GenerateSlug(p.Name);
+                var slug = baseSlug;
+                int counter = 1;
+                while (context.Products.Any(x => x.Slug == slug && x.Id != p.Id) || productsWithoutSlug.Any(x => x.Slug == slug && x.Id != p.Id))
+                {
+                    slug = $"{baseSlug}-{counter}";
+                    counter++;
+                }
+                p.Slug = slug;
+            }
+            context.SaveChanges();
+            Log.Information($"Seeded slugs for {productsWithoutSlug.Count} products.");
+        }
+
+        // Seed category slugs for existing data
+        var categoriesWithoutSlug = context.Categories.Where(c => string.IsNullOrEmpty(c.Slug)).ToList();
+        if (categoriesWithoutSlug.Any())
+        {
+            foreach (var c in categoriesWithoutSlug)
+            {
+                var baseSlug = LampStoreProjects.Helpers.SlugHelper.GenerateSlug(c.Name);
+                var slug = baseSlug;
+                int counter = 1;
+                while (context.Categories.Any(x => x.Slug == slug && x.Id != c.Id) || categoriesWithoutSlug.Any(x => x.Slug == slug && x.Id != c.Id))
+                {
+                    slug = $"{baseSlug}-{counter}";
+                    counter++;
+                }
+                c.Slug = slug;
+            }
+            context.SaveChanges();
+            Log.Information($"Seeded slugs for {categoriesWithoutSlug.Count} categories.");
+        }
+
+        // Seed news slugs for existing data
+        var newsWithoutSlug = context.News.Where(n => string.IsNullOrEmpty(n.Slug)).ToList();
+        if (newsWithoutSlug.Any())
+        {
+            foreach (var n in newsWithoutSlug)
+            {
+                var baseSlug = LampStoreProjects.Helpers.SlugHelper.GenerateSlug(n.Title);
+                var slug = baseSlug;
+                int counter = 1;
+                while (context.News.Any(x => x.Slug == slug && x.Id != n.Id) || newsWithoutSlug.Any(x => x.Slug == slug && x.Id != n.Id))
+                {
+                    slug = $"{baseSlug}-{counter}";
+                    counter++;
+                }
+                n.Slug = slug;
+            }
+            context.SaveChanges();
+            Log.Information($"Seeded slugs for {newsWithoutSlug.Count} news articles.");
+        }
+
+        // Batch optimize existing images in wwwroot/ImageImport
+        try
+        {
+            var optimizer = scope.ServiceProvider.GetRequiredService<ImageOptimizationService>();
+            var imgWebRootPath = app.Environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            var imageDir = Path.Combine(imgWebRootPath, "ImageImport");
+            if (Directory.Exists(imageDir))
+            {
+                var imageFiles = Directory.GetFiles(imageDir);
+                int optimizedCount = 0;
+                long savedBytes = 0;
+                foreach (var filePath in imageFiles)
+                {
+                    var beforeSize = new FileInfo(filePath).Length;
+                    var wasOptimized = await optimizer.OptimizeExistingFileAsync(filePath, maxWidth: 1200, quality: 80, minSizeBytes: 200 * 1024);
+                    if (wasOptimized)
+                    {
+                        var afterSize = new FileInfo(filePath).Length;
+                        savedBytes += beforeSize - afterSize;
+                        optimizedCount++;
+                    }
+                }
+                if (optimizedCount > 0)
+                {
+                    Log.Information($"Optimized {optimizedCount} images, saved {savedBytes / 1024}KB total.");
+                }
+            }
+        }
+        catch (Exception imgEx)
+        {
+            Log.Warning(imgEx, "Image batch optimization encountered errors (non-fatal).");
+        }
     }
     catch (Exception ex)
     {
@@ -263,7 +357,12 @@ if (!Directory.Exists(webRootPath))
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(webRootPath),
-    RequestPath = ""
+    RequestPath = "",
+    OnPrepareResponse = ctx =>
+    {
+        // Cache static assets (images, etc.) for 7 days, stale-while-revalidate for 30 days
+        ctx.Context.Response.Headers.Append("Cache-Control", "public, max-age=604800, stale-while-revalidate=2592000");
+    }
 });
 app.UseRouting();
 app.UseAuthorization();

@@ -24,8 +24,9 @@ namespace LampStoreProjects.Controllers
         private readonly IWebHostEnvironment _env;
         private readonly IImageUploadService _imageService;
         private readonly ICacheService _cacheService;
+        private readonly ImageOptimizationService _imageOptimizer;
 
-        public ProductsController(IProductRepository productRepository, IProductStoreManage productStoreManage, ApplicationDbContext context, IWebHostEnvironment env, IImageUploadService imageService, ICacheService cacheService)
+        public ProductsController(IProductRepository productRepository, IProductStoreManage productStoreManage, ApplicationDbContext context, IWebHostEnvironment env, IImageUploadService imageService, ICacheService cacheService, ImageOptimizationService imageOptimizer)
         {
             _productRepository = productRepository;
             _productStoreManage = productStoreManage;
@@ -33,6 +34,7 @@ namespace LampStoreProjects.Controllers
             _env = env;
             _imageService = imageService;
             _cacheService = cacheService;
+            _imageOptimizer = imageOptimizer;
         }
 
         [HttpGet]
@@ -68,6 +70,29 @@ namespace LampStoreProjects.Controllers
             }
 
             var product = await _productRepository.GetProductByIdAsync(id);
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            // Lưu vào cache với thời gian expire 15 phút
+            await _cacheService.SetAsync(cacheKey, product, TimeSpan.FromMinutes(15));
+            
+            return Ok(product);
+        }
+
+        [HttpGet("slug/{slug}")]
+        [ResponseCache(NoStore = true)]
+        public async Task<ActionResult<ProductModel>> GetProductBySlug(string slug)
+        {
+            var cacheKey = $"product_slug_{slug}";
+            var cachedProduct = await _cacheService.GetAsync<ProductModel>(cacheKey);
+            if (cachedProduct != null)
+            {
+                return Ok(cachedProduct);
+            }
+
+            var product = await _productRepository.GetProductBySlugAsync(slug);
             if (product == null)
             {
                 return NotFound();
@@ -265,14 +290,14 @@ namespace LampStoreProjects.Controllers
                         return BadRequest("File vượt quá 5MB.");
                     }
 
-                    // Tạo tên file unique
-                    var fileName = $"{Guid.NewGuid()}{Path.GetExtension(imageFile.FileName)}";
+                    // Tạo tên file unique — always .jpg for optimized output
+                    var fileName = $"{Guid.NewGuid()}.jpg";
                     var filePath = Path.Combine(uploadsDir, fileName);
 
-                    // Lưu file vào server
-                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    // Optimize: resize + compress to JPEG
+                    using (var stream = imageFile.OpenReadStream())
                     {
-                        await imageFile.CopyToAsync(stream);
+                        await _imageOptimizer.OptimizeImageAsync(stream, filePath, maxWidth: 1200, quality: 80);
                     }
 
                     // Lưu path tương đối vào DB

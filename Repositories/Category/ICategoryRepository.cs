@@ -8,6 +8,7 @@ namespace LampStoreProjects.Repositories
     {
         Task<IEnumerable<CategoryModel>> GetAllAsync();
         Task<CategoryModel> GetByIdAsync(Guid id);
+        Task<CategoryModel> GetBySlugAsync(string slug);
         Task AddAsync(CategoryModel categoryModel);
         Task UpdateAsync(CategoryModel categoryModel);
         Task DeleteAsync(Guid id);
