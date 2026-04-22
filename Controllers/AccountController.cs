@@ -399,6 +399,46 @@ namespace LampStoreProjects.Controllers
             }
         }
 
+        /// <summary>
+        /// Đổi mật khẩu (yêu cầu đăng nhập)
+        /// </summary>
+        [Authorize]
+        [HttpPost("ChangePassword")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordModel model)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+                if (string.IsNullOrEmpty(model.CurrentPassword) || string.IsNullOrEmpty(model.NewPassword))
+                    return BadRequest(new { Message = "Vui lòng nhập đầy đủ mật khẩu hiện tại và mật khẩu mới." });
+
+                if (model.NewPassword.Length < 6)
+                    return BadRequest(new { Message = "Mật khẩu mới phải có ít nhất 6 ký tự." });
+
+                var result = await _accountRepository.ChangePasswordAsync(userId, model.CurrentPassword, model.NewPassword);
+
+                if (result.Succeeded)
+                {
+                    return Ok(new { Message = "Đổi mật khẩu thành công!" });
+                }
+
+                var errors = result.Errors.Select(e => e.Description).ToList();
+                if (errors.Any(e => e.Contains("Incorrect password", StringComparison.OrdinalIgnoreCase)))
+                {
+                    return BadRequest(new { Message = "Mật khẩu hiện tại không đúng." });
+                }
+
+                return BadRequest(new { Message = string.Join(" ", errors) });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while changing password.");
+                return StatusCode(500, new { Message = "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau." });
+            }
+        }
+
         [HttpPost("ForgotPassword")]
         public async Task<IActionResult> ForgotPassword(ForgotPasswordModel forgotPasswordModel)
         {

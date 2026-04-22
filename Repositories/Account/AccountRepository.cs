@@ -718,5 +718,17 @@ namespace LampStoreProjects.Repositories
 			
 			return new string(result);
 		}
+
+		public async Task<IdentityResult> ChangePasswordAsync(string userId, string currentPassword, string newPassword)
+		{
+			var user = await userManager.FindByIdAsync(userId);
+			if (user == null)
+			{
+				return IdentityResult.Failed(new IdentityError { Description = "Không tìm thấy người dùng." });
+			}
+
+			var result = await userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+			return result;
+		}
 	}
 }

@@ -67,7 +67,7 @@ namespace LampStoreProjects.Services
                 <body>
                     <div class='container'>
                         <div class='header'>
-                            <h2>Đặt lại mật khẩu - Lamp Store</h2>
+                            <h2>Đặt lại mật khẩu - CapyLumine</h2>
                         </div>
                         <div class='content'>
                             <p>Xin chào <strong>{username}</strong>,</p>
@@ -83,7 +83,7 @@ namespace LampStoreProjects.Services
                                 <li>Không chia sẻ mật khẩu này với bất kỳ ai</li>
                             </ul>
                             <p>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng liên hệ với chúng tôi ngay lập tức.</p>
-                            <p>Trân trọng,<br>Đội ngũ Lamp Store</p>
+                            <p>Trân trọng,<br>Đội ngũ CapyLumine</p>
                         </div>
                         <div class='footer'>
                             <p>Email này được gửi tự động, vui lòng không trả lời.</p>

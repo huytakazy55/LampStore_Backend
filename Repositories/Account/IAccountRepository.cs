@@ -27,6 +27,7 @@ namespace LampStoreProjects.Repositories
         Task<IEnumerable<string>> GetMenusByRoleAsync(string roleName);
         Task<IdentityResult> SetMenusForRoleAsync(string roleName, IEnumerable<string> menus);
         Task<IEnumerable<string>> GetMenusForUserAsync(string userId);
+        Task<IdentityResult> ChangePasswordAsync(string userId, string currentPassword, string newPassword);
 
     }
 }

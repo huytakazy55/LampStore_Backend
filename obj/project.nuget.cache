@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "WPy6RMdkX3k=",
+  "dgSpecHash": "llWkw9CSR+U=",
   "success": true,
-  "projectFilePath": "/app/LampStoreProjects.csproj",
+  "projectFilePath": "/src/LampStoreProjects.csproj",
   "expectedPackageFiles": [
     "/root/.nuget/packages/automapper/10.1.1/automapper.10.1.1.nupkg.sha512",
     "/root/.nuget/packages/automapper.extensions.microsoft.dependencyinjection/8.1.1/automapper.extensions.microsoft.dependencyinjection.8.1.1.nupkg.sha512",
@@ -79,6 +79,7 @@
     "/root/.nuget/packages/serilog.sinks.console/6.0.0/serilog.sinks.console.6.0.0.nupkg.sha512",
     "/root/.nuget/packages/serilog.sinks.debug/3.0.0/serilog.sinks.debug.3.0.0.nupkg.sha512",
     "/root/.nuget/packages/serilog.sinks.file/6.0.0/serilog.sinks.file.6.0.0.nupkg.sha512",
+    "/root/.nuget/packages/sixlabors.imagesharp/3.1.6/sixlabors.imagesharp.3.1.6.nupkg.sha512",
     "/root/.nuget/packages/swashbuckle.aspnetcore/6.0.0/swashbuckle.aspnetcore.6.0.0.nupkg.sha512",
     "/root/.nuget/packages/swashbuckle.aspnetcore.swagger/6.0.0/swashbuckle.aspnetcore.swagger.6.0.0.nupkg.sha512",
     "/root/.nuget/packages/swashbuckle.aspnetcore.swaggergen/6.0.0/swashbuckle.aspnetcore.swaggergen.6.0.0.nupkg.sha512",
@@ -119,6 +120,26 @@
       "warningLevel": 1,
       "message": "Package 'AutoMapper' 10.1.1 has a known high severity vulnerability, https://github.com/advisories/GHSA-rvv3-g6hj-g44x",
       "libraryId": "AutoMapper",
+      "targetGraphs": [
+        "net8.0"
+      ]
+    },
+    {
+      "code": "NU1903",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Package 'SixLabors.ImageSharp' 3.1.6 has a known high severity vulnerability, https://github.com/advisories/GHSA-2cmq-823j-5qj8",
+      "libraryId": "SixLabors.ImageSharp",
+      "targetGraphs": [
+        "net8.0"
+      ]
+    },
+    {
+      "code": "NU1902",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Package 'SixLabors.ImageSharp' 3.1.6 has a known moderate severity vulnerability, https://github.com/advisories/GHSA-rxmq-m78w-7wmc",
+      "libraryId": "SixLabors.ImageSharp",
       "targetGraphs": [
         "net8.0"
       ]
