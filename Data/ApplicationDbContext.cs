@@ -30,6 +30,7 @@ namespace LampStoreProjects.Data
         public DbSet<Message>? Messages { get; set; }
         public DbSet<WishlistItem>? WishlistItems { get; set; }
         public DbSet<News>? News { get; set; }
+        public DbSet<SiteVisit>? SiteVisits { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -56,6 +57,7 @@ namespace LampStoreProjects.Data
             modelBuilder.Entity<Message>().ToTable("Messages");
             modelBuilder.Entity<WishlistItem>().ToTable("WishlistItems");
             modelBuilder.Entity<News>().ToTable("News");
+            modelBuilder.Entity<SiteVisit>().ToTable("SiteVisits");
 
             modelBuilder.Entity<Product>()
                 .HasIndex(p => p.Name)
@@ -386,6 +388,21 @@ namespace LampStoreProjects.Data
                 .WithMany()
                 .HasForeignKey(m => m.SenderId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // SiteVisit tracking relationship
+            modelBuilder.Entity<SiteVisit>()
+                .HasOne(sv => sv.Product)
+                .WithMany() // Assuming no collection property needed on Product for visits
+                .HasForeignKey(sv => sv.ProductId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<SiteVisit>()
+                .HasIndex(sv => sv.SessionId)
+                .HasDatabaseName("IX_SiteVisits_SessionId");
+            
+            modelBuilder.Entity<SiteVisit>()
+                .HasIndex(sv => sv.VisitedAt)
+                .HasDatabaseName("IX_SiteVisits_VisitedAt");
         }
 
         public override int SaveChanges()

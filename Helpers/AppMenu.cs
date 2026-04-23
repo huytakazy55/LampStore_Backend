@@ -13,6 +13,7 @@ namespace LampStoreProjects.Helpers
         public const string Chat = "Chat";
         public const string Delivery = "Delivery";
         public const string Settings = "Setting";
+        public const string Analytics = "Analytics";
 
         public static readonly string[] All =
         {
@@ -26,7 +27,8 @@ namespace LampStoreProjects.Helpers
             Orders,
             Chat,
             Delivery,
-            Settings
+            Settings,
+            Analytics
         };
     }
 }

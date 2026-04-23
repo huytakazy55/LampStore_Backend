@@ -149,6 +149,7 @@ builder.Services.AddScoped<IProductStoreManage, ProductStoreManage>();
 builder.Services.AddSingleton<ImageOptimizationService>();
 builder.Services.AddScoped<IImageUploadService, LocalImageService>();
 builder.Services.AddScoped<ICacheService, CacheService>();
+builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 
 // Add Memory Cache
 builder.Services.AddMemoryCache();
