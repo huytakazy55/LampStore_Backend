@@ -297,7 +297,7 @@ namespace LampStoreProjects.Controllers
                     // Optimize: resize + compress to JPEG
                     using (var stream = imageFile.OpenReadStream())
                     {
-                        await _imageOptimizer.OptimizeImageAsync(stream, filePath, maxWidth: 800, quality: 65);
+                        await _imageOptimizer.OptimizeImageAsync(stream, filePath, maxWidth: 800, quality: 55);
                     }
 
                     // Lưu path tương đối vào DB
@@ -398,6 +398,62 @@ namespace LampStoreProjects.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, $"Lỗi khi tìm kiếm: {ex.Message}");
+            }
+        }
+
+        [HttpPost("recompress-images")]
+        public async Task<ActionResult> RecompressAllImages([FromQuery] int quality = 55, [FromQuery] int maxWidth = 800)
+        {
+            try
+            {
+                var webRootPath = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                var imageDir = Path.Combine(webRootPath, "ImageImport");
+
+                if (!Directory.Exists(imageDir))
+                {
+                    return NotFound("Thư mục ImageImport không tồn tại.");
+                }
+
+                var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp" };
+                var files = Directory.GetFiles(imageDir)
+                    .Where(f => imageExtensions.Contains(Path.GetExtension(f).ToLower()))
+                    .ToList();
+
+                int optimized = 0;
+                int skipped = 0;
+                long savedBytes = 0;
+
+                foreach (var file in files)
+                {
+                    var originalSize = new FileInfo(file).Length;
+                    var result = await _imageOptimizer.OptimizeExistingFileAsync(file, maxWidth, quality, minSizeBytes: 0);
+                    if (result)
+                    {
+                        var newSize = new FileInfo(file).Length;
+                        savedBytes += originalSize - newSize;
+                        optimized++;
+                    }
+                    else
+                    {
+                        skipped++;
+                    }
+                }
+
+                // Xóa cache ảnh
+                await _cacheService.RemoveAsync(CacheKeys.AllProducts);
+
+                return Ok(new
+                {
+                    message = $"Hoàn tất nén ảnh: {optimized} ảnh đã nén, {skipped} ảnh bỏ qua",
+                    totalFiles = files.Count,
+                    optimized,
+                    skipped,
+                    savedMB = Math.Round(savedBytes / 1024.0 / 1024.0, 2)
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Lỗi khi nén ảnh: {ex.Message}");
             }
         }
     }
