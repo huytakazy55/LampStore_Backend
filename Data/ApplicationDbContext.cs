@@ -31,6 +31,8 @@ namespace LampStoreProjects.Data
         public DbSet<WishlistItem>? WishlistItems { get; set; }
         public DbSet<News>? News { get; set; }
         public DbSet<SiteVisit>? SiteVisits { get; set; }
+        public DbSet<FlashSale>? FlashSales { get; set; }
+        public DbSet<FlashSaleItem>? FlashSaleItems { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -58,6 +60,8 @@ namespace LampStoreProjects.Data
             modelBuilder.Entity<WishlistItem>().ToTable("WishlistItems");
             modelBuilder.Entity<News>().ToTable("News");
             modelBuilder.Entity<SiteVisit>().ToTable("SiteVisits");
+            modelBuilder.Entity<FlashSale>().ToTable("FlashSales");
+            modelBuilder.Entity<FlashSaleItem>().ToTable("FlashSaleItems");
 
             modelBuilder.Entity<Product>()
                 .HasIndex(p => p.Name)
@@ -403,6 +407,28 @@ namespace LampStoreProjects.Data
             modelBuilder.Entity<SiteVisit>()
                 .HasIndex(sv => sv.VisitedAt)
                 .HasDatabaseName("IX_SiteVisits_VisitedAt");
+
+            // FlashSale relationships
+            modelBuilder.Entity<FlashSaleItem>()
+                .HasOne(i => i.FlashSale)
+                .WithMany(f => f.Items)
+                .HasForeignKey(i => i.FlashSaleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<FlashSaleItem>()
+                .HasOne(i => i.Product)
+                .WithMany()
+                .HasForeignKey(i => i.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<FlashSaleItem>()
+                .HasIndex(i => new { i.FlashSaleId, i.ProductId })
+                .IsUnique()
+                .HasDatabaseName("IX_FlashSaleItems_FlashSaleId_ProductId");
+
+            modelBuilder.Entity<FlashSale>()
+                .HasIndex(f => new { f.IsActive, f.StartTime, f.EndTime })
+                .HasDatabaseName("IX_FlashSales_Active_Time");
         }
 
         public override int SaveChanges()

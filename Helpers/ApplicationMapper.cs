@@ -35,5 +35,7 @@ public class ApplicationMapper : Profile
         CreateMap<TagModel, Tag>().ReverseMap();
         CreateMap<ProductTagModel, ProductTag>().ReverseMap();
         CreateMap<BannerModel, Banner>().ReverseMap();
+        CreateMap<FlashSaleModel, FlashSale>().ReverseMap();
+        CreateMap<FlashSaleItemModel, FlashSaleItem>().ReverseMap();
     }
 }

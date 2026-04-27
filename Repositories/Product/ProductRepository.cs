@@ -283,6 +283,18 @@ namespace LampStoreProjects.Repositories
 
                         // Xóa các giá trị không còn tồn tại
                         var valuesToRemove = existingValues.Where(ev => !newValues.Any(nv => nv.Value == ev.Value)).ToList();
+                        
+                        // Xóa ProductVariantValues liên quan trước khi xóa VariantValues
+                        // (vì FK từ ProductVariantValue → VariantValue là NoAction)
+                        if (valuesToRemove.Any())
+                        {
+                            var valueIdsToRemove = valuesToRemove.Select(v => (Guid?)v.Id).ToList();
+                            var pvvsToRemove = await _context.ProductVariantValues!
+                                .Where(pvv => valueIdsToRemove.Contains(pvv.VariantValueId))
+                                .ToListAsync();
+                            _context.ProductVariantValues!.RemoveRange(pvvsToRemove);
+                        }
+                        
                         _context.VariantValues!.RemoveRange(valuesToRemove);
 
                         // Cập nhật giá của các giá trị hiện có
@@ -337,6 +349,19 @@ namespace LampStoreProjects.Repositories
                 var typesToRemove = existingVariantTypes
                     .Where(et => !productDto.VariantTypes.Any(vt => vt.Name == et.Name))
                     .ToList();
+
+                // Xóa ProductVariantValues liên quan đến VariantValues của các types bị xóa
+                if (typesToRemove.Any())
+                {
+                    var allValueIdsToRemove = typesToRemove.SelectMany(t => t.Values.Select(v => (Guid?)v.Id)).ToList();
+                    if (allValueIdsToRemove.Any())
+                    {
+                        var pvvsToRemove = await _context.ProductVariantValues!
+                            .Where(pvv => allValueIdsToRemove.Contains(pvv.VariantValueId))
+                            .ToListAsync();
+                        _context.ProductVariantValues!.RemoveRange(pvvsToRemove);
+                    }
+                }
 
                 _context.VariantTypes!.RemoveRange(typesToRemove);
 

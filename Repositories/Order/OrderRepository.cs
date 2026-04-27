@@ -59,6 +59,7 @@ namespace LampStoreProjects.Repositories
             {
                 Id = Guid.NewGuid(),
                 UserId = orderModel.UserId,
+                GuestToken = orderModel.GuestToken,
                 OrderDate = DateTimeHelper.VietnamNow,
                 Status = "Pending",
                 FullName = orderModel.FullName,
@@ -124,6 +125,7 @@ namespace LampStoreProjects.Repositories
             {
                 Id = order.Id,
                 UserId = order.UserId,
+                GuestToken = order.GuestToken,
                 OrderDate = order.OrderDate,
                 Status = order.Status,
                 FullName = order.FullName,
@@ -149,6 +151,35 @@ namespace LampStoreProjects.Repositories
                     SelectedOptions = oi.SelectedOptions
                 }).ToList()
             };
+        }
+
+        public async Task<IEnumerable<OrderModel>> GetByGuestTokenAsync(string guestToken)
+        {
+            var orders = await _context.Orders!
+                .Where(o => o.GuestToken == guestToken)
+                .Include(o => o.OrderItems!)
+                    .ThenInclude(oi => oi.Product)
+                .OrderByDescending(o => o.OrderDate)
+                .ToListAsync();
+
+            return orders.Select(o => MapOrderToModel(o)).ToList();
+        }
+
+        public async Task<int> ClaimGuestOrdersAsync(string guestToken, string userId)
+        {
+            var guestOrders = await _context.Orders!
+                .Where(o => o.GuestToken == guestToken && o.UserId == null)
+                .ToListAsync();
+
+            foreach (var order in guestOrders)
+            {
+                order.UserId = userId;
+                order.GuestToken = null;
+                order.UpdatedAt = DateTimeHelper.VietnamNow;
+            }
+
+            await _context.SaveChangesAsync();
+            return guestOrders.Count;
         }
     }
 }

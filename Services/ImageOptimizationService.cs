@@ -9,7 +9,7 @@ namespace LampStoreProjects.Services
         /// <summary>
         /// Optimize an image: resize to maxWidth (keeping aspect ratio) and compress to JPEG quality.
         /// </summary>
-        public async Task OptimizeImageAsync(Stream inputStream, string outputPath, int maxWidth = 1200, int quality = 80)
+        public async Task OptimizeImageAsync(Stream inputStream, string outputPath, int maxWidth = 800, int quality = 65)
         {
             using var image = await Image.LoadAsync(inputStream);
 
@@ -32,7 +32,7 @@ namespace LampStoreProjects.Services
         /// <summary>
         /// Optimize an existing file in-place. Returns true if the file was optimized.
         /// </summary>
-        public async Task<bool> OptimizeExistingFileAsync(string filePath, int maxWidth = 1200, int quality = 80, long minSizeBytes = 200 * 1024)
+        public async Task<bool> OptimizeExistingFileAsync(string filePath, int maxWidth = 800, int quality = 65, long minSizeBytes = 200 * 1024)
         {
             if (!File.Exists(filePath))
                 return false;

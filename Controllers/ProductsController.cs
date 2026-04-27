@@ -297,7 +297,7 @@ namespace LampStoreProjects.Controllers
                     // Optimize: resize + compress to JPEG
                     using (var stream = imageFile.OpenReadStream())
                     {
-                        await _imageOptimizer.OptimizeImageAsync(stream, filePath, maxWidth: 1200, quality: 80);
+                        await _imageOptimizer.OptimizeImageAsync(stream, filePath, maxWidth: 800, quality: 65);
                     }
 
                     // Lưu path tương đối vào DB

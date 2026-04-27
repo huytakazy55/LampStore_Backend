@@ -1,25 +1,27 @@
 {
   "format": 1,
   "restore": {
-    "/src/LampStoreProjects.csproj": {}
+    "D:\\project\\lamp-shop-monorepo\\LampStore_Backend\\LampStoreProjects.csproj": {}
   },
   "projects": {
-    "/src/LampStoreProjects.csproj": {
+    "D:\\project\\lamp-shop-monorepo\\LampStore_Backend\\LampStoreProjects.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/src/LampStoreProjects.csproj",
+        "projectUniqueName": "D:\\project\\lamp-shop-monorepo\\LampStore_Backend\\LampStoreProjects.csproj",
         "projectName": "LampStoreProjects",
-        "projectPath": "/src/LampStoreProjects.csproj",
-        "packagesPath": "/root/.nuget/packages/",
-        "outputPath": "/src/obj/",
+        "projectPath": "D:\\project\\lamp-shop-monorepo\\LampStore_Backend\\LampStoreProjects.csproj",
+        "packagesPath": "C:\\Users\\Admin\\.nuget\\packages\\",
+        "outputPath": "D:\\project\\lamp-shop-monorepo\\LampStore_Backend\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/root/.nuget/NuGet/NuGet.Config"
+          "C:\\Users\\Admin\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
         ],
         "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -153,7 +155,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.420/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.200/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

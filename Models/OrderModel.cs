@@ -20,6 +20,9 @@ namespace LampStoreProjects.Models
         public string? Ward { get; set; }
         public string? Note { get; set; }
 
+        // Guest profile
+        public string? GuestToken { get; set; }
+
         // Payment
         public string PaymentMethod { get; set; } = "cod";
         [Precision(18, 2)]

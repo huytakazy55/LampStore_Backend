@@ -4,6 +4,7 @@ using LampStoreProjects.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LampStoreProjects.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260424022141_AddGuestTokenToOrder")]
+    partial class AddGuestTokenToOrder
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -352,87 +355,6 @@ namespace LampStoreProjects.Migrations
                         .HasDatabaseName("IX_Deliveries_OrderId");
 
                     b.ToTable("Deliveries");
-                });
-
-            modelBuilder.Entity("LampStoreProjects.Data.FlashSale", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime>("EndTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("StartTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IsActive", "StartTime", "EndTime")
-                        .HasDatabaseName("IX_FlashSales_Active_Time");
-
-                    b.ToTable("FlashSales", (string)null);
-                });
-
-            modelBuilder.Entity("LampStoreProjects.Data.FlashSaleItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("DiscountPercent")
-                        .HasColumnType("int");
-
-                    b.Property<int>("FlashSaleId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("FlashSalePrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("ProductId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("SoldCount")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Stock")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProductId");
-
-                    b.HasIndex("FlashSaleId", "ProductId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_FlashSaleItems_FlashSaleId_ProductId");
-
-                    b.ToTable("FlashSaleItems", (string)null);
                 });
 
             modelBuilder.Entity("LampStoreProjects.Data.Message", b =>
@@ -1308,25 +1230,6 @@ namespace LampStoreProjects.Migrations
                     b.Navigation("Order");
                 });
 
-            modelBuilder.Entity("LampStoreProjects.Data.FlashSaleItem", b =>
-                {
-                    b.HasOne("LampStoreProjects.Data.FlashSale", "FlashSale")
-                        .WithMany("Items")
-                        .HasForeignKey("FlashSaleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("LampStoreProjects.Data.Product", "Product")
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("FlashSale");
-
-                    b.Navigation("Product");
-                });
-
             modelBuilder.Entity("LampStoreProjects.Data.Message", b =>
                 {
                     b.HasOne("LampStoreProjects.Data.Chat", "Chat")
@@ -1594,11 +1497,6 @@ namespace LampStoreProjects.Migrations
             modelBuilder.Entity("LampStoreProjects.Data.Chat", b =>
                 {
                     b.Navigation("Messages");
-                });
-
-            modelBuilder.Entity("LampStoreProjects.Data.FlashSale", b =>
-                {
-                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("LampStoreProjects.Data.Order", b =>

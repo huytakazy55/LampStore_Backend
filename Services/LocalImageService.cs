@@ -46,7 +46,7 @@ namespace LampStoreProjects.Services
             // Optimize: resize + compress to JPEG
             using (var stream = file.OpenReadStream())
             {
-                await _optimizer.OptimizeImageAsync(stream, filePath, maxWidth: 1200, quality: 80);
+                await _optimizer.OptimizeImageAsync(stream, filePath, maxWidth: 800, quality: 65);
             }
 
             return $"/{folder}/{fileName}";

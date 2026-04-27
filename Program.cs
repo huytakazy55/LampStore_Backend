@@ -143,6 +143,7 @@ builder.Services.AddScoped<IBannerRepository, BannerRepository>();
 builder.Services.AddScoped<LampStoreProjects.Repositories.Chat.IChatRepository, LampStoreProjects.Repositories.Chat.ChatRepository>();
 builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
 builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
+builder.Services.AddScoped<IFlashSaleRepository, FlashSaleRepository>();
 
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IProductStoreManage, ProductStoreManage>();
@@ -271,7 +272,7 @@ using (var scope = app.Services.CreateScope())
                 foreach (var filePath in imageFiles)
                 {
                     var beforeSize = new FileInfo(filePath).Length;
-                    var wasOptimized = await optimizer.OptimizeExistingFileAsync(filePath, maxWidth: 1200, quality: 80, minSizeBytes: 200 * 1024);
+                    var wasOptimized = await optimizer.OptimizeExistingFileAsync(filePath, maxWidth: 800, quality: 65, minSizeBytes: 200 * 1024);
                     if (wasOptimized)
                     {
                         var afterSize = new FileInfo(filePath).Length;

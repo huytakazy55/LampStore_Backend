@@ -5,6 +5,9 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using LampStoreProjects.Models;
 using LampStoreProjects.Repositories;
+using LampStoreProjects.Services;
+using LampStoreProjects.Data;
+using Microsoft.AspNetCore.Identity;
 
 namespace LampStoreProjects.Controllers
 {
@@ -13,10 +16,14 @@ namespace LampStoreProjects.Controllers
     public class OrdersController : ControllerBase
     {
         private readonly IOrderRepository _orderRepository;
+        private readonly IEmailService _emailService;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public OrdersController(IOrderRepository orderRepository)
+        public OrdersController(IOrderRepository orderRepository, IEmailService emailService, UserManager<ApplicationUser> userManager)
         {
             _orderRepository = orderRepository;
+            _emailService = emailService;
+            _userManager = userManager;
         }
 
         [HttpGet("my-orders")]
@@ -65,7 +72,74 @@ namespace LampStoreProjects.Controllers
             }
 
             var created = await _orderRepository.CreateOrderAsync(orderModel);
+
+            // Send emails asynchronously (fire and forget to not block response)
+            var storeUrl = Request.Headers.Origin.FirstOrDefault() ?? "https://capylumine.com";
+            var adminUsers = await _userManager.GetUsersInRoleAsync("Admin");
+            var adminEmails = adminUsers.Select(u => u.Email).Where(e => !string.IsNullOrEmpty(e)).ToList()!;
+            _ = Task.Run(async () =>
+            {
+                if (!string.IsNullOrEmpty(created.Email))
+                {
+                    await _emailService.SendOrderConfirmationEmailAsync(created, storeUrl);
+                }
+                await _emailService.SendNewOrderNotificationToAdminAsync(created, adminEmails!, storeUrl);
+            });
+
             return CreatedAtAction(nameof(GetOrder), new { id = created.Id }, created);
+        }
+
+        /// <summary>
+        /// Create order for guest user (no authentication required).
+        /// Requires a GuestToken to track the order.
+        /// </summary>
+        [AllowAnonymous]
+        [HttpPost("guest")]
+        public async Task<ActionResult<OrderModel>> CreateGuestOrder([FromBody] OrderModel orderModel)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            if (string.IsNullOrEmpty(orderModel.GuestToken))
+            {
+                return BadRequest(new { message = "GuestToken is required for guest orders." });
+            }
+
+            // Ensure no userId is set for guest orders
+            orderModel.UserId = null;
+
+            var created = await _orderRepository.CreateOrderAsync(orderModel);
+
+            // Send confirmation email + admin notification asynchronously
+            var storeUrlGuest = Request.Headers.Origin.FirstOrDefault() ?? "https://capylumine.com";
+            var adminUsersGuest = await _userManager.GetUsersInRoleAsync("Admin");
+            var adminEmailsGuest = adminUsersGuest.Select(u => u.Email).Where(e => !string.IsNullOrEmpty(e)).ToList()!;
+            _ = Task.Run(async () =>
+            {
+                if (!string.IsNullOrEmpty(created.Email))
+                {
+                    await _emailService.SendOrderConfirmationEmailAsync(created, storeUrlGuest);
+                }
+                await _emailService.SendNewOrderNotificationToAdminAsync(created, adminEmailsGuest!, storeUrlGuest);
+            });
+
+            return CreatedAtAction(nameof(GetOrder), new { id = created.Id }, created);
+        }
+
+        /// <summary>
+        /// Get orders by guest token (for guest users to view their orders)
+        /// </summary>
+        [AllowAnonymous]
+        [HttpGet("guest/{guestToken}")]
+        public async Task<ActionResult<IEnumerable<OrderModel>>> GetGuestOrders(string guestToken)
+        {
+            if (string.IsNullOrEmpty(guestToken))
+                return BadRequest(new { message = "GuestToken is required." });
+
+            var orders = await _orderRepository.GetByGuestTokenAsync(guestToken);
+            return Ok(orders);
         }
 
         [HttpPatch("{id}/status")]

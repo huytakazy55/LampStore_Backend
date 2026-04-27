@@ -22,13 +22,15 @@ namespace LampStoreProjects.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConfiguration _configuration;
         private readonly IAccountRepository _accountRepository;
+        private readonly IOrderRepository _orderRepository;
 
-        public AccountController(ILogger<AccountController> logger, UserManager<ApplicationUser> userManager, IConfiguration configuration, IAccountRepository accountRepository)
+        public AccountController(ILogger<AccountController> logger, UserManager<ApplicationUser> userManager, IConfiguration configuration, IAccountRepository accountRepository, IOrderRepository orderRepository)
         {
             _logger = logger;
             _userManager = userManager;
             _configuration = configuration;
             _accountRepository = accountRepository;
+            _orderRepository = orderRepository;
         }
 
         [HttpPost("SignIn")]
@@ -463,5 +465,37 @@ namespace LampStoreProjects.Controllers
                 return StatusCode(500, new { Message = "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau." });
             }
         }
+
+        /// <summary>
+        /// Claim guest orders: assign all orders with the given GuestToken to the authenticated user.
+        /// Called after login/signup from the frontend.
+        /// </summary>
+        [Authorize]
+        [HttpPost("ClaimGuestOrders")]
+        public async Task<IActionResult> ClaimGuestOrders([FromBody] ClaimGuestOrdersModel model)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized();
+
+                if (string.IsNullOrEmpty(model.GuestToken))
+                    return BadRequest(new { Message = "GuestToken is required." });
+
+                var claimedCount = await _orderRepository.ClaimGuestOrdersAsync(model.GuestToken, userId);
+                return Ok(new { Message = $"Claimed {claimedCount} guest order(s).", ClaimedCount = claimedCount });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error claiming guest orders");
+                return StatusCode(500, new { Message = "Internal server error." });
+            }
+        }
     }
+}
+
+public class ClaimGuestOrdersModel
+{
+    public string GuestToken { get; set; } = string.Empty;
 }

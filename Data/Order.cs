@@ -23,6 +23,9 @@ namespace LampStoreProjects.Data
         public string? Ward { get; set; }
         public string? Note { get; set; }
 
+        // Guest profile
+        public string? GuestToken { get; set; }
+
         // Payment
         public string PaymentMethod { get; set; } = "cod";
         [Column(TypeName = "decimal(18,2)")]

@@ -33,37 +33,37 @@ namespace LampStoreProjects.Controllers
             var products = await _context.Products!
                 .Where(p => p.Status == true)
                 .OrderByDescending(p => p.UpdatedAt)
-                .Select(p => new { p.Id, p.UpdatedAt })
+                .Select(p => new { p.Slug, p.UpdatedAt })
                 .ToListAsync();
 
             foreach (var p in products)
             {
                 var lastmod = p.UpdatedAt?.ToString("yyyy-MM-dd") ?? DateTime.UtcNow.ToString("yyyy-MM-dd");
-                AppendUrl(sb, $"{SITE_URL}/product/{p.Id}", "weekly", "0.8", lastmod);
+                AppendUrl(sb, $"{SITE_URL}/product/{p.Slug}", "weekly", "0.8", lastmod);
             }
 
             // Tất cả danh mục
             var categories = await _context.Categories!
                 .Where(c => c.IsDisplayed == true)
-                .Select(c => new { c.Id })
+                .Select(c => new { c.Slug })
                 .ToListAsync();
 
             foreach (var c in categories)
             {
-                AppendUrl(sb, $"{SITE_URL}/categories/{c.Id}", "weekly", "0.7");
+                AppendUrl(sb, $"{SITE_URL}/categories/{c.Slug}", "weekly", "0.7");
             }
 
             // Tất cả bài viết
             var newsList = await _context.News!
                 .Where(n => n.IsActive)
                 .OrderByDescending(n => n.UpdatedAt)
-                .Select(n => new { n.Id, n.UpdatedAt })
+                .Select(n => new { n.Slug, n.UpdatedAt })
                 .ToListAsync();
 
             foreach (var n in newsList)
             {
                 var lastmod = n.UpdatedAt?.ToString("yyyy-MM-dd") ?? DateTime.UtcNow.ToString("yyyy-MM-dd");
-                AppendUrl(sb, $"{SITE_URL}/news/{n.Id}", "monthly", "0.6", lastmod);
+                AppendUrl(sb, $"{SITE_URL}/news/{n.Slug}", "monthly", "0.6", lastmod);
             }
 
             sb.AppendLine("</urlset>");
