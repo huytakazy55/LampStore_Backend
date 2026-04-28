@@ -200,6 +200,7 @@ namespace LampStoreProjects.Repositories
                             Id = Guid.NewGuid(),
                             Value = valueDto.Value,
                             AdditionalPrice = valueDto.AdditionalPrice,
+                            ImageUrl = valueDto.ImageUrl,
                             TypeId = variantType.Id
                         };
 
@@ -304,6 +305,7 @@ namespace LampStoreProjects.Repositories
                             if (matchingNew != null)
                             {
                                 existingVal.AdditionalPrice = matchingNew.AdditionalPrice;
+                                existingVal.ImageUrl = matchingNew.ImageUrl;
                             }
                         }
 
@@ -314,6 +316,7 @@ namespace LampStoreProjects.Repositories
                                 Id = Guid.NewGuid(),
                                 Value = valueDto.Value,
                                 AdditionalPrice = valueDto.AdditionalPrice,
+                                ImageUrl = valueDto.ImageUrl,
                                 TypeId = existingType.Id
                             }).ToList();
 
@@ -338,6 +341,7 @@ namespace LampStoreProjects.Repositories
                             Id = Guid.NewGuid(),
                             Value = valueDto.Value,
                             AdditionalPrice = valueDto.AdditionalPrice,
+                            ImageUrl = valueDto.ImageUrl,
                             TypeId = newVariantType.Id
                         }).ToList();
 

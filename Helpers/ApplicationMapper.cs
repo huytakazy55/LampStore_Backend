@@ -16,7 +16,7 @@ public class ApplicationMapper : Profile
 
         CreateMap<ProductVariantDto, ProductVariant>().ReverseMap();
         CreateMap<VariantTypeDto, VariantType>()
-            .ForMember(dest => dest.Values, opt => opt.MapFrom(src => src.Values.Select(v => new VariantValue { Value = v.Value, AdditionalPrice = v.AdditionalPrice })))
+            .ForMember(dest => dest.Values, opt => opt.MapFrom(src => src.Values.Select(v => new VariantValue { Value = v.Value, AdditionalPrice = v.AdditionalPrice, ImageUrl = v.ImageUrl })))
             .ReverseMap();
         
         CreateMap<Product, ProductUpdateDto>().ReverseMap();

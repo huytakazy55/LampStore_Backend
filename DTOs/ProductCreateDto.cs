@@ -29,6 +29,7 @@ namespace LampStoreProjects.DTOs
     {
         public string Value { get; set; } = string.Empty;
         public decimal AdditionalPrice { get; set; } = 0;
+        public string? ImageUrl { get; set; }
     }
 
     public class ProductVariantDto

@@ -245,6 +245,28 @@ namespace LampStoreProjects.Controllers
             return Ok("Xóa hình ảnh sản phẩm thành công.");
         }
 
+        // Upload nhanh ảnh từ modal tạo/sửa option (không lưu DB)
+        [HttpPost("UploadVariantImage")]
+        public async Task<ActionResult<object>> UploadVariantImage([FromForm] IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded");
+
+            try
+            {
+                var imageUrl = await _imageService.UploadImageAsync(file, "ImageImport");
+                return Ok(new { imageUrl });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
         [HttpPost("{productId}/images")]
         public async Task<ActionResult> UploadImages(Guid productId, [FromForm] List<IFormFile> imageFiles)
         {

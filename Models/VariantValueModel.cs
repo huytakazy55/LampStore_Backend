@@ -10,6 +10,7 @@ namespace LampStoreProjects.Models
         public VariantTypeModel VariantTypeModel {get; set;} = new VariantTypeModel();
         public string Value {get; set;} = string.Empty;
         public decimal AdditionalPrice {get; set;} = 0;
+        public string? ImageUrl {get; set;}
     }
 
 }
