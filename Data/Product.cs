@@ -40,5 +40,9 @@ namespace LampStoreProjects.Data
         public CartItem? CartItem { get; set; }
         public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
         public ICollection<ProductTag> ProductTags { get; set; } = new List<ProductTag>();
+
+        public Guid? AddOnProductId { get; set; }
+        [ForeignKey("AddOnProductId")]
+        public Product? AddOnProduct { get; set; }
     }
 }

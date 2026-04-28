@@ -120,9 +120,6 @@ builder.Services.AddCors(options =>
                 .AllowAnyMethod()
                 .AllowCredentials();
             }
-            
-            // ❌ XÓA: .SetIsOriginAllowed((host) => true) - Quá nguy hiểm
-            // ❌ XÓA: .WithExposedHeaders("*") - Không cần thiết
         });
 });
 

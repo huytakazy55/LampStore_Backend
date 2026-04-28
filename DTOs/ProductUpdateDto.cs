@@ -16,6 +16,7 @@ namespace LampStoreProjects.DTOs
         public Guid? CategoryId { get; set; }
         public DateTime DateAdded { get; set; } = DateTimeHelper.VietnamNow;
         public bool Status {get; set; } = true;
+        public Guid? AddOnProductId { get; set; }
         public ProductVariantDto ProductVariant { get; set; } = new ProductVariantDto(); 
         public List<VariantTypeDto> VariantTypes { get; set; } = new List<VariantTypeDto>();
     }

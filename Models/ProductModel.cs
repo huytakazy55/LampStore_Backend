@@ -48,5 +48,8 @@ namespace LampStoreProjects.Models
         public decimal? MaxPrice { get; set; }
 
         public int Stock {get;set;}
+
+        public Guid? AddOnProductId { get; set; }
+        public ProductModel? AddOnProduct { get; set; }
     }
 }

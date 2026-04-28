@@ -98,7 +98,15 @@ namespace LampStoreProjects.Data
             modelBuilder.Entity<ProductVariant>()
                 .HasIndex(pv => pv.ProductId)
                 .IsUnique()
+                .HasFilter("[ProductId] IS NOT NULL")
                 .HasDatabaseName("IX_ProductVariants_ProductId");
+
+            // Cấu hình Add-on Product (self referencing)
+            modelBuilder.Entity<Product>()
+                .HasOne(p => p.AddOnProduct)
+                .WithMany()
+                .HasForeignKey(p => p.AddOnProductId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<ApplicationUser>()
                 .HasIndex(u => u.Email)

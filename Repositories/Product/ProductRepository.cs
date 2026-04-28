@@ -64,6 +64,10 @@ namespace LampStoreProjects.Repositories
                 .Include(l => l.ProductVariant)
                 .Include(l => l.VariantTypes)
                     .ThenInclude(vt => vt.Values)
+                .Include(l => l.AddOnProduct)
+                    .ThenInclude(a => a!.Images)
+                .Include(l => l.AddOnProduct)
+                    .ThenInclude(a => a!.ProductVariant)
                 .FirstOrDefaultAsync(l => l.Id == id);
             
             var productModel = _mapper.Map<ProductModel>(product);
@@ -75,6 +79,15 @@ namespace LampStoreProjects.Repositories
                 productModel.MaxPrice = v.Price;
                 productModel.Stock = v.Stock;
                 productModel.Slug = product.Slug ?? string.Empty;
+                
+                if (productModel.AddOnProduct != null && product.AddOnProduct?.ProductVariant != null)
+                {
+                    var av = product.AddOnProduct.ProductVariant;
+                    productModel.AddOnProduct.MinPrice = av.DiscountPrice > 0 ? av.DiscountPrice : av.Price;
+                    productModel.AddOnProduct.MaxPrice = av.Price;
+                    productModel.AddOnProduct.Stock = av.Stock;
+                    productModel.AddOnProduct.Slug = product.AddOnProduct.Slug ?? string.Empty;
+                }
             }
             
             return productModel;
@@ -87,6 +100,10 @@ namespace LampStoreProjects.Repositories
                 .Include(l => l.ProductVariant)
                 .Include(l => l.VariantTypes)
                     .ThenInclude(vt => vt.Values)
+                .Include(l => l.AddOnProduct)
+                    .ThenInclude(a => a!.Images)
+                .Include(l => l.AddOnProduct)
+                    .ThenInclude(a => a!.ProductVariant)
                 .FirstOrDefaultAsync(l => l.Slug == slug);
             
             if (product == null) return null;
@@ -100,6 +117,15 @@ namespace LampStoreProjects.Repositories
                 productModel.MaxPrice = v.Price;
                 productModel.Stock = v.Stock;
                 productModel.Slug = product.Slug ?? string.Empty;
+
+                if (productModel.AddOnProduct != null && product.AddOnProduct?.ProductVariant != null)
+                {
+                    var av = product.AddOnProduct.ProductVariant;
+                    productModel.AddOnProduct.MinPrice = av.DiscountPrice > 0 ? av.DiscountPrice : av.Price;
+                    productModel.AddOnProduct.MaxPrice = av.Price;
+                    productModel.AddOnProduct.Stock = av.Stock;
+                    productModel.AddOnProduct.Slug = product.AddOnProduct.Slug ?? string.Empty;
+                }
             }
             
             return productModel;
