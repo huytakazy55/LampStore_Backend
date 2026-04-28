@@ -33,6 +33,7 @@ namespace LampStoreProjects.Data
         public DbSet<SiteVisit>? SiteVisits { get; set; }
         public DbSet<FlashSale>? FlashSales { get; set; }
         public DbSet<FlashSaleItem>? FlashSaleItems { get; set; }
+        public DbSet<ProductAddOn>? ProductAddOns { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -101,12 +102,30 @@ namespace LampStoreProjects.Data
                 .HasFilter("[ProductId] IS NOT NULL")
                 .HasDatabaseName("IX_ProductVariants_ProductId");
 
-            // Cấu hình Add-on Product (self referencing)
+            // Cấu hình Add-on Product (self referencing - legacy, kept for migration)
             modelBuilder.Entity<Product>()
                 .HasOne(p => p.AddOnProduct)
                 .WithMany()
                 .HasForeignKey(p => p.AddOnProductId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // Cấu hình ProductAddOns (many-to-many)
+            modelBuilder.Entity<ProductAddOn>()
+                .HasOne(pa => pa.Product)
+                .WithMany(p => p.ProductAddOns)
+                .HasForeignKey(pa => pa.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ProductAddOn>()
+                .HasOne(pa => pa.AddOnProduct)
+                .WithMany()
+                .HasForeignKey(pa => pa.AddOnProductId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<ProductAddOn>()
+                .HasIndex(pa => new { pa.ProductId, pa.AddOnProductId })
+                .IsUnique()
+                .HasDatabaseName("IX_ProductAddOns_Product_AddOn");
 
             modelBuilder.Entity<ApplicationUser>()
                 .HasIndex(u => u.Email)

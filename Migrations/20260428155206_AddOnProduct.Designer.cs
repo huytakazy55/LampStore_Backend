@@ -4,6 +4,7 @@ using LampStoreProjects.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LampStoreProjects.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260428155206_AddOnProduct")]
+    partial class AddOnProduct
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -719,32 +722,6 @@ namespace LampStoreProjects.Migrations
                     b.ToTable("Products", (string)null);
                 });
 
-            modelBuilder.Entity("LampStoreProjects.Data.ProductAddOn", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("AddOnProductId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ProductId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AddOnProductId");
-
-                    b.HasIndex("ProductId", "AddOnProductId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_ProductAddOns_Product_AddOn");
-
-                    b.ToTable("ProductAddOns");
-                });
-
             modelBuilder.Entity("LampStoreProjects.Data.ProductImage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1424,25 +1401,6 @@ namespace LampStoreProjects.Migrations
                     b.Navigation("Category");
                 });
 
-            modelBuilder.Entity("LampStoreProjects.Data.ProductAddOn", b =>
-                {
-                    b.HasOne("LampStoreProjects.Data.Product", "AddOnProduct")
-                        .WithMany()
-                        .HasForeignKey("AddOnProductId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("LampStoreProjects.Data.Product", "Product")
-                        .WithMany("ProductAddOns")
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("AddOnProduct");
-
-                    b.Navigation("Product");
-                });
-
             modelBuilder.Entity("LampStoreProjects.Data.ProductImage", b =>
                 {
                     b.HasOne("LampStoreProjects.Data.Product", "Product")
@@ -1675,8 +1633,6 @@ namespace LampStoreProjects.Migrations
                     b.Navigation("Images");
 
                     b.Navigation("OrderItems");
-
-                    b.Navigation("ProductAddOns");
 
                     b.Navigation("ProductReviews");
 

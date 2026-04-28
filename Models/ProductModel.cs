@@ -51,5 +51,6 @@ namespace LampStoreProjects.Models
 
         public Guid? AddOnProductId { get; set; }
         public ProductModel? AddOnProduct { get; set; }
+        public List<ProductModel> AddOnProducts { get; set; } = new List<ProductModel>();
     }
 }

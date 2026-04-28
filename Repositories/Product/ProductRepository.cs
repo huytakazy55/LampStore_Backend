@@ -68,6 +68,19 @@ namespace LampStoreProjects.Repositories
                     .ThenInclude(a => a!.Images)
                 .Include(l => l.AddOnProduct)
                     .ThenInclude(a => a!.ProductVariant)
+                .Include(l => l.AddOnProduct)
+                    .ThenInclude(a => a!.VariantTypes)
+                        .ThenInclude(vt => vt.Values)
+                .Include(l => l.ProductAddOns)
+                    .ThenInclude(pa => pa.AddOnProduct)
+                        .ThenInclude(a => a.Images)
+                .Include(l => l.ProductAddOns)
+                    .ThenInclude(pa => pa.AddOnProduct)
+                        .ThenInclude(a => a.ProductVariant)
+                .Include(l => l.ProductAddOns)
+                    .ThenInclude(pa => pa.AddOnProduct)
+                        .ThenInclude(a => a.VariantTypes)
+                            .ThenInclude(vt => vt.Values)
                 .FirstOrDefaultAsync(l => l.Id == id);
             
             var productModel = _mapper.Map<ProductModel>(product);
@@ -79,15 +92,19 @@ namespace LampStoreProjects.Repositories
                 productModel.MaxPrice = v.Price;
                 productModel.Stock = v.Stock;
                 productModel.Slug = product.Slug ?? string.Empty;
+                productModel.AddOnProductId = product.AddOnProductId;
                 
-                if (productModel.AddOnProduct != null && product.AddOnProduct?.ProductVariant != null)
+                // Manually map legacy AddOnProduct
+                if (product.AddOnProduct != null)
                 {
-                    var av = product.AddOnProduct.ProductVariant;
-                    productModel.AddOnProduct.MinPrice = av.DiscountPrice > 0 ? av.DiscountPrice : av.Price;
-                    productModel.AddOnProduct.MaxPrice = av.Price;
-                    productModel.AddOnProduct.Stock = av.Stock;
-                    productModel.AddOnProduct.Slug = product.AddOnProduct.Slug ?? string.Empty;
+                    productModel.AddOnProduct = MapAddonProduct(product.AddOnProduct);
                 }
+
+                // Map ProductAddOns (many-to-many)
+                productModel.AddOnProducts = product.ProductAddOns
+                    .OrderBy(pa => pa.SortOrder)
+                    .Select(pa => MapAddonProduct(pa.AddOnProduct))
+                    .ToList();
             }
             
             return productModel;
@@ -104,6 +121,19 @@ namespace LampStoreProjects.Repositories
                     .ThenInclude(a => a!.Images)
                 .Include(l => l.AddOnProduct)
                     .ThenInclude(a => a!.ProductVariant)
+                .Include(l => l.AddOnProduct)
+                    .ThenInclude(a => a!.VariantTypes)
+                        .ThenInclude(vt => vt.Values)
+                .Include(l => l.ProductAddOns)
+                    .ThenInclude(pa => pa.AddOnProduct)
+                        .ThenInclude(a => a.Images)
+                .Include(l => l.ProductAddOns)
+                    .ThenInclude(pa => pa.AddOnProduct)
+                        .ThenInclude(a => a.ProductVariant)
+                .Include(l => l.ProductAddOns)
+                    .ThenInclude(pa => pa.AddOnProduct)
+                        .ThenInclude(a => a.VariantTypes)
+                            .ThenInclude(vt => vt.Values)
                 .FirstOrDefaultAsync(l => l.Slug == slug);
             
             if (product == null) return null;
@@ -117,18 +147,65 @@ namespace LampStoreProjects.Repositories
                 productModel.MaxPrice = v.Price;
                 productModel.Stock = v.Stock;
                 productModel.Slug = product.Slug ?? string.Empty;
+                productModel.AddOnProductId = product.AddOnProductId;
 
-                if (productModel.AddOnProduct != null && product.AddOnProduct?.ProductVariant != null)
+                // Legacy single addon
+                if (product.AddOnProduct != null)
                 {
-                    var av = product.AddOnProduct.ProductVariant;
-                    productModel.AddOnProduct.MinPrice = av.DiscountPrice > 0 ? av.DiscountPrice : av.Price;
-                    productModel.AddOnProduct.MaxPrice = av.Price;
-                    productModel.AddOnProduct.Stock = av.Stock;
-                    productModel.AddOnProduct.Slug = product.AddOnProduct.Slug ?? string.Empty;
+                    productModel.AddOnProduct = MapAddonProduct(product.AddOnProduct);
                 }
+
+                // Map ProductAddOns (many-to-many)
+                productModel.AddOnProducts = product.ProductAddOns
+                    .OrderBy(pa => pa.SortOrder)
+                    .Select(pa => MapAddonProduct(pa.AddOnProduct))
+                    .ToList();
             }
             
             return productModel;
+        }
+
+        private ProductModel MapAddonProduct(Product addon)
+        {
+            var model = new ProductModel
+            {
+                Id = addon.Id,
+                Name = addon.Name,
+                Slug = addon.Slug ?? string.Empty,
+                Description = addon.Description,
+                CategoryId = addon.CategoryId,
+                Status = addon.Status,
+                Images = addon.Images.Select(i => new ProductImageModel
+                {
+                    Id = i.Id,
+                    ImagePath = i.ImagePath,
+                    ProductId = i.ProductId
+                }).ToList()
+            };
+            if (addon.ProductVariant != null)
+            {
+                var av = addon.ProductVariant;
+                model.Variant = _mapper.Map<ProductVariantModel>(av);
+                model.MinPrice = av.DiscountPrice > 0 ? av.DiscountPrice : av.Price;
+                model.MaxPrice = av.Price;
+                model.Stock = av.Stock;
+            }
+            if (addon.VariantTypes != null && addon.VariantTypes.Any())
+            {
+                model.VariantTypes = addon.VariantTypes.Select(vt => new VariantTypeModel
+                {
+                    Id = vt.Id,
+                    Name = vt.Name,
+                    Values = vt.Values.Select(v => new VariantValueModel
+                    {
+                        Id = v.Id,
+                        Value = v.Value,
+                        AdditionalPrice = v.AdditionalPrice,
+                        ImageUrl = v.ImageUrl
+                    }).ToList()
+                }).ToList();
+            }
+            return model;
         }
 
         private async Task<string> GenerateUniqueSlugAsync(string name, Guid? excludeId = null)
@@ -202,6 +279,7 @@ namespace LampStoreProjects.Repositories
                     SellCount = productDto.SellCount,
                     CategoryId = productDto.CategoryId,
                     Status = productDto.Status == 1,
+                    AddOnProductId = productDto.AddOnProductId,
                 };
 
                 await _context.Products!.AddAsync(product);
@@ -250,6 +328,22 @@ namespace LampStoreProjects.Repositories
 
                 await _context.ProductVariants!.AddAsync(productVariant);
 
+                // Save ProductAddOns (many-to-many)
+                var addonIds = productDto.AddOnProductIds ?? new List<Guid>();
+                // Fallback: if only legacy single ID provided
+                if (!addonIds.Any() && productDto.AddOnProductId.HasValue)
+                    addonIds.Add(productDto.AddOnProductId.Value);
+                for (int i = 0; i < addonIds.Count; i++)
+                {
+                    await _context.ProductAddOns!.AddAsync(new ProductAddOn
+                    {
+                        Id = Guid.NewGuid(),
+                        ProductId = product.Id,
+                        AddOnProductId = addonIds[i],
+                        SortOrder = i
+                    });
+                }
+
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
@@ -293,6 +387,7 @@ namespace LampStoreProjects.Repositories
                 product.SellCount = productDto.SellCount;
                 product.CategoryId = productDto.CategoryId;
                 product.Status = productDto.Status == true;
+                product.AddOnProductId = productDto.AddOnProductId;
 
                 // Xử lý các loại biến thể (VariantType)
                 var existingVariantTypes = product.VariantTypes.ToList();
@@ -426,6 +521,27 @@ namespace LampStoreProjects.Repositories
 
                 // Set UpdatedAt timestamp
                 product.UpdatedAt = DateTimeHelper.VietnamNow;
+
+                // Sync ProductAddOns (many-to-many)
+                var existingAddOns = await _context.ProductAddOns!
+                    .Where(pa => pa.ProductId == productId)
+                    .ToListAsync();
+                _context.ProductAddOns!.RemoveRange(existingAddOns);
+
+                var addonIds = productDto.AddOnProductIds ?? new List<Guid>();
+                // Fallback: if only legacy single ID provided
+                if (!addonIds.Any() && productDto.AddOnProductId.HasValue)
+                    addonIds.Add(productDto.AddOnProductId.Value);
+                for (int i = 0; i < addonIds.Count; i++)
+                {
+                    await _context.ProductAddOns!.AddAsync(new ProductAddOn
+                    {
+                        Id = Guid.NewGuid(),
+                        ProductId = productId,
+                        AddOnProductId = addonIds[i],
+                        SortOrder = i
+                    });
+                }
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();

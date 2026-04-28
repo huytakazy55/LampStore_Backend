@@ -44,5 +44,7 @@ namespace LampStoreProjects.Data
         public Guid? AddOnProductId { get; set; }
         [ForeignKey("AddOnProductId")]
         public Product? AddOnProduct { get; set; }
+
+        public ICollection<ProductAddOn> ProductAddOns { get; set; } = new List<ProductAddOn>();
     }
 }
