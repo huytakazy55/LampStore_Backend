@@ -99,6 +99,15 @@ namespace LampStoreProjects.Controllers
             return Ok(created);
         }
 
+        // PUT: api/flashsales/5/items/3
+        [HttpPut("{id}/items/{itemId}")]
+        public async Task<ActionResult<FlashSaleItemModel>> UpdateItem(int id, int itemId, [FromBody] FlashSaleItemModel item)
+        {
+            var result = await _flashSaleRepository.UpdateItemAsync(id, itemId, item);
+            if (result == null) return NotFound();
+            return Ok(result);
+        }
+
         // DELETE: api/flashsales/5/items/3
         [HttpDelete("{id}/items/{itemId}")]
         public async Task<IActionResult> RemoveItem(int id, int itemId)

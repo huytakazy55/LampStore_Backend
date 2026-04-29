@@ -11,6 +11,7 @@ namespace LampStoreProjects.Repositories
         Task<FlashSaleModel> UpdateAsync(FlashSaleModel flashSale);
         Task<bool> DeleteAsync(int id);
         Task<FlashSaleItemModel> AddItemAsync(int flashSaleId, FlashSaleItemModel item);
+        Task<FlashSaleItemModel?> UpdateItemAsync(int flashSaleId, int itemId, FlashSaleItemModel item);
         Task<bool> RemoveItemAsync(int flashSaleId, int itemId);
     }
 }

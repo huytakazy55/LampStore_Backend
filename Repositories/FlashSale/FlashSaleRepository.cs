@@ -121,6 +121,21 @@ namespace LampStoreProjects.Repositories
             return _mapper.Map<FlashSaleItemModel>(entity);
         }
 
+        public async Task<FlashSaleItemModel?> UpdateItemAsync(int flashSaleId, int itemId, FlashSaleItemModel item)
+        {
+            var entity = await _context.FlashSaleItems!
+                .FirstOrDefaultAsync(i => i.Id == itemId && i.FlashSaleId == flashSaleId);
+            if (entity == null) return null;
+            
+            entity.DiscountPercent = item.DiscountPercent;
+            entity.FlashSalePrice = item.FlashSalePrice;
+            entity.Stock = item.Stock;
+            entity.Order = item.Order;
+            
+            await _context.SaveChangesAsync();
+            return _mapper.Map<FlashSaleItemModel>(entity);
+        }
+
         public async Task<bool> RemoveItemAsync(int flashSaleId, int itemId)
         {
             var item = await _context.FlashSaleItems!
