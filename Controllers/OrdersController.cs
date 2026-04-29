@@ -8,8 +8,8 @@ using LampStoreProjects.Repositories;
 using LampStoreProjects.Services;
 using LampStoreProjects.Data;
 using Microsoft.AspNetCore.Identity;
-using Net.payOS;
-using Net.payOS.Types;
+using PayOS;
+using PayOS.Models.V2.PaymentRequests;
 
 namespace LampStoreProjects.Controllers
 {
@@ -92,19 +92,17 @@ namespace LampStoreProjects.Controllers
             {
                 try
                 {
-                    ItemData item = new ItemData("Đơn hàng CapyLumine", 1, (int)created.TotalAmount);
-                    List<ItemData> items = new List<ItemData> { item };
-                    PaymentData paymentData = new PaymentData(
-                        created.OrderCode,
-                        (int)created.TotalAmount,
-                        $"Thanh toan don hang {created.OrderCode}",
-                        items,
-                        $"{storeUrl}/checkout?orderCancel=true&orderCode={created.OrderCode}",
-                        $"{storeUrl}/checkout?orderSuccess=true&orderCode={created.OrderCode}"
-                    );
+                    var paymentData = new CreatePaymentLinkRequest
+                    {
+                        OrderCode = created.OrderCode,
+                        Amount = (int)created.TotalAmount,
+                        Description = $"Thanh toan {created.OrderCode}",
+                        CancelUrl = $"{storeUrl}/checkout?orderCancel=true&orderCode={created.OrderCode}",
+                        ReturnUrl = $"{storeUrl}/checkout?orderSuccess=true&orderCode={created.OrderCode}"
+                    };
 
-                    var createPayment = await payOSClient.createPaymentLink(paymentData);
-                    created.CheckoutUrl = createPayment.checkoutUrl;
+                    var createPayment = await payOSClient.PaymentRequests.CreateAsync(paymentData);
+                    created.CheckoutUrl = createPayment.CheckoutUrl;
                 }
                 catch (Exception ex)
                 {
@@ -156,19 +154,17 @@ namespace LampStoreProjects.Controllers
             {
                 try
                 {
-                    ItemData item = new ItemData("Đơn hàng CapyLumine", 1, (int)created.TotalAmount);
-                    List<ItemData> items = new List<ItemData> { item };
-                    PaymentData paymentData = new PaymentData(
-                        created.OrderCode,
-                        (int)created.TotalAmount,
-                        $"Thanh toan don hang {created.OrderCode}",
-                        items,
-                        $"{storeUrlGuest}/checkout?orderCancel=true&orderCode={created.OrderCode}",
-                        $"{storeUrlGuest}/checkout?orderSuccess=true&orderCode={created.OrderCode}"
-                    );
+                    var paymentData = new CreatePaymentLinkRequest
+                    {
+                        OrderCode = created.OrderCode,
+                        Amount = (int)created.TotalAmount,
+                        Description = $"Thanh toan {created.OrderCode}",
+                        CancelUrl = $"{storeUrlGuest}/checkout?orderCancel=true&orderCode={created.OrderCode}",
+                        ReturnUrl = $"{storeUrlGuest}/checkout?orderSuccess=true&orderCode={created.OrderCode}"
+                    };
 
-                    var createPayment = await payOSClient.createPaymentLink(paymentData);
-                    created.CheckoutUrl = createPayment.checkoutUrl;
+                    var createPayment = await payOSClient.PaymentRequests.CreateAsync(paymentData);
+                    created.CheckoutUrl = createPayment.CheckoutUrl;
                 }
                 catch (Exception ex)
                 {

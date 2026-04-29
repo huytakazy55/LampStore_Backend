@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using LampStoreProjects.Repositories;
-using Net.payOS;
-using Net.payOS.Types;
+using PayOS;
+using PayOS.Models.Webhooks;
 using System;
 using Microsoft.EntityFrameworkCore;
 using LampStoreProjects.Data;
@@ -24,17 +24,17 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> HandleWebhook([FromBody] WebhookType webhookBody)
+        public async Task<IActionResult> HandleWebhook([FromBody] Webhook webhookBody)
         {
             try
             {
                 // Verify signature to ensure the webhook comes from PayOS
-                WebhookData webhookData = _payOSClient.verifyPaymentWebhookData(webhookBody);
+                var webhookData = await _payOSClient.Webhooks.VerifyAsync(webhookBody);
 
-                if (webhookData.code == "00")
+                if (webhookData.Code == "00")
                 {
                     // Payment successful
-                    long orderCode = webhookData.orderCode;
+                    long orderCode = webhookData.OrderCode;
 
                     // Find order by orderCode
                     var order = await _context.Orders!.FirstOrDefaultAsync(o => o.OrderCode == orderCode);

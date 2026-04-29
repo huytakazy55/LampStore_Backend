@@ -13,7 +13,7 @@ using System.Data;
 using Serilog;
 using Serilog.Formatting.Json;
 using Microsoft.AspNetCore.Diagnostics;
-using Net.payOS;
+using PayOS;
 
 var builder = WebApplication.CreateBuilder(args);
 
