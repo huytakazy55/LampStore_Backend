@@ -13,6 +13,7 @@ using System.Data;
 using Serilog;
 using Serilog.Formatting.Json;
 using Microsoft.AspNetCore.Diagnostics;
+using Net.payOS;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -159,6 +160,16 @@ builder.Services.AddResponseCaching();
 builder.Services.AddSignalR();
 
 builder.Services.AddAutoMapper(typeof(Program));
+
+// PayOS setup
+string clientId = builder.Configuration["PayOS:ClientId"] ?? "";
+string apiKey = builder.Configuration["PayOS:ApiKey"] ?? "";
+string checksumKey = builder.Configuration["PayOS:ChecksumKey"] ?? "";
+if (!string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(apiKey))
+{
+    var payOS = new PayOSClient(clientId, apiKey, checksumKey);
+    builder.Services.AddSingleton(payOS);
+}
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

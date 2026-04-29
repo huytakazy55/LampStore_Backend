@@ -9,6 +9,8 @@ namespace LampStoreProjects.Models
         public string? UserId { get; set; }
         public DateTime OrderDate { get; set; }
         public string Status { get; set; } = "Pending";
+        public long OrderCode { get; set; }
+        public string? CheckoutUrl { get; set; }
 
         // Shipping info
         public string FullName { get; set; } = string.Empty;

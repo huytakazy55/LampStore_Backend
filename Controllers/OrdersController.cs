@@ -8,6 +8,8 @@ using LampStoreProjects.Repositories;
 using LampStoreProjects.Services;
 using LampStoreProjects.Data;
 using Microsoft.AspNetCore.Identity;
+using Net.payOS;
+using Net.payOS.Types;
 
 namespace LampStoreProjects.Controllers
 {
@@ -57,7 +59,7 @@ namespace LampStoreProjects.Controllers
 
         [HttpPost]
         [Authorize]
-        public async Task<ActionResult<OrderModel>> CreateOrder([FromBody] OrderModel orderModel)
+        public async Task<ActionResult<OrderModel>> CreateOrder([FromBody] OrderModel orderModel, [FromServices] PayOSClient? payOSClient)
         {
             if (!ModelState.IsValid)
             {
@@ -86,6 +88,31 @@ namespace LampStoreProjects.Controllers
                 await _emailService.SendNewOrderNotificationToAdminAsync(created, adminEmails!, storeUrl);
             });
 
+            if (created.PaymentMethod == "bank" && payOSClient != null)
+            {
+                try
+                {
+                    ItemData item = new ItemData("Đơn hàng CapyLumine", 1, (int)created.TotalAmount);
+                    List<ItemData> items = new List<ItemData> { item };
+                    PaymentData paymentData = new PaymentData(
+                        created.OrderCode,
+                        (int)created.TotalAmount,
+                        $"Thanh toan don hang {created.OrderCode}",
+                        items,
+                        $"{storeUrl}/checkout?orderCancel=true&orderCode={created.OrderCode}",
+                        $"{storeUrl}/checkout?orderSuccess=true&orderCode={created.OrderCode}"
+                    );
+
+                    var createPayment = await payOSClient.createPaymentLink(paymentData);
+                    created.CheckoutUrl = createPayment.checkoutUrl;
+                }
+                catch (Exception ex)
+                {
+                    // Log error but don't fail order creation
+                    Console.WriteLine($"PayOS Error: {ex.Message}");
+                }
+            }
+
             return CreatedAtAction(nameof(GetOrder), new { id = created.Id }, created);
         }
 
@@ -95,7 +122,7 @@ namespace LampStoreProjects.Controllers
         /// </summary>
         [AllowAnonymous]
         [HttpPost("guest")]
-        public async Task<ActionResult<OrderModel>> CreateGuestOrder([FromBody] OrderModel orderModel)
+        public async Task<ActionResult<OrderModel>> CreateGuestOrder([FromBody] OrderModel orderModel, [FromServices] PayOSClient? payOSClient)
         {
             if (!ModelState.IsValid)
             {
@@ -124,6 +151,30 @@ namespace LampStoreProjects.Controllers
                 }
                 await _emailService.SendNewOrderNotificationToAdminAsync(created, adminEmailsGuest!, storeUrlGuest);
             });
+
+            if (created.PaymentMethod == "bank" && payOSClient != null)
+            {
+                try
+                {
+                    ItemData item = new ItemData("Đơn hàng CapyLumine", 1, (int)created.TotalAmount);
+                    List<ItemData> items = new List<ItemData> { item };
+                    PaymentData paymentData = new PaymentData(
+                        created.OrderCode,
+                        (int)created.TotalAmount,
+                        $"Thanh toan don hang {created.OrderCode}",
+                        items,
+                        $"{storeUrlGuest}/checkout?orderCancel=true&orderCode={created.OrderCode}",
+                        $"{storeUrlGuest}/checkout?orderSuccess=true&orderCode={created.OrderCode}"
+                    );
+
+                    var createPayment = await payOSClient.createPaymentLink(paymentData);
+                    created.CheckoutUrl = createPayment.checkoutUrl;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"PayOS Error: {ex.Message}");
+                }
+            }
 
             return CreatedAtAction(nameof(GetOrder), new { id = created.Id }, created);
         }

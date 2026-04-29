@@ -12,6 +12,7 @@ namespace LampStoreProjects.Data
         public ApplicationUser? User { get; set; }
         public DateTime OrderDate { get; set; } = DateTimeHelper.VietnamNow;
         public string Status { get; set; } = "Pending";
+        public long OrderCode { get; set; }
 
         // Shipping info
         public string FullName { get; set; } = string.Empty;

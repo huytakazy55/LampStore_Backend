@@ -55,9 +55,11 @@ namespace LampStoreProjects.Repositories
 
         public async Task<OrderModel> CreateOrderAsync(OrderModel orderModel)
         {
+            var orderCode = long.Parse(DateTimeHelper.VietnamNow.ToString("yyMMddHHmmss") + new Random().Next(10, 99).ToString());
             var order = new Order
             {
                 Id = Guid.NewGuid(),
+                OrderCode = orderCode,
                 UserId = orderModel.UserId,
                 GuestToken = orderModel.GuestToken,
                 OrderDate = DateTimeHelper.VietnamNow,
@@ -89,6 +91,7 @@ namespace LampStoreProjects.Repositories
             await _context.SaveChangesAsync();
 
             orderModel.Id = order.Id;
+            orderModel.OrderCode = order.OrderCode;
             orderModel.OrderDate = order.OrderDate;
             orderModel.Status = order.Status;
             return orderModel;
@@ -124,6 +127,7 @@ namespace LampStoreProjects.Repositories
             return new OrderModel
             {
                 Id = order.Id,
+                OrderCode = order.OrderCode,
                 UserId = order.UserId,
                 GuestToken = order.GuestToken,
                 OrderDate = order.OrderDate,
