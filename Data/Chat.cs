@@ -5,8 +5,11 @@ namespace LampStoreProjects.Data
 {
     public class Chat : BaseEntity
     {
-        [Required]
-        public string UserId { get; set; } = string.Empty;
+        public string? UserId { get; set; }
+
+        // Guest chat support
+        public string? GuestToken { get; set; }
+        public string? GuestName { get; set; }
 
         [Required]
         public string Subject { get; set; } = string.Empty; // Tiêu đề yêu cầu hỗ trợ

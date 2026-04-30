@@ -17,7 +17,7 @@ namespace LampStoreProjects.Repositories.Chat
         Task<bool> CloseChatAsync(Guid chatId);
 
         // Message operations
-        Task<Message> SendMessageAsync(Guid chatId, string senderId, string content, MessageType type = MessageType.Text);
+        Task<Message> SendMessageAsync(Guid chatId, string? senderId, string content, MessageType type = MessageType.Text);
         Task<IEnumerable<Message>> GetMessagesByChatIdAsync(Guid chatId);
         Task<IEnumerable<Message>> GetUnreadMessagesAsync(string userId);
         Task<bool> MarkMessageAsReadAsync(Guid messageId, string userId);
@@ -29,5 +29,10 @@ namespace LampStoreProjects.Repositories.Chat
         Task<int> GetOpenChatsCountAsync();
         Task<int> GetChatsByUserCountAsync(string userId);
         Task<Dictionary<ChatStatus, int>> GetChatStatisticsAsync();
+
+        // Guest chat operations
+        Task<LampStoreProjects.Data.Chat> CreateGuestChatAsync(string guestToken, string guestName, string subject, ChatPriority priority = ChatPriority.Normal);
+        Task<IEnumerable<LampStoreProjects.Data.Chat>> GetChatsByGuestTokenAsync(string guestToken);
+        Task<int> ClaimGuestChatsAsync(string guestToken, string userId);
     }
 } 

@@ -130,7 +130,7 @@ namespace LampStoreProjects.Repositories.Chat
         }
 
         // Message operations
-        public async Task<Message> SendMessageAsync(Guid chatId, string senderId, string content, MessageType type = MessageType.Text)
+        public async Task<Message> SendMessageAsync(Guid chatId, string? senderId, string content, MessageType type = MessageType.Text)
         {
             var message = new Message
             {
@@ -249,6 +249,52 @@ namespace LampStoreProjects.Repositories.Chat
             }
 
             return stats;
+        }
+
+        // Guest chat operations
+        public async Task<LampStoreProjects.Data.Chat> CreateGuestChatAsync(string guestToken, string guestName, string subject, ChatPriority priority = ChatPriority.Normal)
+        {
+            var chat = new LampStoreProjects.Data.Chat
+            {
+                GuestToken = guestToken,
+                GuestName = guestName,
+                Subject = subject,
+                Priority = priority,
+                Status = ChatStatus.Open,
+                LastMessageAt = DateTimeHelper.VietnamNow
+            };
+
+            _context.Chats!.Add(chat);
+            await _context.SaveChangesAsync();
+
+            return await GetChatByIdAsync(chat.Id) ?? chat;
+        }
+
+        public async Task<IEnumerable<LampStoreProjects.Data.Chat>> GetChatsByGuestTokenAsync(string guestToken)
+        {
+            return await _context.Chats!
+                .Include(c => c.AssignedAdmin)
+                .Include(c => c.Messages.OrderByDescending(m => m.CreatedAt).Take(1))
+                .ThenInclude(m => m.Sender)
+                .Where(c => c.GuestToken == guestToken)
+                .OrderByDescending(c => c.LastMessageAt)
+                .ToListAsync();
+        }
+
+        public async Task<int> ClaimGuestChatsAsync(string guestToken, string userId)
+        {
+            var guestChats = await _context.Chats!
+                .Where(c => c.GuestToken == guestToken && c.UserId == null)
+                .ToListAsync();
+
+            foreach (var chat in guestChats)
+            {
+                chat.UserId = userId;
+                chat.GuestToken = null; // Clear guest token after claiming
+            }
+
+            await _context.SaveChangesAsync();
+            return guestChats.Count;
         }
     }
 } 

@@ -396,10 +396,180 @@ namespace LampStoreProjects.Controllers
         }
     }
 
+    // ── Guest Chat Endpoints (no auth required) ──
+    [ApiController]
+    [Route("api/[controller]")]
+    public class GuestChatController : ControllerBase
+    {
+        private readonly IChatRepository _chatRepository;
+        private readonly IHubContext<ChatHub> _hubContext;
+        private readonly ILogger<GuestChatController> _logger;
+
+        public GuestChatController(IChatRepository chatRepository, IHubContext<ChatHub> hubContext, ILogger<GuestChatController> logger)
+        {
+            _chatRepository = chatRepository;
+            _hubContext = hubContext;
+            _logger = logger;
+        }
+
+        private string? GetGuestToken() => Request.Headers["X-Guest-Token"].FirstOrDefault();
+
+        [HttpPost("guest/create")]
+        public async Task<IActionResult> CreateGuestChat([FromBody] GuestCreateChatRequest request)
+        {
+            try
+            {
+                var guestToken = GetGuestToken();
+                if (string.IsNullOrEmpty(guestToken))
+                    return BadRequest("X-Guest-Token header is required");
+
+                if (string.IsNullOrEmpty(request.Subject))
+                    return BadRequest("Subject is required");
+
+                var guestName = request.GuestName ?? "Khách vãng lai";
+                var chat = await _chatRepository.CreateGuestChatAsync(guestToken, guestName, request.Subject, request.Priority);
+
+                // Notify admins
+                await _hubContext.Clients.Group("admins").SendAsync("NewChatCreated", new
+                {
+                    ChatId = chat.Id,
+                    GuestToken = guestToken,
+                    GuestName = guestName,
+                    Subject = request.Subject,
+                    Priority = request.Priority,
+                    CreatedAt = chat.CreatedAt,
+                    IsGuest = true
+                });
+
+                return Ok(chat);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating guest chat");
+                return StatusCode(500, "Có lỗi xảy ra khi tạo chat");
+            }
+        }
+
+        [HttpGet("guest/my-chats")]
+        public async Task<IActionResult> GetGuestChats()
+        {
+            try
+            {
+                var guestToken = GetGuestToken();
+                if (string.IsNullOrEmpty(guestToken))
+                    return BadRequest("X-Guest-Token header is required");
+
+                var chats = await _chatRepository.GetChatsByGuestTokenAsync(guestToken);
+                return Ok(chats);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting guest chats");
+                return StatusCode(500, "Có lỗi xảy ra");
+            }
+        }
+
+        [HttpGet("guest/{chatId}/messages")]
+        public async Task<IActionResult> GetGuestMessages(Guid chatId)
+        {
+            try
+            {
+                var guestToken = GetGuestToken();
+                if (string.IsNullOrEmpty(guestToken))
+                    return BadRequest("X-Guest-Token header is required");
+
+                var chat = await _chatRepository.GetChatByIdAsync(chatId);
+                if (chat == null) return NotFound();
+                if (chat.GuestToken != guestToken) return Forbid();
+
+                var messages = await _chatRepository.GetMessagesByChatIdAsync(chatId);
+                return Ok(messages);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting guest chat messages");
+                return StatusCode(500, "Có lỗi xảy ra");
+            }
+        }
+
+        [HttpPost("guest/{chatId}/messages")]
+        public async Task<IActionResult> SendGuestMessage(Guid chatId, [FromBody] SendMessageRequest request)
+        {
+            try
+            {
+                var guestToken = GetGuestToken();
+                if (string.IsNullOrEmpty(guestToken))
+                    return BadRequest("X-Guest-Token header is required");
+
+                if (string.IsNullOrEmpty(request.Content))
+                    return BadRequest("Message content is required");
+
+                var chat = await _chatRepository.GetChatByIdAsync(chatId);
+                if (chat == null) return NotFound();
+                if (chat.GuestToken != guestToken) return Forbid();
+
+                // For guest messages, we save them with SenderId = null in the DB
+                var message = await _chatRepository.SendMessageAsync(chatId, null, request.Content, request.Type);
+
+                var guestName = chat.GuestName ?? "Khách vãng lai";
+
+                // Send realtime to chat room
+                await _hubContext.Clients.Group($"chat_{chatId}").SendAsync("ReceiveMessage", new
+                {
+                    MessageId = message.Id,
+                    ChatId = chatId,
+                    SenderId = $"guest_{guestToken.Substring(0, 8)}",
+                    SenderName = guestName,
+                    Content = request.Content,
+                    Type = request.Type.ToString(),
+                    Timestamp = message.CreatedAt,
+                    IsRead = false,
+                    IsGuest = true
+                });
+
+                // Notify admins
+                try
+                {
+                    await _hubContext.Clients.Group("admins").SendAsync("AdminChatNotification", new
+                    {
+                        ChatId = chatId,
+                        SenderId = $"guest_{guestToken.Substring(0, 8)}",
+                        SenderName = guestName,
+                        Content = request.Content,
+                        Timestamp = message.CreatedAt,
+                        Type = request.Type.ToString(),
+                        ChatSubject = chat.Subject,
+                        UserName = guestName,
+                        Priority = chat.Priority,
+                        IsGuest = true
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error notifying admins for guest message");
+                }
+
+                return Ok(message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending guest message");
+                return StatusCode(500, "Có lỗi xảy ra khi gửi tin nhắn");
+            }
+        }
+    }
+
     // DTOs
     public class CreateChatRequest
     {
         public string Subject { get; set; } = string.Empty;
+        public ChatPriority Priority { get; set; } = ChatPriority.Normal;
+    }
+
+    public class GuestCreateChatRequest
+    {
+        public string Subject { get; set; } = string.Empty;
+        public string? GuestName { get; set; }
         public ChatPriority Priority { get; set; } = ChatPriority.Normal;
     }
 

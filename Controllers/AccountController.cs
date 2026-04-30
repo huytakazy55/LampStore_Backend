@@ -8,6 +8,7 @@ using LampStoreProjects.Models;
 using LampStoreProjects.Repositories;
 using LampStoreProjects.Data;
 using LampStoreProjects.Helpers;
+using LampStoreProjects.Repositories.Chat;
 using System.Threading.Tasks;
 using System.Linq;
 
@@ -23,14 +24,16 @@ namespace LampStoreProjects.Controllers
         private readonly IConfiguration _configuration;
         private readonly IAccountRepository _accountRepository;
         private readonly IOrderRepository _orderRepository;
+        private readonly IChatRepository _chatRepository;
 
-        public AccountController(ILogger<AccountController> logger, UserManager<ApplicationUser> userManager, IConfiguration configuration, IAccountRepository accountRepository, IOrderRepository orderRepository)
+        public AccountController(ILogger<AccountController> logger, UserManager<ApplicationUser> userManager, IConfiguration configuration, IAccountRepository accountRepository, IOrderRepository orderRepository, IChatRepository chatRepository)
         {
             _logger = logger;
             _userManager = userManager;
             _configuration = configuration;
             _accountRepository = accountRepository;
             _orderRepository = orderRepository;
+            _chatRepository = chatRepository;
         }
 
         [HttpPost("SignIn")]
@@ -483,8 +486,20 @@ namespace LampStoreProjects.Controllers
                 if (string.IsNullOrEmpty(model.GuestToken))
                     return BadRequest(new { Message = "GuestToken is required." });
 
-                var claimedCount = await _orderRepository.ClaimGuestOrdersAsync(model.GuestToken, userId);
-                return Ok(new { Message = $"Claimed {claimedCount} guest order(s).", ClaimedCount = claimedCount });
+                var claimedOrders = await _orderRepository.ClaimGuestOrdersAsync(model.GuestToken, userId);
+
+                // Also claim guest chats
+                var claimedChats = 0;
+                try
+                {
+                    claimedChats = await _chatRepository.ClaimGuestChatsAsync(model.GuestToken, userId);
+                }
+                catch (Exception chatEx)
+                {
+                    _logger.LogError(chatEx, "Error claiming guest chats");
+                }
+
+                return Ok(new { Message = $"Claimed {claimedOrders} guest order(s) and {claimedChats} guest chat(s).", ClaimedOrders = claimedOrders, ClaimedChats = claimedChats });
             }
             catch (Exception ex)
             {

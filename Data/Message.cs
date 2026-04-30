@@ -7,8 +7,7 @@ namespace LampStoreProjects.Data
         [Required]
         public Guid ChatId { get; set; }
 
-        [Required]
-        public string SenderId { get; set; } = string.Empty;
+        public string? SenderId { get; set; }
 
         [Required]
         public string Content { get; set; } = string.Empty;
@@ -23,7 +22,7 @@ namespace LampStoreProjects.Data
 
         // Navigation properties
         public Chat Chat { get; set; } = null!;
-        public ApplicationUser Sender { get; set; } = null!;
+        public ApplicationUser? Sender { get; set; }
     }
 
     public enum MessageType
