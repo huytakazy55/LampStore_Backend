@@ -204,6 +204,22 @@ namespace LampStoreProjects.Controllers
                 return BadRequest(new { message = $"Invalid status. Valid: {string.Join(", ", validStatuses)}" });
             }
 
+            var allowedTransitions = new Dictionary<string, string[]>
+            {
+                { "Pending", new[] { "Confirmed", "Cancelled" } },
+                { "Confirmed", new[] { "Shipping", "Cancelled" } },
+                { "Shipping", new[] { "Completed" } },
+                { "Completed", Array.Empty<string>() },
+                { "Cancelled", Array.Empty<string>() }
+            };
+
+            var currentStatus = order.Status ?? "Pending";
+            if (!allowedTransitions.ContainsKey(currentStatus) ||
+                !allowedTransitions[currentStatus].Contains(model.Status))
+            {
+                return BadRequest(new { message = $"Không thể chuyển từ '{currentStatus}' sang '{model.Status}'. Trạng thái phải được cập nhật theo thứ tự." });
+            }
+
             await _orderRepository.UpdateStatusAsync(id, model.Status);
             return Ok(new { message = "Status updated", status = model.Status });
         }
