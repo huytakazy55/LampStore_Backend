@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using LampStoreProjects.Models;
 using LampStoreProjects.Repositories;
+using LampStoreProjects.Helpers;
 
 namespace LampStoreProjects.Controllers
 {
@@ -36,7 +37,7 @@ namespace LampStoreProjects.Controllers
             var cart = await _cartRepository.GetByIdAsync(id);
             if (cart == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.CART_NOT_FOUND));
             }
             return Ok(cart);
         }
@@ -53,7 +54,7 @@ namespace LampStoreProjects.Controllers
         {
             if (id != cartModel.Id)
             {
-                return BadRequest();
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.CART_ID_MISMATCH));
             }
             await _cartRepository.UpdateAsync(cartModel);
             return NoContent();
@@ -77,7 +78,7 @@ namespace LampStoreProjects.Controllers
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId))
-                return Unauthorized();
+                return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
 
             var cart = await _cartRepository.GetByUserIdAsync(userId);
             if (cart == null)
@@ -98,7 +99,7 @@ namespace LampStoreProjects.Controllers
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId))
-                return Unauthorized();
+                return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
 
             var cart = await _cartRepository.GetOrCreateByUserIdAsync(userId);
 
@@ -161,16 +162,16 @@ namespace LampStoreProjects.Controllers
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId))
-                return Unauthorized();
+                return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
 
             var cart = await _cartRepository.GetByUserIdAsync(userId);
             if (cart == null)
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.CART_NOT_FOUND));
 
             // Verify item belongs to this user's cart
             var item = await _cartitemRepository.GetByIdAsync(itemId);
             if (item == null || item.CartId != cart.Id)
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.CART_ITEM_NOT_FOUND));
 
             await _cartitemRepository.DeleteAsync(itemId);
             return NoContent();
@@ -185,15 +186,15 @@ namespace LampStoreProjects.Controllers
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId))
-                return Unauthorized();
+                return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
 
             var cart = await _cartRepository.GetByUserIdAsync(userId);
             if (cart == null)
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.CART_NOT_FOUND));
 
             var item = await _cartitemRepository.GetByIdAsync(itemId);
             if (item == null || item.CartId != cart.Id)
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.CART_ITEM_NOT_FOUND));
 
             item.Quantity = dto.Quantity;
             await _cartitemRepository.UpdateAsync(item);
@@ -209,7 +210,7 @@ namespace LampStoreProjects.Controllers
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId))
-                return Unauthorized();
+                return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
 
             var cart = await _cartRepository.GetByUserIdAsync(userId);
             if (cart != null)

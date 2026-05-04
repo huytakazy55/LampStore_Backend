@@ -3,6 +3,7 @@ using LampStoreProjects.Data;
 using LampStoreProjects.Repositories;
 using LampStoreProjects.Models;
 using LampStoreProjects.Services;
+using LampStoreProjects.Helpers;
 
 namespace LampStoreProjects.Controllers
 {
@@ -44,7 +45,7 @@ namespace LampStoreProjects.Controllers
             var banner = await _bannerRepository.GetByIdAsync(id);
             if (banner == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.BANNER_NOT_FOUND));
             }
 
             return Ok(banner);
@@ -56,7 +57,7 @@ namespace LampStoreProjects.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return BadRequest(ApiErrorResponse.WithErrors(ErrorCodes.VALIDATION_FAILED, ModelState));
             }
 
             var createdBanner = await _bannerRepository.CreateAsync(banner);
@@ -69,18 +70,18 @@ namespace LampStoreProjects.Controllers
         {
             if (id != banner.Id)
             {
-                return BadRequest();
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.BANNER_ID_MISMATCH));
             }
 
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return BadRequest(ApiErrorResponse.WithErrors(ErrorCodes.VALIDATION_FAILED, ModelState));
             }
 
             var existingBanner = await _bannerRepository.GetByIdAsync(id);
             if (existingBanner == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.BANNER_NOT_FOUND));
             }
 
             await _bannerRepository.UpdateAsync(banner);
@@ -94,7 +95,7 @@ namespace LampStoreProjects.Controllers
             var banner = await _bannerRepository.GetByIdAsync(id);
             if (banner == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.BANNER_NOT_FOUND));
             }
 
             await _bannerRepository.DeleteAsync(id);
@@ -107,7 +108,7 @@ namespace LampStoreProjects.Controllers
         {
             if (file == null || file.Length == 0)
             {
-                return BadRequest("No file uploaded");
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.BANNER_NO_FILE));
             }
 
             // Validate file type
@@ -115,13 +116,13 @@ namespace LampStoreProjects.Controllers
             var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
             if (!allowedExtensions.Contains(fileExtension))
             {
-                return BadRequest("Invalid file type. Only JPG, JPEG, PNG, and GIF are allowed.");
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.BANNER_INVALID_FILE_TYPE));
             }
 
             // Validate file size (max 5MB)
             if (file.Length > 5 * 1024 * 1024)
             {
-                return BadRequest("File size too large. Maximum size is 5MB.");
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.BANNER_FILE_TOO_LARGE));
             }
 
             try
@@ -133,8 +134,8 @@ namespace LampStoreProjects.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, ApiErrorResponse.FromException(ErrorCodes.INTERNAL_ERROR, ex));
             }
         }
     }
-} 
+}

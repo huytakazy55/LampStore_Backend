@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using LampStoreProjects.Models;
 using LampStoreProjects.Repositories;
+using LampStoreProjects.Helpers;
 
 namespace LampStoreProjects.Controllers
 {
@@ -30,7 +31,7 @@ namespace LampStoreProjects.Controllers
             var cartitem = await _cartitemRepository.GetByIdAsync(id);
             if (cartitem == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.CART_ITEM_NOT_FOUND));
             }
             return Ok(cartitem);
         }
@@ -47,7 +48,7 @@ namespace LampStoreProjects.Controllers
         {
             if (id != cartitemModel.Id)
             {
-                return BadRequest();
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.CART_ID_MISMATCH));
             }
             await _cartitemRepository.UpdateAsync(cartitemModel);
             return NoContent();

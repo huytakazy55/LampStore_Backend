@@ -9,8 +9,6 @@ using LampStoreProjects.Repositories;
 using LampStoreProjects.Data;
 using LampStoreProjects.Helpers;
 using LampStoreProjects.Repositories.Chat;
-using System.Threading.Tasks;
-using System.Linq;
 
 
 namespace LampStoreProjects.Controllers
@@ -43,7 +41,7 @@ namespace LampStoreProjects.Controllers
             {
                 if (string.IsNullOrEmpty(signInModel.Username) || string.IsNullOrEmpty(signInModel.Password))
                 {
-                    return Unauthorized("Tên đăng nhập hoặc mật khẩu không được để trống.");
+                    return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.AUTH_EMPTY_CREDENTIALS));
                 }
 
                 var result = await _accountRepository.SignInAsync(signInModel);
@@ -54,13 +52,13 @@ namespace LampStoreProjects.Controllers
                     var user = await _userManager.FindByNameAsync(signInModel.Username);
                     if (user == null)
                     {
-                        return Unauthorized("Sai tên đăng nhập hoặc mật khẩu.");
+                        return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.AUTH_INVALID_CREDENTIALS));
                     }
                     if (await _userManager.IsLockedOutAsync(user))
                     {
-                        return Unauthorized("Tài khoản của bạn đã bị khóa! Liên hệ Admin để biết thêm thông tin");
+                        return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.AUTH_ACCOUNT_LOCKED));
                     }
-                    return Unauthorized("Sai tên đăng nhập hoặc mật khẩu.");
+                    return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.AUTH_INVALID_CREDENTIALS));
                 }
 
                 return Ok(result);
@@ -68,7 +66,7 @@ namespace LampStoreProjects.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during sign in");
-                return StatusCode(500, "Internal server error.");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.INTERNAL_ERROR));
             }
         }
         [HttpPost("SignUp")]
@@ -80,16 +78,16 @@ namespace LampStoreProjects.Controllers
 
                 if (result.Succeeded)
                 {
-                    return Ok(new { Message = "User registered successfully." });
+                    return Ok(new ApiSuccessResponse("Đăng ký tài khoản thành công."));
                 }
 
                 var errors = result.Errors.Select(e => e.Description);
-                return BadRequest(new { Errors = errors });
+                return BadRequest(ApiErrorResponse.WithErrors(ErrorCodes.AUTH_REGISTER_FAILED, errors));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while signing up.");
-                return StatusCode(500, "Internal server error. Please try again later.");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.INTERNAL_ERROR));
             }
         }
 
@@ -102,7 +100,7 @@ namespace LampStoreProjects.Controllers
 
                 if (result == null)
                 {
-                    return Unauthorized("Đăng nhập Google thất bại.");
+                    return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.AUTH_GOOGLE_LOGIN_FAILED));
                 }
 
                 return Ok(result);
@@ -110,7 +108,7 @@ namespace LampStoreProjects.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while Google sign in.");
-                return StatusCode(500, "Internal server error. Please try again later.");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.INTERNAL_ERROR));
             }
         }
 
@@ -121,14 +119,14 @@ namespace LampStoreProjects.Controllers
             {
                 if (string.IsNullOrEmpty(model.RefreshToken))
                 {
-                    return BadRequest("Refresh token is required.");
+                    return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.AUTH_REFRESH_TOKEN_REQUIRED));
                 }
 
                 var result = await _accountRepository.RefreshTokenAsync(model.RefreshToken);
 
                 if (result == null)
                 {
-                    return Unauthorized("Invalid or expired refresh token.");
+                    return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.AUTH_REFRESH_TOKEN_INVALID));
                 }
 
                 return Ok(result);
@@ -136,7 +134,7 @@ namespace LampStoreProjects.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during token refresh");
-                return StatusCode(500, "Internal server error.");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.INTERNAL_ERROR));
             }
         }
 
@@ -149,27 +147,27 @@ namespace LampStoreProjects.Controllers
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userId))
                 {
-                    return Unauthorized();
+                    return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
                 }
 
                 if (string.IsNullOrEmpty(model.RefreshToken))
                 {
-                    return BadRequest("Refresh token is required.");
+                    return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.AUTH_REFRESH_TOKEN_REQUIRED));
                 }
 
                 var result = await _accountRepository.RevokeRefreshTokenAsync(model.RefreshToken, userId);
 
                 if (!result)
                 {
-                    return NotFound("Refresh token not found.");
+                    return NotFound(ApiErrorResponse.FromCode(ErrorCodes.AUTH_REFRESH_TOKEN_NOT_FOUND));
                 }
 
-                return Ok(new { Message = "Refresh token revoked successfully." });
+                return Ok(new ApiSuccessResponse("Thu hồi token làm mới thành công."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during token revocation");
-                return StatusCode(500, "Internal server error.");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.INTERNAL_ERROR));
             }
         }
 
@@ -182,7 +180,7 @@ namespace LampStoreProjects.Controllers
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userId))
                 {
-                    return Unauthorized();
+                    return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
                 }
 
                 var sessions = await _accountRepository.GetActiveSessionsAsync(userId);
@@ -191,7 +189,7 @@ namespace LampStoreProjects.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting active sessions");
-                return StatusCode(500, "Internal server error.");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.INTERNAL_ERROR));
             }
         }
 
@@ -203,14 +201,14 @@ namespace LampStoreProjects.Controllers
 
             if (string.IsNullOrEmpty(userId))
             {
-                return Unauthorized();
+                return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
             }
 
             var profile = await _accountRepository.GetUserProfileAsync(userId);
 
             if (profile == null)
             {
-                return NotFound("Profile not found");
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.AUTH_PROFILE_NOT_FOUND));
             }
 
             return Ok(profile);
@@ -222,7 +220,7 @@ namespace LampStoreProjects.Controllers
             var role = await _accountRepository.GetRolesByUserIdAsync(userId);
             if (role == null && !role!.Any())
             {
-                return NotFound("Role not found");
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.AUTH_ROLE_NOT_FOUND));
             }
             return Ok(role);
         }
@@ -235,14 +233,14 @@ namespace LampStoreProjects.Controllers
 
             if (string.IsNullOrEmpty(userId))
             {
-                return Unauthorized();
+                return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
             }
 
             var user = await _accountRepository.GetUserAccountAsync(userId);
 
             if (user == null)
             {
-                return NotFound("Profile not found");
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.AUTH_PROFILE_NOT_FOUND));
             }
 
             return Ok(user);
@@ -256,7 +254,7 @@ namespace LampStoreProjects.Controllers
 
             if (users == null || !users.Any())
             {
-                return NotFound("No users found");
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.AUTH_NO_USERS_FOUND));
             }
 
             return Ok(users);
@@ -269,10 +267,10 @@ namespace LampStoreProjects.Controllers
             var result = await _accountRepository.UpdateUserRolesAsync(model);
             if (result.Succeeded)
             {
-                return Ok("Cập nhật quyền thành công.");
+                return Ok(new ApiSuccessResponse("Cập nhật quyền thành công."));
             }
 
-            return BadRequest(result.Errors.Select(e => e.Description));
+            return BadRequest(ApiErrorResponse.WithErrors(ErrorCodes.VALIDATION_FAILED, result.Errors.Select(e => e.Description)));
         }
 
         [Authorize(Roles = AppRole.Admin)]
@@ -289,15 +287,15 @@ namespace LampStoreProjects.Controllers
         {
             if (string.Equals(model.RoleName, AppRole.SuperAdmin, StringComparison.OrdinalIgnoreCase))
             {
-                return BadRequest("Không thể tạo mới quyền SuperAdmin.");
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.AUTH_CANNOT_CREATE_SUPERADMIN));
             }
             var result = await _accountRepository.AddRoleAsync(model);
             if (result.Succeeded)
             {
-                return Ok("Tạo quyền thành công.");
+                return Ok(new ApiSuccessResponse("Tạo quyền thành công."));
             }
 
-            return BadRequest(result.Errors.Select(e => e.Description));
+            return BadRequest(ApiErrorResponse.WithErrors(ErrorCodes.VALIDATION_FAILED, result.Errors.Select(e => e.Description)));
         }
 
         [Authorize(Roles = AppRole.Admin)]
@@ -323,10 +321,10 @@ namespace LampStoreProjects.Controllers
             var result = await _accountRepository.SetMenusForRoleAsync(roleName, model.Menus);
             if (result.Succeeded)
             {
-                return Ok("Cập nhật menu thành công.");
+                return Ok(new ApiSuccessResponse("Cập nhật menu thành công."));
             }
 
-            return BadRequest(result.Errors.Select(e => e.Description));
+            return BadRequest(ApiErrorResponse.WithErrors(ErrorCodes.VALIDATION_FAILED, result.Errors.Select(e => e.Description)));
         }
 
         [Authorize]
@@ -336,7 +334,7 @@ namespace LampStoreProjects.Controllers
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId))
             {
-                return Unauthorized();
+                return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
             }
             var menus = await _accountRepository.GetMenusForUserAsync(userId);
             return Ok(menus);
@@ -355,10 +353,10 @@ namespace LampStoreProjects.Controllers
                 // Reset số lần đăng nhập thất bại (nếu cần)
                 await _userManager.ResetAccessFailedCountAsync(user);
 
-                return Ok("Tài khoản đã bị khóa.");
+                return Ok(new ApiSuccessResponse("Tài khoản đã bị khóa."));
             }
 
-            return NotFound("Người dùng không tồn tại.");
+            return NotFound(ApiErrorResponse.FromCode(ErrorCodes.AUTH_USER_NOT_FOUND));
         }
 
         [Authorize]
@@ -374,10 +372,10 @@ namespace LampStoreProjects.Controllers
                 // Reset số lần đăng nhập thất bại (nếu cần)
                 await _userManager.ResetAccessFailedCountAsync(user);
 
-                return Ok("Tài khoản đã được mở khóa.");
+                return Ok(new ApiSuccessResponse("Tài khoản đã được mở khóa."));
             }
 
-            return NotFound("Người dùng không tồn tại.");
+            return NotFound(ApiErrorResponse.FromCode(ErrorCodes.AUTH_USER_NOT_FOUND));
         }
 
         [Authorize]
@@ -390,17 +388,17 @@ namespace LampStoreProjects.Controllers
 
                 if (string.IsNullOrEmpty(userId))
                 {
-                    return Unauthorized();
+                    return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
                 }
 
                 await _accountRepository.LogoutAsync(userId);
 
-                return Ok("Logged out successfully");
+                return Ok(new ApiSuccessResponse("Đăng xuất thành công."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while logging out.");
-                return StatusCode(500, "Internal server error.");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.INTERNAL_ERROR));
             }
         }
 
@@ -414,33 +412,33 @@ namespace LampStoreProjects.Controllers
             try
             {
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(userId)) return Unauthorized();
+                if (string.IsNullOrEmpty(userId)) return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
 
                 if (string.IsNullOrEmpty(model.CurrentPassword) || string.IsNullOrEmpty(model.NewPassword))
-                    return BadRequest(new { Message = "Vui lòng nhập đầy đủ mật khẩu hiện tại và mật khẩu mới." });
+                    return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.AUTH_CHANGE_PW_REQUIRED));
 
                 if (model.NewPassword.Length < 6)
-                    return BadRequest(new { Message = "Mật khẩu mới phải có ít nhất 6 ký tự." });
+                    return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.AUTH_CHANGE_PW_MIN_LENGTH));
 
                 var result = await _accountRepository.ChangePasswordAsync(userId, model.CurrentPassword, model.NewPassword);
 
                 if (result.Succeeded)
                 {
-                    return Ok(new { Message = "Đổi mật khẩu thành công!" });
+                    return Ok(new ApiSuccessResponse("Đổi mật khẩu thành công!"));
                 }
 
                 var errors = result.Errors.Select(e => e.Description).ToList();
                 if (errors.Any(e => e.Contains("Incorrect password", StringComparison.OrdinalIgnoreCase)))
                 {
-                    return BadRequest(new { Message = "Mật khẩu hiện tại không đúng." });
+                    return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.AUTH_CHANGE_PW_WRONG));
                 }
 
-                return BadRequest(new { Message = string.Join(" ", errors) });
+                return BadRequest(ApiErrorResponse.WithErrors(ErrorCodes.VALIDATION_FAILED, errors, string.Join(" ", errors)));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while changing password.");
-                return StatusCode(500, new { Message = "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau." });
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.INTERNAL_ERROR));
             }
         }
 
@@ -453,19 +451,19 @@ namespace LampStoreProjects.Controllers
 
                 return result switch
                 {
-                    "success" => Ok(new { Message = "Mật khẩu mới đã được gửi đến email của bạn." }),
-                    "user_not_found" => BadRequest(new { Message = "Không tìm thấy tài khoản với email hoặc tên đăng nhập này." }),
-                    "no_email" => BadRequest(new { Message = "Tài khoản này không có email được đăng ký." }),
-                    "account_locked" => BadRequest(new { Message = "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ admin." }),
-                    "reset_failed" => StatusCode(500, new { Message = "Không thể đặt lại mật khẩu. Vui lòng thử lại." }),
-                    "email_failed" => StatusCode(500, new { Message = "Đặt lại mật khẩu thành công nhưng không thể gửi email. Vui lòng liên hệ admin." }),
-                    _ => StatusCode(500, new { Message = "Đã xảy ra lỗi. Vui lòng thử lại sau." })
+                    "success" => Ok(new ApiSuccessResponse("Mật khẩu mới đã được gửi đến email của bạn.")),
+                    "user_not_found" => BadRequest(ApiErrorResponse.FromCode(ErrorCodes.AUTH_USER_NOT_FOUND, "Không tìm thấy tài khoản với email hoặc tên đăng nhập này.")),
+                    "no_email" => BadRequest(ApiErrorResponse.FromCode(ErrorCodes.AUTH_PROFILE_NOT_FOUND, "Tài khoản này không có email được đăng ký.")),
+                    "account_locked" => BadRequest(ApiErrorResponse.FromCode(ErrorCodes.AUTH_ACCOUNT_LOCKED)),
+                    "reset_failed" => StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.INTERNAL_ERROR, "Không thể đặt lại mật khẩu. Vui lòng thử lại.")),
+                    "email_failed" => StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.INTERNAL_ERROR, "Đặt lại mật khẩu thành công nhưng không thể gửi email. Vui lòng liên hệ admin.")),
+                    _ => StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.INTERNAL_ERROR))
                 };
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while processing forgot password request.");
-                return StatusCode(500, new { Message = "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau." });
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.INTERNAL_ERROR));
             }
         }
 
@@ -481,10 +479,10 @@ namespace LampStoreProjects.Controllers
             {
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userId))
-                    return Unauthorized();
+                    return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
 
                 if (string.IsNullOrEmpty(model.GuestToken))
-                    return BadRequest(new { Message = "GuestToken is required." });
+                    return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.AUTH_GUEST_TOKEN_REQUIRED));
 
                 var claimedOrders = await _orderRepository.ClaimGuestOrdersAsync(model.GuestToken, userId);
 
@@ -499,12 +497,15 @@ namespace LampStoreProjects.Controllers
                     _logger.LogError(chatEx, "Error claiming guest chats");
                 }
 
-                return Ok(new { Message = $"Claimed {claimedOrders} guest order(s) and {claimedChats} guest chat(s).", ClaimedOrders = claimedOrders, ClaimedChats = claimedChats });
+                return Ok(new ApiSuccessResponse(
+                    $"Đã nhận {claimedOrders} đơn hàng và {claimedChats} cuộc hội thoại của khách.",
+                    new { ClaimedOrders = claimedOrders, ClaimedChats = claimedChats }
+                ));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error claiming guest orders");
-                return StatusCode(500, new { Message = "Internal server error." });
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.INTERNAL_ERROR));
             }
         }
     }

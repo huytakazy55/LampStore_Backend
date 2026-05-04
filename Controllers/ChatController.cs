@@ -5,6 +5,7 @@ using System.Security.Claims;
 using LampStoreProjects.Data;
 using LampStoreProjects.Repositories.Chat;
 using LampStoreProjects.Hubs;
+using LampStoreProjects.Helpers;
 
 namespace LampStoreProjects.Controllers
 {
@@ -36,12 +37,12 @@ namespace LampStoreProjects.Controllers
                 _logger.LogInformation("User ID: {UserId}", userId);
                 
                 if (string.IsNullOrEmpty(userId))
-                    return Unauthorized();
+                    return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
 
                 if (string.IsNullOrEmpty(request.Subject))
                 {
                     _logger.LogWarning("Subject is empty");
-                    return BadRequest("Subject is required");
+                    return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.CHAT_SUBJECT_REQUIRED));
                 }
 
                 var chat = await _chatRepository.CreateChatAsync(userId, request.Subject, request.Priority);
@@ -61,7 +62,7 @@ namespace LampStoreProjects.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating chat");
-                return StatusCode(500, "Có lỗi xảy ra khi tạo chat");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.CHAT_CREATE_ERROR));
             }
         }
 
@@ -73,7 +74,7 @@ namespace LampStoreProjects.Controllers
             {
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userId))
-                    return Unauthorized();
+                    return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
 
                 var chats = await _chatRepository.GetChatsByUserIdAsync(userId);
                 return Ok(chats);
@@ -81,7 +82,7 @@ namespace LampStoreProjects.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting user chats");
-                return StatusCode(500, "Có lỗi xảy ra");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.CHAT_GENERAL_ERROR));
             }
         }
 
@@ -98,7 +99,7 @@ namespace LampStoreProjects.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting all chats");
-                return StatusCode(500, "Có lỗi xảy ra");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.CHAT_GENERAL_ERROR));
             }
         }
 
@@ -112,11 +113,11 @@ namespace LampStoreProjects.Controllers
                 var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
 
                 if (string.IsNullOrEmpty(userId))
-                    return Unauthorized();
+                    return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
 
                 var chat = await _chatRepository.GetChatByIdAsync(chatId);
                 if (chat == null)
-                    return NotFound();
+                    return NotFound(ApiErrorResponse.FromCode(ErrorCodes.CHAT_NOT_FOUND));
 
                 // Kiểm tra quyền truy cập
                 if (userRole != "Administrator" && chat.UserId != userId)
@@ -130,7 +131,7 @@ namespace LampStoreProjects.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting chat {ChatId}", chatId);
-                return StatusCode(500, "Có lỗi xảy ra");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.CHAT_GENERAL_ERROR));
             }
         }
 
@@ -149,17 +150,17 @@ namespace LampStoreProjects.Controllers
                 _logger.LogInformation("User info - UserId: {UserId}, UserName: {UserName}, Role: {Role}", userId, userName, userRole);
 
                 if (string.IsNullOrEmpty(userId))
-                    return Unauthorized();
+                    return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
 
                 if (string.IsNullOrEmpty(request.Content))
                 {
                     _logger.LogWarning("Message content is empty");
-                    return BadRequest("Message content is required");
+                    return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.CHAT_MESSAGE_REQUIRED));
                 }
 
                 var chat = await _chatRepository.GetChatByIdAsync(chatId);
                 if (chat == null)
-                    return NotFound();
+                    return NotFound(ApiErrorResponse.FromCode(ErrorCodes.CHAT_NOT_FOUND));
 
                 // Kiểm tra quyền gửi tin nhắn
                 if (userRole != "Administrator" && chat.UserId != userId)
@@ -213,7 +214,7 @@ namespace LampStoreProjects.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error sending message to chat {ChatId}", chatId);
-                return StatusCode(500, "Có lỗi xảy ra khi gửi tin nhắn");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.CHAT_SEND_ERROR));
             }
         }
 
@@ -227,11 +228,11 @@ namespace LampStoreProjects.Controllers
                 var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
 
                 if (string.IsNullOrEmpty(userId))
-                    return Unauthorized();
+                    return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
 
                 var chat = await _chatRepository.GetChatByIdAsync(chatId);
                 if (chat == null)
-                    return NotFound();
+                    return NotFound(ApiErrorResponse.FromCode(ErrorCodes.CHAT_NOT_FOUND));
 
                 // Kiểm tra quyền truy cập
                 if (userRole != "Administrator" && chat.UserId != userId)
@@ -252,7 +253,7 @@ namespace LampStoreProjects.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting messages for chat {ChatId}", chatId);
-                return StatusCode(500, "Có lỗi xảy ra");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.CHAT_GENERAL_ERROR));
             }
         }
 
@@ -265,7 +266,7 @@ namespace LampStoreProjects.Controllers
             {
                 var success = await _chatRepository.AssignChatToAdminAsync(chatId, request.AdminId);
                 if (!success)
-                    return NotFound();
+                    return NotFound(ApiErrorResponse.FromCode(ErrorCodes.CHAT_NOT_FOUND));
 
                 // Thông báo realtime
                 await _hubContext.Clients.All.SendAsync("ChatAssigned", new
@@ -274,12 +275,12 @@ namespace LampStoreProjects.Controllers
                     AdminId = request.AdminId
                 });
 
-                return Ok();
+                return Ok(new ApiSuccessResponse("Phân công chat thành công."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error assigning chat {ChatId}", chatId);
-                return StatusCode(500, "Có lỗi xảy ra");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.CHAT_GENERAL_ERROR));
             }
         }
 
@@ -292,7 +293,7 @@ namespace LampStoreProjects.Controllers
             {
                 var success = await _chatRepository.UpdateChatStatusAsync(chatId, request.Status);
                 if (!success)
-                    return NotFound();
+                    return NotFound(ApiErrorResponse.FromCode(ErrorCodes.CHAT_NOT_FOUND));
 
                 // Thông báo realtime
                 await _hubContext.Clients.Group($"chat_{chatId}").SendAsync("ChatStatusUpdated", new
@@ -301,12 +302,12 @@ namespace LampStoreProjects.Controllers
                     Status = request.Status.ToString()
                 });
 
-                return Ok();
+                return Ok(new ApiSuccessResponse("Cập nhật trạng thái chat thành công."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating chat status {ChatId}", chatId);
-                return StatusCode(500, "Có lỗi xảy ra");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.CHAT_GENERAL_ERROR));
             }
         }
 
@@ -320,11 +321,11 @@ namespace LampStoreProjects.Controllers
                 var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
 
                 if (string.IsNullOrEmpty(userId))
-                    return Unauthorized();
+                    return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
 
                 var chat = await _chatRepository.GetChatByIdAsync(chatId);
                 if (chat == null)
-                    return NotFound();
+                    return NotFound(ApiErrorResponse.FromCode(ErrorCodes.CHAT_NOT_FOUND));
 
                 // Chỉ admin hoặc owner có thể đóng chat
                 if (userRole != "Administrator" && chat.UserId != userId)
@@ -332,7 +333,7 @@ namespace LampStoreProjects.Controllers
 
                 var success = await _chatRepository.CloseChatAsync(chatId);
                 if (!success)
-                    return BadRequest();
+                    return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.BAD_REQUEST));
 
                 // Thông báo realtime
                 await _hubContext.Clients.Group($"chat_{chatId}").SendAsync("ChatClosed", new
@@ -341,12 +342,12 @@ namespace LampStoreProjects.Controllers
                     ClosedBy = userId
                 });
 
-                return Ok();
+                return Ok(new ApiSuccessResponse("Đóng chat thành công."));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error closing chat {ChatId}", chatId);
-                return StatusCode(500, "Có lỗi xảy ra");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.CHAT_GENERAL_ERROR));
             }
         }
 
@@ -358,7 +359,7 @@ namespace LampStoreProjects.Controllers
             {
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userId))
-                    return Unauthorized();
+                    return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
 
                 var count = await _chatRepository.GetUnreadMessageCountAsync(userId);
                 return Ok(new { UnreadCount = count });
@@ -366,7 +367,7 @@ namespace LampStoreProjects.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting unread count");
-                return StatusCode(500, "Có lỗi xảy ra");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.CHAT_GENERAL_ERROR));
             }
         }
 
@@ -391,7 +392,7 @@ namespace LampStoreProjects.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting chat statistics");
-                return StatusCode(500, "Có lỗi xảy ra");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.CHAT_GENERAL_ERROR));
             }
         }
     }
@@ -421,10 +422,10 @@ namespace LampStoreProjects.Controllers
             {
                 var guestToken = GetGuestToken();
                 if (string.IsNullOrEmpty(guestToken))
-                    return BadRequest("X-Guest-Token header is required");
+                    return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.CHAT_GUEST_TOKEN_REQUIRED));
 
                 if (string.IsNullOrEmpty(request.Subject))
-                    return BadRequest("Subject is required");
+                    return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.CHAT_SUBJECT_REQUIRED));
 
                 var guestName = request.GuestName ?? "Khách vãng lai";
                 var chat = await _chatRepository.CreateGuestChatAsync(guestToken, guestName, request.Subject, request.Priority);
@@ -446,7 +447,7 @@ namespace LampStoreProjects.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating guest chat");
-                return StatusCode(500, "Có lỗi xảy ra khi tạo chat");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.CHAT_CREATE_ERROR));
             }
         }
 
@@ -457,7 +458,7 @@ namespace LampStoreProjects.Controllers
             {
                 var guestToken = GetGuestToken();
                 if (string.IsNullOrEmpty(guestToken))
-                    return BadRequest("X-Guest-Token header is required");
+                    return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.CHAT_GUEST_TOKEN_REQUIRED));
 
                 var chats = await _chatRepository.GetChatsByGuestTokenAsync(guestToken);
                 return Ok(chats);
@@ -465,7 +466,7 @@ namespace LampStoreProjects.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting guest chats");
-                return StatusCode(500, "Có lỗi xảy ra");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.CHAT_GENERAL_ERROR));
             }
         }
 
@@ -476,10 +477,10 @@ namespace LampStoreProjects.Controllers
             {
                 var guestToken = GetGuestToken();
                 if (string.IsNullOrEmpty(guestToken))
-                    return BadRequest("X-Guest-Token header is required");
+                    return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.CHAT_GUEST_TOKEN_REQUIRED));
 
                 var chat = await _chatRepository.GetChatByIdAsync(chatId);
-                if (chat == null) return NotFound();
+                if (chat == null) return NotFound(ApiErrorResponse.FromCode(ErrorCodes.CHAT_NOT_FOUND));
                 if (chat.GuestToken != guestToken) return Forbid();
 
                 var messages = await _chatRepository.GetMessagesByChatIdAsync(chatId);
@@ -488,7 +489,7 @@ namespace LampStoreProjects.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting guest chat messages");
-                return StatusCode(500, "Có lỗi xảy ra");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.CHAT_GENERAL_ERROR));
             }
         }
 
@@ -499,13 +500,13 @@ namespace LampStoreProjects.Controllers
             {
                 var guestToken = GetGuestToken();
                 if (string.IsNullOrEmpty(guestToken))
-                    return BadRequest("X-Guest-Token header is required");
+                    return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.CHAT_GUEST_TOKEN_REQUIRED));
 
                 if (string.IsNullOrEmpty(request.Content))
-                    return BadRequest("Message content is required");
+                    return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.CHAT_MESSAGE_REQUIRED));
 
                 var chat = await _chatRepository.GetChatByIdAsync(chatId);
-                if (chat == null) return NotFound();
+                if (chat == null) return NotFound(ApiErrorResponse.FromCode(ErrorCodes.CHAT_NOT_FOUND));
                 if (chat.GuestToken != guestToken) return Forbid();
 
                 // For guest messages, we save them with SenderId = null in the DB
@@ -554,7 +555,7 @@ namespace LampStoreProjects.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error sending guest message");
-                return StatusCode(500, "Có lỗi xảy ra khi gửi tin nhắn");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.CHAT_SEND_ERROR));
             }
         }
     }
@@ -588,4 +589,4 @@ namespace LampStoreProjects.Controllers
     {
         public ChatStatus Status { get; set; }
     }
-} 
+}

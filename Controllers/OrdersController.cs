@@ -7,6 +7,7 @@ using LampStoreProjects.Models;
 using LampStoreProjects.Repositories;
 using LampStoreProjects.Services;
 using LampStoreProjects.Data;
+using LampStoreProjects.Helpers;
 using Microsoft.AspNetCore.Identity;
 using PayOS;
 using PayOS.Models.V2.PaymentRequests;
@@ -33,7 +34,7 @@ namespace LampStoreProjects.Controllers
         public async Task<ActionResult<IEnumerable<OrderModel>>> GetMyOrders()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            if (string.IsNullOrEmpty(userId)) return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
 
             var orders = await _orderRepository.GetByUserIdAsync(userId);
             return Ok(orders);
@@ -52,7 +53,7 @@ namespace LampStoreProjects.Controllers
             var order = await _orderRepository.GetByIdAsync(id);
             if (order == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.ORDER_NOT_FOUND));
             }
             return Ok(order);
         }
@@ -63,7 +64,7 @@ namespace LampStoreProjects.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return BadRequest(ApiErrorResponse.WithErrors(ErrorCodes.VALIDATION_FAILED, ModelState));
             }
 
             // Always extract userId from JWT token (don't trust frontend value)
@@ -124,12 +125,12 @@ namespace LampStoreProjects.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return BadRequest(ApiErrorResponse.WithErrors(ErrorCodes.VALIDATION_FAILED, ModelState));
             }
 
             if (string.IsNullOrEmpty(orderModel.GuestToken))
             {
-                return BadRequest(new { message = "GuestToken is required for guest orders." });
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.ORDER_GUEST_TOKEN_REQUIRED));
             }
 
             // Ensure no userId is set for guest orders
@@ -183,7 +184,7 @@ namespace LampStoreProjects.Controllers
         public async Task<ActionResult<IEnumerable<OrderModel>>> GetGuestOrders(string guestToken)
         {
             if (string.IsNullOrEmpty(guestToken))
-                return BadRequest(new { message = "GuestToken is required." });
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.ORDER_GUEST_TOKEN_REQUIRED));
 
             var orders = await _orderRepository.GetByGuestTokenAsync(guestToken);
             return Ok(orders);
@@ -195,13 +196,13 @@ namespace LampStoreProjects.Controllers
             var order = await _orderRepository.GetByIdAsync(id);
             if (order == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.ORDER_NOT_FOUND));
             }
 
             var validStatuses = new[] { "Pending", "Confirmed", "Shipping", "Completed", "Cancelled" };
             if (!validStatuses.Contains(model.Status))
             {
-                return BadRequest(new { message = $"Invalid status. Valid: {string.Join(", ", validStatuses)}" });
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.ORDER_INVALID_STATUS, $"Trạng thái hợp lệ: {string.Join(", ", validStatuses)}"));
             }
 
             var allowedTransitions = new Dictionary<string, string[]>
@@ -217,11 +218,11 @@ namespace LampStoreProjects.Controllers
             if (!allowedTransitions.ContainsKey(currentStatus) ||
                 !allowedTransitions[currentStatus].Contains(model.Status))
             {
-                return BadRequest(new { message = $"Không thể chuyển từ '{currentStatus}' sang '{model.Status}'. Trạng thái phải được cập nhật theo thứ tự." });
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.ORDER_STATUS_TRANSITION_INVALID, $"Không thể chuyển từ '{currentStatus}' sang '{model.Status}'."));
             }
 
             await _orderRepository.UpdateStatusAsync(id, model.Status);
-            return Ok(new { message = "Status updated", status = model.Status });
+            return Ok(new ApiSuccessResponse("Cập nhật trạng thái đơn hàng thành công.", new { status = model.Status }));
         }
 
         [HttpDelete("{id}")]
@@ -230,7 +231,7 @@ namespace LampStoreProjects.Controllers
             var order = await _orderRepository.GetByIdAsync(id);
             if (order == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.ORDER_NOT_FOUND));
             }
             await _orderRepository.DeleteAsync(id);
             return NoContent();

@@ -2,6 +2,7 @@ using LampStoreProjects.Models;
 using LampStoreProjects.Repositories;
 using LampStoreProjects.Data;
 using LampStoreProjects.Services;
+using LampStoreProjects.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -72,7 +73,7 @@ namespace LampStoreProjects.Controllers
             var product = await _productRepository.GetProductByIdAsync(id);
             if (product == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_NOT_FOUND));
             }
 
             // Lưu vào cache với thời gian expire 15 phút
@@ -95,7 +96,7 @@ namespace LampStoreProjects.Controllers
             var product = await _productRepository.GetProductBySlugAsync(slug);
             if (product == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_NOT_FOUND));
             }
 
             // Lưu vào cache với thời gian expire 15 phút
@@ -110,7 +111,7 @@ namespace LampStoreProjects.Controllers
             var variant = await _productRepository.GetProductVariantByIdAsync(id);
             if(variant == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_VARIANT_NOT_FOUND));
             }
             return Ok(variant);
         }
@@ -121,7 +122,7 @@ namespace LampStoreProjects.Controllers
             var variantType = await _productRepository.GetVariantTypeByIdAsync(id);
             if (variantType == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_VARIANT_NOT_FOUND));
             }
             return Ok(variantType);
         }
@@ -132,7 +133,7 @@ namespace LampStoreProjects.Controllers
             var variantvalue = await _productRepository.GetVariantValueByIdAsync(id);
             if(variantvalue == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_VARIANT_NOT_FOUND));
             }
             return Ok(variantvalue);
         }
@@ -144,7 +145,7 @@ namespace LampStoreProjects.Controllers
 
             if (images == null || images.Count == 0)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_IMAGE_NOT_FOUND));
             }
 
             return Ok(images);
@@ -157,7 +158,7 @@ namespace LampStoreProjects.Controllers
             {
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest(ModelState);
+                    return BadRequest(ApiErrorResponse.WithErrors(ErrorCodes.VALIDATION_FAILED, ModelState));
                 }
 
                 var createdProduct = await _productRepository.CreateProductAsync(productDto);
@@ -170,7 +171,7 @@ namespace LampStoreProjects.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Lỗi khi tạo sản phẩm: {ex.Message}");
+                return StatusCode(500, ApiErrorResponse.FromException(ErrorCodes.PRODUCT_CREATE_FAILED, ex));
             }
         }
 
@@ -179,7 +180,7 @@ namespace LampStoreProjects.Controllers
         {
             if (Id != productDto.Id)
             {
-                return BadRequest();
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_ID_MISMATCH));
             }
             
             await _productRepository.UpdateProductAsync(Id, productDto);
@@ -227,7 +228,7 @@ namespace LampStoreProjects.Controllers
             var productImage = await _context.ProductImages!.FirstOrDefaultAsync(x => x.Id == imageId);
             if (productImage == null)
             {
-                return NotFound("Hình ảnh không tồn tại.");
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_IMAGE_NOT_FOUND));
             }
 
             await _productRepository.DeleteImageProductAsync(imageId);
@@ -242,7 +243,7 @@ namespace LampStoreProjects.Controllers
                 }
             }
 
-            return Ok("Xóa hình ảnh sản phẩm thành công.");
+            return Ok(new ApiSuccessResponse("Xóa hình ảnh sản phẩm thành công."));
         }
 
         // Upload nhanh ảnh từ modal tạo/sửa option (không lưu DB)
@@ -250,7 +251,7 @@ namespace LampStoreProjects.Controllers
         public async Task<ActionResult<object>> UploadVariantImage([FromForm] IFormFile file)
         {
             if (file == null || file.Length == 0)
-                return BadRequest("No file uploaded");
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_NO_FILE));
 
             try
             {
@@ -259,11 +260,11 @@ namespace LampStoreProjects.Controllers
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ApiErrorResponse.FromException(ErrorCodes.PRODUCT_INVALID_FILE_TYPE, ex));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, ApiErrorResponse.FromException(ErrorCodes.INTERNAL_ERROR, ex));
             }
         }
 
@@ -275,20 +276,20 @@ namespace LampStoreProjects.Controllers
             {
                 if (imageFiles == null || imageFiles.Count == 0)
                 {
-                    return BadRequest("No image files provided.");
+                    return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_NO_FILE));
                 }
 
                 var existingImagesCount = await _context.ProductImages!.CountAsync(img => img.ProductId == productId);
 
                 if (existingImagesCount + imageFiles.Count > MAX_IMAGES)
                 {
-                    return BadRequest($"Bạn chỉ có thể upload tối đa {MAX_IMAGES} ảnh, hiện tại đã có {existingImagesCount} ảnh.");
+                    return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_MAX_IMAGES, $"Bạn chỉ có thể upload tối đa {MAX_IMAGES} ảnh, hiện tại đã có {existingImagesCount} ảnh."));
                 }
 
                 var product = await _productRepository.GetProductByIdAsync(productId);
                 if (product == null)
                 {
-                    return NotFound("Product not found.");
+                    return NotFound(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_NOT_FOUND));
                 }
 
                 // Tạo thư mục uploads nếu chưa có
@@ -304,12 +305,12 @@ namespace LampStoreProjects.Controllers
                     var allowedTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp" };
                     if (!allowedTypes.Contains(imageFile.ContentType.ToLower()))
                     {
-                        return BadRequest("File không hợp lệ. Chỉ chấp nhận JPEG, PNG, GIF, WebP.");
+                        return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_INVALID_FILE_TYPE));
                     }
 
                     if (imageFile.Length > 5 * 1024 * 1024)
                     {
-                        return BadRequest("File vượt quá 5MB.");
+                        return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_FILE_TOO_LARGE));
                     }
 
                     // Tạo tên file unique — always .jpg for optimized output
@@ -337,11 +338,11 @@ namespace LampStoreProjects.Controllers
                 await _cacheService.RemoveAsync(CacheKeys.AllProducts);
                 await _cacheService.RemoveAsync(CacheKeys.ProductById(productId));
 
-                return Ok(new { message = "Upload ảnh thành công!" });
+                return Ok(new ApiSuccessResponse("Upload ảnh thành công!"));
             }
             catch (System.Exception ex)
             {
-                return StatusCode(500, ex.Message);
+                return StatusCode(500, ApiErrorResponse.FromException(ErrorCodes.INTERNAL_ERROR, ex));
             }
         }
 
@@ -352,7 +353,7 @@ namespace LampStoreProjects.Controllers
             {
                 if (products == null || !products.Any())
                 {
-                    return BadRequest(new { message = "Không có dữ liệu sản phẩm để import" });
+                    return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_IMPORT_EMPTY));
                 }
 
                 foreach (var product in products)
@@ -363,11 +364,11 @@ namespace LampStoreProjects.Controllers
                 // Xóa cache
                 await _cacheService.RemoveAsync(CacheKeys.AllProducts);
 
-                return Ok(new { message = "Import sản phẩm thành công" });
+                return Ok(new ApiSuccessResponse("Import sản phẩm thành công."));
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = "Có lỗi xảy ra khi import sản phẩm", error = ex.Message });
+                return BadRequest(ApiErrorResponse.FromException(ErrorCodes.PRODUCT_IMPORT_FAILED, ex));
             }
         }
 
@@ -419,7 +420,7 @@ namespace LampStoreProjects.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Lỗi khi tìm kiếm: {ex.Message}");
+                return StatusCode(500, ApiErrorResponse.FromException(ErrorCodes.PRODUCT_SEARCH_FAILED, ex));
             }
         }
 
@@ -433,7 +434,7 @@ namespace LampStoreProjects.Controllers
 
                 if (!Directory.Exists(imageDir))
                 {
-                    return NotFound("Thư mục ImageImport không tồn tại.");
+                    return NotFound(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_IMAGE_DIR_NOT_FOUND));
                 }
 
                 var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp" };
@@ -475,7 +476,7 @@ namespace LampStoreProjects.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Lỗi khi nén ảnh: {ex.Message}");
+                return StatusCode(500, ApiErrorResponse.FromException(ErrorCodes.PRODUCT_COMPRESS_FAILED, ex));
             }
         }
     }

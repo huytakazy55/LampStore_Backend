@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using LampStoreProjects.Models;
 using LampStoreProjects.Repositories;
+using LampStoreProjects.Helpers;
 
 namespace LampStoreProjects.Controllers
 {
@@ -30,7 +31,7 @@ namespace LampStoreProjects.Controllers
             var checkin = await _checkinRepository.GetByIdAsync(id);
             if (checkin == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.CHECKIN_NOT_FOUND));
             }
             return Ok(checkin);
         }
@@ -47,7 +48,7 @@ namespace LampStoreProjects.Controllers
         {
             if (id != checkinModel.Id)
             {
-                return BadRequest();
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.CHECKIN_ID_MISMATCH));
             }
             await _checkinRepository.UpdateAsync(checkinModel);
             return NoContent();

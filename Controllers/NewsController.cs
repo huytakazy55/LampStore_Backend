@@ -1,6 +1,7 @@
 using LampStoreProjects.Data;
 using LampStoreProjects.DTOs;
 using LampStoreProjects.Services;
+using LampStoreProjects.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -72,7 +73,7 @@ namespace LampStoreProjects.Controllers
 
             if (news == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.NEWS_NOT_FOUND));
             }
 
             news.ViewCount += 1;
@@ -102,7 +103,7 @@ namespace LampStoreProjects.Controllers
 
             if (news == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.NEWS_NOT_FOUND));
             }
 
             news.ViewCount += 1;
@@ -167,7 +168,7 @@ namespace LampStoreProjects.Controllers
 
             if (news == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.NEWS_NOT_FOUND));
             }
 
             news.Title = dto.Title;
@@ -186,7 +187,7 @@ namespace LampStoreProjects.Controllers
             {
                 if (!NewsExists(id))
                 {
-                    return NotFound();
+                    return NotFound(ApiErrorResponse.FromCode(ErrorCodes.NEWS_NOT_FOUND));
                 }
                 else
                 {
@@ -204,7 +205,7 @@ namespace LampStoreProjects.Controllers
             var news = await context.News!.FindAsync(id);
             if (news == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.NEWS_NOT_FOUND));
             }
 
             context.News.Remove(news);
@@ -223,7 +224,7 @@ namespace LampStoreProjects.Controllers
         public async Task<ActionResult<object>> UploadImage([FromForm] IFormFile file)
         {
             if (file == null || file.Length == 0)
-                return BadRequest("No file uploaded");
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.NEWS_NO_FILE));
 
             try
             {
@@ -232,11 +233,11 @@ namespace LampStoreProjects.Controllers
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ApiErrorResponse.FromException(ErrorCodes.PRODUCT_INVALID_FILE_TYPE, ex));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, ApiErrorResponse.FromException(ErrorCodes.INTERNAL_ERROR, ex));
             }
         }
     }

@@ -60,7 +60,7 @@ namespace LampStoreProjects.Controllers
                 Console.WriteLine($"[PayOS] Webhook Error: {ex.Message}");
                 // Return 200 to prevent PayOS from retrying if it's a verification failure we don't care about, 
                 // or return BadRequest if we want them to know it failed.
-                return Ok(new { success = false, message = ex.Message });
+                return Ok(new { success = false, message = "Webhook processing failed." });
             }
         }
     }

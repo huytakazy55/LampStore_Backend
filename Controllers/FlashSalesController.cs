@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using LampStoreProjects.Repositories;
 using LampStoreProjects.Models;
+using LampStoreProjects.Helpers;
 
 namespace LampStoreProjects.Controllers
 {
@@ -42,7 +43,7 @@ namespace LampStoreProjects.Controllers
             var flashSale = await _flashSaleRepository.GetByIdAsync(id);
             if (flashSale == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.FLASHSALE_NOT_FOUND));
             }
             return Ok(flashSale);
         }
@@ -53,7 +54,7 @@ namespace LampStoreProjects.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return BadRequest(ApiErrorResponse.WithErrors(ErrorCodes.VALIDATION_FAILED, ModelState));
             }
 
             var created = await _flashSaleRepository.CreateAsync(flashSale);
@@ -66,13 +67,13 @@ namespace LampStoreProjects.Controllers
         {
             if (id != flashSale.Id)
             {
-                return BadRequest();
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.FLASHSALE_ID_MISMATCH));
             }
 
             var existing = await _flashSaleRepository.GetByIdAsync(id);
             if (existing == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.FLASHSALE_NOT_FOUND));
             }
 
             await _flashSaleRepository.UpdateAsync(flashSale);
@@ -84,7 +85,7 @@ namespace LampStoreProjects.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _flashSaleRepository.DeleteAsync(id);
-            if (!result) return NotFound();
+            if (!result) return NotFound(ApiErrorResponse.FromCode(ErrorCodes.FLASHSALE_NOT_FOUND));
             return NoContent();
         }
 
@@ -93,7 +94,7 @@ namespace LampStoreProjects.Controllers
         public async Task<ActionResult<FlashSaleItemModel>> AddItem(int id, [FromBody] FlashSaleItemModel item)
         {
             var flashSale = await _flashSaleRepository.GetByIdAsync(id);
-            if (flashSale == null) return NotFound();
+            if (flashSale == null) return NotFound(ApiErrorResponse.FromCode(ErrorCodes.FLASHSALE_NOT_FOUND));
 
             var created = await _flashSaleRepository.AddItemAsync(id, item);
             return Ok(created);
@@ -104,7 +105,7 @@ namespace LampStoreProjects.Controllers
         public async Task<ActionResult<FlashSaleItemModel>> UpdateItem(int id, int itemId, [FromBody] FlashSaleItemModel item)
         {
             var result = await _flashSaleRepository.UpdateItemAsync(id, itemId, item);
-            if (result == null) return NotFound();
+            if (result == null) return NotFound(ApiErrorResponse.FromCode(ErrorCodes.FLASHSALE_NOT_FOUND));
             return Ok(result);
         }
 
@@ -113,7 +114,7 @@ namespace LampStoreProjects.Controllers
         public async Task<IActionResult> RemoveItem(int id, int itemId)
         {
             var result = await _flashSaleRepository.RemoveItemAsync(id, itemId);
-            if (!result) return NotFound();
+            if (!result) return NotFound(ApiErrorResponse.FromCode(ErrorCodes.FLASHSALE_NOT_FOUND));
             return NoContent();
         }
     }

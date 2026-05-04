@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using LampStoreProjects.Models;
 using LampStoreProjects.Repositories;
+using LampStoreProjects.Helpers;
 
 namespace LampStoreProjects.Controllers
 {
@@ -30,7 +31,7 @@ namespace LampStoreProjects.Controllers
             var orderitem = await _orderitemRepository.GetByIdAsync(id);
             if (orderitem == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.ORDER_NOT_FOUND));
             }
             return Ok(orderitem);
         }
@@ -47,7 +48,7 @@ namespace LampStoreProjects.Controllers
         {
             if (id != orderitemModel.Id)
             {
-                return BadRequest();
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.BAD_REQUEST, "ID sản phẩm đơn hàng không khớp."));
             }
             await _orderitemRepository.UpdateAsync(orderitemModel);
             return NoContent();

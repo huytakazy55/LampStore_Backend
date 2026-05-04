@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using LampStoreProjects.Models;
 using LampStoreProjects.Repositories;
+using LampStoreProjects.Helpers;
 
 namespace LampStoreProjects.Controllers
 {
@@ -30,7 +31,7 @@ namespace LampStoreProjects.Controllers
             var delivery = await _deliveryRepository.GetByIdAsync(id);
             if (delivery == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.DELIVERY_NOT_FOUND));
             }
             return Ok(delivery);
         }
@@ -47,7 +48,7 @@ namespace LampStoreProjects.Controllers
         {
             if (id != deliveryModel.Id)
             {
-                return BadRequest();
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.DELIVERY_ID_MISMATCH));
             }
             await _deliveryRepository.UpdateAsync(deliveryModel);
             return NoContent();

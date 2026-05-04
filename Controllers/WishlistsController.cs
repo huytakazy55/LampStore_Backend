@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using LampStoreProjects.Models;
 using LampStoreProjects.Repositories;
+using LampStoreProjects.Helpers;
 using System.Security.Claims;
 
 namespace LampStoreProjects.Controllers
@@ -30,7 +31,7 @@ namespace LampStoreProjects.Controllers
         public async Task<ActionResult<IEnumerable<WishlistItemModel>>> GetWishlist()
         {
             var userId = GetUserId();
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            if (string.IsNullOrEmpty(userId)) return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
 
             var items = await _wishlistRepository.GetByUserIdAsync(userId);
             return Ok(items);
@@ -43,7 +44,7 @@ namespace LampStoreProjects.Controllers
         public async Task<ActionResult<IEnumerable<Guid>>> GetWishlistIds()
         {
             var userId = GetUserId();
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            if (string.IsNullOrEmpty(userId)) return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
 
             var ids = await _wishlistRepository.GetWishlistProductIdsAsync(userId);
             return Ok(ids);
@@ -56,12 +57,12 @@ namespace LampStoreProjects.Controllers
         public async Task<ActionResult> AddToWishlist(Guid productId)
         {
             var userId = GetUserId();
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            if (string.IsNullOrEmpty(userId)) return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
 
             var result = await _wishlistRepository.AddAsync(userId, productId);
-            if (!result) return BadRequest(new { message = "Sản phẩm đã có trong danh sách yêu thích hoặc không tồn tại." });
+            if (!result) return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.WISHLIST_ALREADY_EXISTS));
 
-            return Ok(new { message = "Đã thêm vào danh sách yêu thích." });
+            return Ok(new ApiSuccessResponse("Đã thêm vào danh sách yêu thích."));
         }
 
         /// <summary>
@@ -71,12 +72,12 @@ namespace LampStoreProjects.Controllers
         public async Task<ActionResult> RemoveFromWishlist(Guid productId)
         {
             var userId = GetUserId();
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            if (string.IsNullOrEmpty(userId)) return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
 
             var result = await _wishlistRepository.RemoveAsync(userId, productId);
-            if (!result) return NotFound(new { message = "Sản phẩm không có trong danh sách yêu thích." });
+            if (!result) return NotFound(ApiErrorResponse.FromCode(ErrorCodes.WISHLIST_NOT_FOUND));
 
-            return Ok(new { message = "Đã xóa khỏi danh sách yêu thích." });
+            return Ok(new ApiSuccessResponse("Đã xóa khỏi danh sách yêu thích."));
         }
 
         /// <summary>
@@ -86,7 +87,7 @@ namespace LampStoreProjects.Controllers
         public async Task<ActionResult<bool>> CheckInWishlist(Guid productId)
         {
             var userId = GetUserId();
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            if (string.IsNullOrEmpty(userId)) return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
 
             var isInWishlist = await _wishlistRepository.IsInWishlistAsync(userId, productId);
             return Ok(isInWishlist);

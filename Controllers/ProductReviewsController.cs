@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using LampStoreProjects.Repositories;
+using LampStoreProjects.Helpers;
 using System.Security.Claims;
 
 namespace LampStoreProjects.Controllers
@@ -40,28 +41,28 @@ namespace LampStoreProjects.Controllers
         public async Task<ActionResult> SubmitReview([FromBody] ProductReviewModel model)
         {
             var userId = GetUserId();
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            if (string.IsNullOrEmpty(userId)) return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
 
             if (model.ProductId == null)
-                return BadRequest(new { message = "ProductId là bắt buộc." });
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.REVIEW_PRODUCT_ID_REQUIRED));
 
             // Validate rating
             if (model.Rating < 1 || model.Rating > 5)
-                return BadRequest(new { message = "Rating phải từ 1 đến 5." });
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.REVIEW_INVALID_RATING));
 
             // Check if user has purchased this product
             var hasPurchased = await _reviewRepository.HasPurchasedProductAsync(userId, model.ProductId.Value);
             if (!hasPurchased)
-                return BadRequest(new { message = "Bạn cần mua sản phẩm này trước khi đánh giá." });
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.REVIEW_PURCHASE_REQUIRED));
 
             // Check if already reviewed
             var hasReviewed = await _reviewRepository.HasReviewedAsync(userId, model.ProductId.Value);
             if (hasReviewed)
-                return BadRequest(new { message = "Bạn đã đánh giá sản phẩm này rồi." });
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.REVIEW_ALREADY_REVIEWED));
 
             var result = await _reviewRepository.AddAsync(userId, model);
             if (result == null)
-                return BadRequest(new { message = "Sản phẩm không tồn tại." });
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.REVIEW_PRODUCT_NOT_FOUND));
 
             return Ok(result);
         }
@@ -74,7 +75,7 @@ namespace LampStoreProjects.Controllers
         public async Task<ActionResult> GetReviewStatus(Guid productId)
         {
             var userId = GetUserId();
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            if (string.IsNullOrEmpty(userId)) return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
 
             var hasPurchased = await _reviewRepository.HasPurchasedProductAsync(userId, productId);
             var hasReviewed = await _reviewRepository.HasReviewedAsync(userId, productId);

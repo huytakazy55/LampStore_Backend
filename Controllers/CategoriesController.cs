@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using LampStoreProjects.Models;
 using LampStoreProjects.Repositories;
 using LampStoreProjects.Services;
+using LampStoreProjects.Helpers;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace LampStoreProjects.Controllers
@@ -50,7 +51,7 @@ namespace LampStoreProjects.Controllers
             var category = await _categoryRepository.GetByIdAsync(id);
             if (category == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.CATEGORY_NOT_FOUND));
             }
             return Ok(category);
         }
@@ -61,7 +62,7 @@ namespace LampStoreProjects.Controllers
             var category = await _categoryRepository.GetBySlugAsync(slug);
             if (category == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.CATEGORY_NOT_FOUND));
             }
             return Ok(category);
         }
@@ -79,7 +80,7 @@ namespace LampStoreProjects.Controllers
         {
             if (id != categoryModel.Id)
             {
-                return BadRequest();
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.CATEGORY_ID_MISMATCH));
             }
             await _categoryRepository.UpdateAsync(categoryModel);
 
@@ -111,7 +112,7 @@ namespace LampStoreProjects.Controllers
         {
             if (file == null || file.Length == 0)
             {
-                return BadRequest("No file uploaded");
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_NO_FILE));
             }
 
             // Validate file type - ưu tiên kiểm tra content type
@@ -124,13 +125,13 @@ namespace LampStoreProjects.Controllers
             // Kiểm tra content type trước, sau đó mới kiểm tra extension
             if (!allowedMimeTypes.Contains(contentType) && !allowedExtensions.Contains(fileExtension))
             {
-                return BadRequest($"Invalid file type. File: {file.FileName}, Extension: {fileExtension}, ContentType: {contentType}. Only JPG, JPEG, PNG, and GIF are allowed.");
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_INVALID_FILE_TYPE, $"File: {file.FileName}, Extension: {fileExtension}, ContentType: {contentType}. Chỉ chấp nhận JPG, JPEG, PNG, GIF."));
             }
 
             // Validate file size (max 5MB)
             if (file.Length > 5 * 1024 * 1024)
             {
-                return BadRequest("File size too large. Maximum size is 5MB.");
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_FILE_TOO_LARGE));
             }
 
             try
@@ -145,7 +146,7 @@ namespace LampStoreProjects.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, ApiErrorResponse.FromException(ErrorCodes.INTERNAL_ERROR, ex));
             }
         }
     }

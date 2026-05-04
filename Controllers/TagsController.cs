@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using LampStoreProjects.Models;
 using LampStoreProjects.Repositories;
+using LampStoreProjects.Helpers;
 
 namespace LampStoreProjects.Controllers
 {
@@ -30,7 +31,7 @@ namespace LampStoreProjects.Controllers
             var tag = await _tagRepository.GetByIdAsync(id);
             if (tag == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.TAG_NOT_FOUND));
             }
             return Ok(tag);
         }
@@ -47,7 +48,7 @@ namespace LampStoreProjects.Controllers
         {
             if (id != tagModel.Id)
             {
-                return BadRequest();
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.TAG_ID_MISMATCH));
             }
             await _tagRepository.UpdateAsync(tagModel);
             return NoContent();

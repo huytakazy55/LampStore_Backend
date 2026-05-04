@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using LampStoreProjects.Models;
 using LampStoreProjects.Repositories;
 using LampStoreProjects.Data;
+using LampStoreProjects.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace LampStoreProjects.Controllers
@@ -36,7 +37,7 @@ namespace LampStoreProjects.Controllers
             var userprofile = await _userprofileRepository.GetByIdAsync(id);
             if (userprofile == null)
             {
-                return NotFound();
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.PROFILE_USER_NOT_FOUND));
             }
             return Ok(userprofile);
         }
@@ -49,14 +50,14 @@ namespace LampStoreProjects.Controllers
                 // Kiểm tra ảnh có được cung cấp không
                 if (ProfileAvatar == null || ProfileAvatar.Length == 0)
                 {
-                    return BadRequest("No image file provided.");
+                    return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.PROFILE_NO_FILE));
                 }
 
                 var userProfile = await _context.UserProfiles!.FirstOrDefaultAsync(p => p.Id == id);
 
                 if (userProfile == null)
                 {
-                    return NotFound("User not found.");
+                    return NotFound(ApiErrorResponse.FromCode(ErrorCodes.PROFILE_USER_NOT_FOUND));
                 }
 
                 // Đường dẫn lưu ảnh
@@ -96,11 +97,11 @@ namespace LampStoreProjects.Controllers
                 _context.UserProfiles!.Update(userProfile);
                 await _context.SaveChangesAsync();
 
-                return Ok();
+                return Ok(new ApiSuccessResponse("Cập nhật ảnh đại diện thành công."));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.Message);
+                return StatusCode(500, ApiErrorResponse.FromException(ErrorCodes.INTERNAL_ERROR, ex));
             }
         }
 
@@ -116,7 +117,7 @@ namespace LampStoreProjects.Controllers
         {
             if (id != userprofileModel.Id)
             {
-                return BadRequest();
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.PROFILE_ID_MISMATCH));
             }
             await _userprofileRepository.UpdateAsync(userprofileModel);
             return NoContent();
@@ -129,7 +130,7 @@ namespace LampStoreProjects.Controllers
 
             if (userProfile == null)
             {
-                return NotFound("User not found.");
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.PROFILE_USER_NOT_FOUND));
             }
             var avatarPath = userProfile.ProfileAvatar;
             userProfile.ProfileAvatar = "";
@@ -146,7 +147,7 @@ namespace LampStoreProjects.Controllers
                 }
             }
 
-            return Ok("Xóa Avatar thành công.");
+            return Ok(new ApiSuccessResponse("Xóa ảnh đại diện thành công."));
         }
 
         [HttpDelete("Delete/{id}")]
