@@ -1,7 +1,12 @@
 using LampStoreProjects.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace LampStoreProjects.Services
@@ -9,14 +14,20 @@ namespace LampStoreProjects.Services
     public class AnalyticsService : IAnalyticsService
     {
         private readonly ApplicationDbContext _context;
+        private readonly HttpClient _httpClient;
+        private readonly IMemoryCache _cache;
 
-        public AnalyticsService(ApplicationDbContext context)
+        public AnalyticsService(ApplicationDbContext context, HttpClient httpClient, IMemoryCache cache)
         {
             _context = context;
+            _httpClient = httpClient;
+            _cache = cache;
         }
 
         public async Task TrackVisitAsync(string sessionId, string ipAddress, string path, Guid? productId)
         {
+            ipAddress = NormalizeIp(ipAddress);
+
             // Auto-resolve ProductId from slug if path is a product page
             bool isProductPage = false;
             if (!string.IsNullOrEmpty(path) && path.StartsWith("/product/"))
@@ -217,6 +228,236 @@ namespace LampStoreProjects.Services
                 weeklySales,
                 monthlySales
             };
+        }
+
+        public async Task<object> GetVisitorLocationsAsync(int days = 30, int limit = 100)
+        {
+            days = Math.Clamp(days, 1, 365);
+            limit = Math.Clamp(limit, 1, 100);
+            var fromDate = DateTime.UtcNow.AddDays(-days);
+
+            var ipGroups = await _context.SiteVisits
+                .Where(v => v.VisitedAt >= fromDate && v.IpAddress != null && v.IpAddress != "")
+                .GroupBy(v => v.IpAddress)
+                .Select(g => new
+                {
+                    IpAddress = g.Key,
+                    VisitCount = g.Count(),
+                    UniqueVisitors = g.Select(v => v.SessionId).Distinct().Count(),
+                    FirstVisit = g.Min(v => v.VisitedAt),
+                    LastVisit = g.Max(v => v.VisitedAt)
+                })
+                .OrderByDescending(x => x.VisitCount)
+                .Take(limit)
+                .ToListAsync();
+
+            var publicIps = ipGroups
+                .Select(g => NormalizeIp(g.IpAddress))
+                .Where(ip => IsPublicIp(ip))
+                .Distinct()
+                .Take(100)
+                .ToList();
+
+            var locations = await ResolveIpLocationsAsync(publicIps);
+
+            var items = ipGroups.Select(g =>
+            {
+                var ip = NormalizeIp(g.IpAddress);
+                locations.TryGetValue(ip, out var geo);
+
+                return new
+                {
+                    ipAddress = MaskIp(ip),
+                    rawIpAddress = ip,
+                    g.VisitCount,
+                    g.UniqueVisitors,
+                    g.FirstVisit,
+                    g.LastVisit,
+                    isPublicIp = IsPublicIp(ip),
+                    country = geo?.Country,
+                    countryCode = geo?.CountryCode,
+                    region = geo?.RegionName,
+                    city = geo?.City,
+                    latitude = geo?.Lat,
+                    longitude = geo?.Lon,
+                    isp = geo?.Isp,
+                    status = geo?.Status ?? (IsPublicIp(ip) ? "unresolved" : "private")
+                };
+            }).ToList();
+
+            var locationSummary = items
+                .Where(x => x.latitude != null && x.longitude != null)
+                .GroupBy(x => new { x.country, x.region, x.city, x.latitude, x.longitude })
+                .Select(g => new
+                {
+                    g.Key.country,
+                    g.Key.region,
+                    g.Key.city,
+                    g.Key.latitude,
+                    g.Key.longitude,
+                    visitCount = g.Sum(x => x.VisitCount),
+                    uniqueVisitors = g.Sum(x => x.UniqueVisitors),
+                    ipCount = g.Count()
+                })
+                .OrderByDescending(x => x.visitCount)
+                .ToList();
+
+            return new
+            {
+                days,
+                totalIpCount = ipGroups.Count,
+                resolvedIpCount = items.Count(x => x.latitude != null && x.longitude != null),
+                privateIpCount = items.Count(x => !x.isPublicIp),
+                unresolvedIpCount = items.Count(x => x.isPublicIp && (x.latitude == null || x.longitude == null)),
+                locations = locationSummary,
+                ipVisits = items
+            };
+        }
+
+        private async Task<Dictionary<string, IpGeoResult>> ResolveIpLocationsAsync(List<string> ips)
+        {
+            var results = new Dictionary<string, IpGeoResult>();
+            var missingIps = new List<string>();
+
+            foreach (var ip in ips)
+            {
+                if (_cache.TryGetValue(CacheKey(ip), out IpGeoResult cached))
+                {
+                    results[ip] = cached;
+                }
+                else
+                {
+                    missingIps.Add(ip);
+                }
+            }
+
+            if (missingIps.Count == 0)
+            {
+                return results;
+            }
+
+            try
+            {
+                var fields = "status,message,country,countryCode,regionName,city,lat,lon,isp,query";
+                var response = await _httpClient.PostAsJsonAsync($"http://ip-api.com/batch?fields={fields}", missingIps);
+                if (response.IsSuccessStatusCode)
+                {
+                    var geoItems = await response.Content.ReadFromJsonAsync<List<IpGeoResult>>();
+                    foreach (var item in geoItems ?? new List<IpGeoResult>())
+                    {
+                        if (string.IsNullOrWhiteSpace(item.Query))
+                        {
+                            continue;
+                        }
+
+                        var ip = NormalizeIp(item.Query);
+                        results[ip] = item;
+                        _cache.Set(CacheKey(ip), item, TimeSpan.FromHours(12));
+                    }
+                }
+            }
+            catch
+            {
+                // Keep analytics usable even when the external geo provider is unavailable.
+            }
+
+            return results;
+        }
+
+        private static string NormalizeIp(string ipAddress)
+        {
+            if (string.IsNullOrWhiteSpace(ipAddress))
+            {
+                return "unknown";
+            }
+
+            var ip = ipAddress.Split(',')[0].Trim();
+            if (ip.StartsWith("::ffff:", StringComparison.OrdinalIgnoreCase))
+            {
+                ip = ip.Substring("::ffff:".Length);
+            }
+
+            return ip;
+        }
+
+        private static bool IsPublicIp(string ipAddress)
+        {
+            if (!IPAddress.TryParse(ipAddress, out var ip))
+            {
+                return false;
+            }
+
+            if (IPAddress.IsLoopback(ip))
+            {
+                return false;
+            }
+
+            var bytes = ip.GetAddressBytes();
+            if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+            {
+                return bytes[0] switch
+                {
+                    10 => false,
+                    172 when bytes[1] >= 16 && bytes[1] <= 31 => false,
+                    192 when bytes[1] == 168 => false,
+                    169 when bytes[1] == 254 => false,
+                    _ => true
+                };
+            }
+
+            return !ip.IsIPv6LinkLocal && !ip.IsIPv6SiteLocal && !ip.IsIPv6Multicast;
+        }
+
+        private static string MaskIp(string ipAddress)
+        {
+            if (!IPAddress.TryParse(ipAddress, out var ip))
+            {
+                return ipAddress;
+            }
+
+            var bytes = ip.GetAddressBytes();
+            if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && bytes.Length == 4)
+            {
+                return $"{bytes[0]}.{bytes[1]}.{bytes[2]}.x";
+            }
+
+            var parts = ipAddress.Split(':');
+            return parts.Length > 4 ? string.Join(':', parts.Take(4)) + ":xxxx" : ipAddress;
+        }
+
+        private static string CacheKey(string ipAddress) => $"analytics:geo:{ipAddress}";
+
+        private class IpGeoResult
+        {
+            [JsonPropertyName("status")]
+            public string Status { get; set; }
+
+            [JsonPropertyName("message")]
+            public string Message { get; set; }
+
+            [JsonPropertyName("country")]
+            public string Country { get; set; }
+
+            [JsonPropertyName("countryCode")]
+            public string CountryCode { get; set; }
+
+            [JsonPropertyName("regionName")]
+            public string RegionName { get; set; }
+
+            [JsonPropertyName("city")]
+            public string City { get; set; }
+
+            [JsonPropertyName("lat")]
+            public double? Lat { get; set; }
+
+            [JsonPropertyName("lon")]
+            public double? Lon { get; set; }
+
+            [JsonPropertyName("isp")]
+            public string Isp { get; set; }
+
+            [JsonPropertyName("query")]
+            public string Query { get; set; }
         }
     }
 }

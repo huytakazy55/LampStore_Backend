@@ -9,5 +9,6 @@ namespace LampStoreProjects.Services
         Task TrackVisitAsync(string sessionId, string ipAddress, string path, Guid? productId);
         Task<object> GetDashboardOverviewAsync();
         Task<object> GetSalesOverviewAsync();
+        Task<object> GetVisitorLocationsAsync(int days = 30, int limit = 100);
     }
 }

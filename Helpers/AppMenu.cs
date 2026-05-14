@@ -14,10 +14,13 @@ namespace LampStoreProjects.Helpers
         public const string Delivery = "Delivery";
         public const string Settings = "Setting";
         public const string Analytics = "Analytics";
+        public const string VisitorMap = "VisitorMap";
 
         public static readonly string[] All =
         {
             Home,
+            Analytics,
+            VisitorMap,
             Users,
             Roles,
             Category,
@@ -27,9 +30,7 @@ namespace LampStoreProjects.Helpers
             Orders,
             Chat,
             Delivery,
-            Settings,
-            Analytics
+            Settings
         };
     }
 }
-

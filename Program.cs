@@ -13,6 +13,7 @@ using System.Data;
 using Serilog;
 using Serilog.Formatting.Json;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.HttpOverrides;
 using PayOS;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -124,6 +125,13 @@ builder.Services.AddCors(options =>
         });
 });
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 builder.Services.AddSingleton<IWebHostEnvironment>(builder.Environment);
 
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
@@ -148,7 +156,7 @@ builder.Services.AddScoped<IProductStoreManage, ProductStoreManage>();
 builder.Services.AddSingleton<ImageOptimizationService>();
 builder.Services.AddScoped<IImageUploadService, LocalImageService>();
 builder.Services.AddScoped<ICacheService, CacheService>();
-builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+builder.Services.AddHttpClient<IAnalyticsService, AnalyticsService>();
 
 // Add Memory Cache
 builder.Services.AddMemoryCache();
@@ -350,6 +358,7 @@ else
 }
 
 
+app.UseForwardedHeaders();
 app.UseCors(apiCorsPolicy);
 app.UseHttpsRedirection();
 
