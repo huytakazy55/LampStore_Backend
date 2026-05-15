@@ -10,101 +10,89 @@ namespace LampStoreProjects.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<string>(
-                name: "Address",
-                table: "UserProfiles",
-                type: "nvarchar(255)",
-                maxLength: 255,
-                nullable: false,
-                oldClrType: typeof(string),
-                oldType: "nvarchar(100)",
-                oldMaxLength: 100);
+            migrationBuilder.Sql(@"
+IF COL_LENGTH('UserProfiles', 'Address') IS NOT NULL
+BEGIN
+    ALTER TABLE [UserProfiles] ALTER COLUMN [Address] nvarchar(255) NOT NULL;
+END
 
-            migrationBuilder.AddColumn<string>(
-                name: "City",
-                table: "UserProfiles",
-                type: "nvarchar(20)",
-                maxLength: 20,
-                nullable: false,
-                defaultValue: "");
+IF COL_LENGTH('UserProfiles', 'City') IS NULL
+BEGIN
+    ALTER TABLE [UserProfiles] ADD [City] nvarchar(20) NOT NULL CONSTRAINT [DF_UserProfiles_City] DEFAULT('');
+END
 
-            migrationBuilder.AddColumn<string>(
-                name: "CityName",
-                table: "UserProfiles",
-                type: "nvarchar(100)",
-                maxLength: 100,
-                nullable: false,
-                defaultValue: "");
+IF COL_LENGTH('UserProfiles', 'CityName') IS NULL
+BEGIN
+    ALTER TABLE [UserProfiles] ADD [CityName] nvarchar(100) NOT NULL CONSTRAINT [DF_UserProfiles_CityName] DEFAULT('');
+END
 
-            migrationBuilder.AddColumn<string>(
-                name: "District",
-                table: "UserProfiles",
-                type: "nvarchar(20)",
-                maxLength: 20,
-                nullable: false,
-                defaultValue: "");
+IF COL_LENGTH('UserProfiles', 'District') IS NULL
+BEGIN
+    ALTER TABLE [UserProfiles] ADD [District] nvarchar(20) NOT NULL CONSTRAINT [DF_UserProfiles_District] DEFAULT('');
+END
 
-            migrationBuilder.AddColumn<string>(
-                name: "DistrictName",
-                table: "UserProfiles",
-                type: "nvarchar(100)",
-                maxLength: 100,
-                nullable: false,
-                defaultValue: "");
+IF COL_LENGTH('UserProfiles', 'DistrictName') IS NULL
+BEGIN
+    ALTER TABLE [UserProfiles] ADD [DistrictName] nvarchar(100) NOT NULL CONSTRAINT [DF_UserProfiles_DistrictName] DEFAULT('');
+END
 
-            migrationBuilder.AddColumn<string>(
-                name: "Ward",
-                table: "UserProfiles",
-                type: "nvarchar(20)",
-                maxLength: 20,
-                nullable: false,
-                defaultValue: "");
+IF COL_LENGTH('UserProfiles', 'Ward') IS NULL
+BEGIN
+    ALTER TABLE [UserProfiles] ADD [Ward] nvarchar(20) NOT NULL CONSTRAINT [DF_UserProfiles_Ward] DEFAULT('');
+END
 
-            migrationBuilder.AddColumn<string>(
-                name: "WardName",
-                table: "UserProfiles",
-                type: "nvarchar(100)",
-                maxLength: 100,
-                nullable: false,
-                defaultValue: "");
+IF COL_LENGTH('UserProfiles', 'WardName') IS NULL
+BEGIN
+    ALTER TABLE [UserProfiles] ADD [WardName] nvarchar(100) NOT NULL CONSTRAINT [DF_UserProfiles_WardName] DEFAULT('');
+END
+");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<string>(
-                name: "Address",
-                table: "UserProfiles",
-                type: "nvarchar(100)",
-                maxLength: 100,
-                nullable: false,
-                oldClrType: typeof(string),
-                oldType: "nvarchar(255)",
-                oldMaxLength: 255);
+            migrationBuilder.Sql(@"
+IF COL_LENGTH('UserProfiles', 'WardName') IS NOT NULL
+BEGIN
+    ALTER TABLE [UserProfiles] DROP CONSTRAINT IF EXISTS [DF_UserProfiles_WardName];
+    ALTER TABLE [UserProfiles] DROP COLUMN [WardName];
+END
 
-            migrationBuilder.DropColumn(
-                name: "City",
-                table: "UserProfiles");
+IF COL_LENGTH('UserProfiles', 'Ward') IS NOT NULL
+BEGIN
+    ALTER TABLE [UserProfiles] DROP CONSTRAINT IF EXISTS [DF_UserProfiles_Ward];
+    ALTER TABLE [UserProfiles] DROP COLUMN [Ward];
+END
 
-            migrationBuilder.DropColumn(
-                name: "CityName",
-                table: "UserProfiles");
+IF COL_LENGTH('UserProfiles', 'DistrictName') IS NOT NULL
+BEGIN
+    ALTER TABLE [UserProfiles] DROP CONSTRAINT IF EXISTS [DF_UserProfiles_DistrictName];
+    ALTER TABLE [UserProfiles] DROP COLUMN [DistrictName];
+END
 
-            migrationBuilder.DropColumn(
-                name: "District",
-                table: "UserProfiles");
+IF COL_LENGTH('UserProfiles', 'District') IS NOT NULL
+BEGIN
+    ALTER TABLE [UserProfiles] DROP CONSTRAINT IF EXISTS [DF_UserProfiles_District];
+    ALTER TABLE [UserProfiles] DROP COLUMN [District];
+END
 
-            migrationBuilder.DropColumn(
-                name: "DistrictName",
-                table: "UserProfiles");
+IF COL_LENGTH('UserProfiles', 'CityName') IS NOT NULL
+BEGIN
+    ALTER TABLE [UserProfiles] DROP CONSTRAINT IF EXISTS [DF_UserProfiles_CityName];
+    ALTER TABLE [UserProfiles] DROP COLUMN [CityName];
+END
 
-            migrationBuilder.DropColumn(
-                name: "Ward",
-                table: "UserProfiles");
+IF COL_LENGTH('UserProfiles', 'City') IS NOT NULL
+BEGIN
+    ALTER TABLE [UserProfiles] DROP CONSTRAINT IF EXISTS [DF_UserProfiles_City];
+    ALTER TABLE [UserProfiles] DROP COLUMN [City];
+END
 
-            migrationBuilder.DropColumn(
-                name: "WardName",
-                table: "UserProfiles");
+IF COL_LENGTH('UserProfiles', 'Address') IS NOT NULL
+BEGIN
+    ALTER TABLE [UserProfiles] ALTER COLUMN [Address] nvarchar(100) NOT NULL;
+END
+");
         }
     }
 }
