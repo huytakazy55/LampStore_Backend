@@ -12,8 +12,20 @@ namespace LampStoreProjects.Data
         public string Email { get; set; } = string.Empty;
         [MaxLength(20)]
         public string PhoneNumber { get; set; } = string.Empty;
-        [MaxLength(100)]
+        [MaxLength(255)]
         public string Address { get; set; } = string.Empty;
+        [MaxLength(20)]
+        public string City { get; set; } = string.Empty;
+        [MaxLength(100)]
+        public string CityName { get; set; } = string.Empty;
+        [MaxLength(20)]
+        public string District { get; set; } = string.Empty;
+        [MaxLength(100)]
+        public string DistrictName { get; set; } = string.Empty;
+        [MaxLength(20)]
+        public string Ward { get; set; } = string.Empty;
+        [MaxLength(100)]
+        public string WardName { get; set; } = string.Empty;
         public string ProfileAvatar { get; set; } = string.Empty;
         public ApplicationUser? User { get; set; }      
     }

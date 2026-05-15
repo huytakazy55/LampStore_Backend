@@ -49,6 +49,12 @@ namespace LampStoreProjects.Repositories
             existingProfile.Email = UserProfileModel.Email;
             existingProfile.PhoneNumber = UserProfileModel.PhoneNumber;
             existingProfile.Address = UserProfileModel.Address;
+            existingProfile.City = UserProfileModel.City;
+            existingProfile.CityName = UserProfileModel.CityName;
+            existingProfile.District = UserProfileModel.District;
+            existingProfile.DistrictName = UserProfileModel.DistrictName;
+            existingProfile.Ward = UserProfileModel.Ward;
+            existingProfile.WardName = UserProfileModel.WardName;
             existingProfile.UpdatedAt = DateTimeHelper.VietnamNow;
 
             await _context.SaveChangesAsync();
