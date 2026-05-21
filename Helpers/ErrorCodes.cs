@@ -38,6 +38,7 @@ namespace LampStoreProjects.Helpers
         public const string AUTH_CHANGE_PW_WRONG = "AUTH_015";
         public const string AUTH_GUEST_TOKEN_REQUIRED = "AUTH_016";
         public const string AUTH_USER_NOT_FOUND = "AUTH_017";
+        public const string AUTH_FACEBOOK_LOGIN_FAILED = "AUTH_018";
 
         // ══════════════════════════════════════════════════════════
         // SẢN PHẨM (PRODUCT)
@@ -183,6 +184,7 @@ namespace LampStoreProjects.Helpers
             [AUTH_INVALID_CREDENTIALS] = "Sai tên đăng nhập hoặc mật khẩu.",
             [AUTH_ACCOUNT_LOCKED] = "Tài khoản của bạn đã bị khóa! Liên hệ Admin để biết thêm thông tin.",
             [AUTH_GOOGLE_LOGIN_FAILED] = "Đăng nhập Google thất bại.",
+            [AUTH_FACEBOOK_LOGIN_FAILED] = "Đăng nhập Facebook thất bại.",
             [AUTH_REGISTER_FAILED] = "Đăng ký tài khoản thất bại.",
             [AUTH_REFRESH_TOKEN_REQUIRED] = "Token làm mới là bắt buộc.",
             [AUTH_REFRESH_TOKEN_INVALID] = "Token làm mới không hợp lệ hoặc đã hết hạn.",

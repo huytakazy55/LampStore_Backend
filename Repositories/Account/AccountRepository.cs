@@ -172,6 +172,85 @@ namespace LampStoreProjects.Repositories
 			}
 		}
 
+		public async Task<TokenResponseModel?> FacebookSignInAsync(FacebookSignInModel model)
+		{
+			using var transaction = await context.Database.BeginTransactionAsync();
+			try
+			{
+				if (string.IsNullOrEmpty(model.Email) || string.IsNullOrEmpty(model.FacebookUserId))
+				{
+					return null;
+				}
+
+				var user = await userManager.Users.FirstOrDefaultAsync(u => u.FacebookUserId == model.FacebookUserId);
+				user ??= await userManager.FindByEmailAsync(model.Email);
+
+				if (user == null)
+				{
+					user = new ApplicationUser
+					{
+						UserName = model.Email,
+						Email = model.Email,
+						FacebookUserId = model.FacebookUserId,
+						LockoutEnabled = false,
+						EmailConfirmed = true
+					};
+
+					var result = await userManager.CreateAsync(user, Guid.NewGuid().ToString() + "Ict@#$123");
+					if (!result.Succeeded)
+					{
+						await transaction.RollbackAsync();
+						return null;
+					}
+
+					var userProfile = new UserProfile
+					{
+						UserId = user.Id,
+						User = user,
+						FullName = model.Name,
+						ProfileAvatar = model.Picture
+					};
+
+					await context.UserProfiles!.AddAsync(userProfile);
+
+					if (!await roleManager.RoleExistsAsync(AppRole.Customer))
+					{
+						await roleManager.CreateAsync(new IdentityRole(AppRole.Customer));
+					}
+					await userManager.AddToRoleAsync(user, AppRole.Customer);
+				}
+				else
+				{
+					if (string.IsNullOrEmpty(user.FacebookUserId))
+					{
+						user.FacebookUserId = model.FacebookUserId;
+						await userManager.UpdateAsync(user);
+					}
+				}
+
+				await context.SaveChangesAsync();
+
+				var accessToken = await CreateAccessTokenAsync(user);
+				var refreshToken = await CreateAndSaveRefreshTokenAsync(user.Id);
+
+				await transaction.CommitAsync();
+
+				return new TokenResponseModel
+				{
+					AccessToken = accessToken,
+					RefreshToken = refreshToken,
+					ExpiresIn = 10800,
+					TokenType = "Bearer"
+				};
+			}
+			catch (Exception ex)
+			{
+				await transaction.RollbackAsync();
+				Console.WriteLine($"Facebook SignIn Error: {ex.Message}");
+				return null;
+			}
+		}
+
 		public async Task<IdentityResult> SignUpAsync(SignUpModel model)
 		{
 			using var transaction = await context.Database.BeginTransactionAsync();

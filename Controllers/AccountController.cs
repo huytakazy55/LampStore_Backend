@@ -112,6 +112,27 @@ namespace LampStoreProjects.Controllers
             }
         }
 
+        [HttpPost("FacebookSignIn")]
+        public async Task<IActionResult> FacebookSignIn(FacebookSignInModel facebookSignInModel)
+        {
+            try
+            {
+                var result = await _accountRepository.FacebookSignInAsync(facebookSignInModel);
+
+                if (result == null)
+                {
+                    return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.AUTH_FACEBOOK_LOGIN_FAILED));
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while Facebook sign in.");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.INTERNAL_ERROR));
+            }
+        }
+
         [HttpPost("Refresh")]
         public async Task<IActionResult> RefreshToken(RefreshTokenRequestModel model)
         {

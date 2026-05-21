@@ -41,6 +41,9 @@ namespace LampStoreProjects.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
 
+                    b.Property<string>("FacebookUserId")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("GoogleUserId")
                         .HasColumnType("nvarchar(max)");
 
