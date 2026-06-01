@@ -199,7 +199,7 @@ namespace LampStoreProjects.Controllers
                 return NotFound(ApiErrorResponse.FromCode(ErrorCodes.ORDER_NOT_FOUND));
             }
 
-            var validStatuses = new[] { "Pending", "Confirmed", "Shipping", "Completed", "Cancelled" };
+            var validStatuses = new[] { "Pending", "Confirmed", "Shipping", "Completed", "Cancelled", "FailedDelivery", "ReturnRequested", "Refunded" };
             if (!validStatuses.Contains(model.Status))
             {
                 return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.ORDER_INVALID_STATUS, $"Trạng thái hợp lệ: {string.Join(", ", validStatuses)}"));
@@ -209,9 +209,12 @@ namespace LampStoreProjects.Controllers
             {
                 { "Pending", new[] { "Confirmed", "Cancelled" } },
                 { "Confirmed", new[] { "Shipping", "Cancelled" } },
-                { "Shipping", new[] { "Completed" } },
-                { "Completed", Array.Empty<string>() },
-                { "Cancelled", Array.Empty<string>() }
+                { "Shipping", new[] { "Completed", "FailedDelivery" } },
+                { "Completed", new[] { "ReturnRequested" } },
+                { "ReturnRequested", new[] { "Refunded" } },
+                { "Cancelled", Array.Empty<string>() },
+                { "FailedDelivery", Array.Empty<string>() },
+                { "Refunded", Array.Empty<string>() }
             };
 
             var currentStatus = order.Status ?? "Pending";
