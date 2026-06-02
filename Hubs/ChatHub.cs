@@ -111,8 +111,7 @@ namespace LampStoreProjects.Hubs
             if (string.IsNullOrEmpty(userId))
                 return;
 
-            // Gửi tin nhắn tới tất cả members trong chat room
-            await Clients.Group($"chat_{chatId}").SendAsync("ReceiveMessage", new
+            var realtimeMessage = new
             {
                 ChatId = chatId,
                 SenderId = userId,
@@ -120,7 +119,10 @@ namespace LampStoreProjects.Hubs
                 Content = message,
                 Timestamp = DateTimeHelper.VietnamNow,
                 Type = "Text"
-            });
+            };
+
+            // Gửi tin nhắn tới tất cả members trong chat room
+            await Clients.Group($"chat_{chatId}").SendAsync("ReceiveMessage", realtimeMessage);
 
             // Nếu là user gửi (không phải admin), gửi notification tới group 'admins'
             // Dùng event "AdminChatNotification" khác với "ReceiveMessage" để tránh admin nhận tin nhắn 2 lần
@@ -156,6 +158,11 @@ namespace LampStoreProjects.Hubs
             }
             else
             {
+                var chat = await _chatRepository.GetChatByIdAsync(chatId);
+                if (!string.IsNullOrEmpty(chat?.UserId))
+                {
+                    await Clients.Group($"user_{chat.UserId}").SendAsync("CustomerChatNotification", realtimeMessage);
+                }
                 Console.WriteLine($"👨‍💼 Message from admin {userName}, not sending to admins group");
             }
 

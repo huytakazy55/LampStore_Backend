@@ -168,8 +168,7 @@ namespace LampStoreProjects.Controllers
 
                 var message = await _chatRepository.SendMessageAsync(chatId, userId, request.Content, request.Type);
 
-                // Gửi tin nhắn realtime tới room chat
-                await _hubContext.Clients.Group($"chat_{chatId}").SendAsync("ReceiveMessage", new
+                var realtimeMessage = new
                 {
                     MessageId = message.Id,
                     ChatId = chatId,
@@ -179,7 +178,10 @@ namespace LampStoreProjects.Controllers
                     Type = request.Type.ToString(),
                     Timestamp = message.CreatedAt,
                     IsRead = false
-                });
+                };
+
+                // Gửi tin nhắn realtime tới room chat
+                await _hubContext.Clients.Group($"chat_{chatId}").SendAsync("ReceiveMessage", realtimeMessage);
 
                 // Nếu người gửi KHÔNG phải admin, gửi thêm thông báo tới group 'admins'
                 if (string.IsNullOrEmpty(userRole) || userRole != "Administrator")
@@ -207,6 +209,10 @@ namespace LampStoreProjects.Controllers
                     {
                         _logger.LogError(ex, "Error notifying admins for message in chat {ChatId}", chatId);
                     }
+                }
+                else if (!string.IsNullOrEmpty(chat.UserId))
+                {
+                    await _hubContext.Clients.Group($"user_{chat.UserId}").SendAsync("CustomerChatNotification", realtimeMessage);
                 }
 
                 return Ok(message);
