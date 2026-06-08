@@ -16,6 +16,7 @@ namespace LampStoreProjects.Repositories
         Task<List<ActiveSessionModel>> GetActiveSessionsAsync(string userId);
 
         Task<UserProfile?> GetUserProfileAsync(string userId);
+        Task<UserProfile?> SyncUserProfileFromAccountAsync(string userId);
         Task<IdentityUser?> GetUserAccountAsync(string userId);
         Task<IEnumerable<IdentityUser>> GetAllUsersAsync();
         Task<List<string>?> GetRolesByUserIdAsync(string userId);

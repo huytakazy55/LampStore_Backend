@@ -225,14 +225,42 @@ namespace LampStoreProjects.Controllers
                 return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
             }
 
-            var profile = await _accountRepository.GetUserProfileAsync(userId);
+            var profile = await _accountRepository.SyncUserProfileFromAccountAsync(userId);
+            var user = await _accountRepository.GetUserAccountAsync(userId);
 
             if (profile == null)
             {
-                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.AUTH_PROFILE_NOT_FOUND));
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.AUTH_USER_NOT_FOUND));
             }
 
-            return Ok(profile);
+            var fallbackEmail = string.IsNullOrWhiteSpace(profile.Email)
+                ? user?.Email ?? string.Empty
+                : profile.Email;
+            var fallbackPhoneNumber = string.IsNullOrWhiteSpace(profile.PhoneNumber)
+                ? user?.PhoneNumber ?? string.Empty
+                : profile.PhoneNumber;
+
+            return Ok(new
+            {
+                profile.Id,
+                profile.UserId,
+                profile.FullName,
+                Email = fallbackEmail,
+                PhoneNumber = fallbackPhoneNumber,
+                profile.Address,
+                profile.ProfileAvatar,
+                profile.CreatedAt,
+                profile.UpdatedAt,
+                profile.City,
+                profile.CityName,
+                profile.District,
+                profile.DistrictName,
+                profile.Ward,
+                profile.WardName,
+                AccountEmail = user?.Email ?? string.Empty,
+                AccountUserName = user?.UserName ?? string.Empty,
+                AccountPhoneNumber = user?.PhoneNumber ?? string.Empty
+            });
         }
 
         [HttpGet("role/{userId}")]

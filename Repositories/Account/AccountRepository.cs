@@ -327,6 +327,56 @@ namespace LampStoreProjects.Repositories
 			return await context.UserProfiles!.Where(profile => profile.UserId == userId).FirstOrDefaultAsync();
 		}
 
+		public async Task<UserProfile?> SyncUserProfileFromAccountAsync(string userId)
+		{
+			var user = await userManager.FindByIdAsync(userId);
+			if (user == null) return null;
+
+			var profile = await context.UserProfiles!.Where(profile => profile.UserId == userId).FirstOrDefaultAsync();
+			var hasChanges = false;
+
+			if (profile == null)
+			{
+				profile = new UserProfile
+				{
+					UserId = userId,
+					FullName = user.UserName ?? user.Email ?? string.Empty,
+					Email = user.Email ?? string.Empty,
+					PhoneNumber = user.PhoneNumber ?? string.Empty,
+					User = user
+				};
+
+				await context.UserProfiles!.AddAsync(profile);
+				hasChanges = true;
+			}
+			else
+			{
+				if (string.IsNullOrWhiteSpace(profile.FullName))
+				{
+					profile.FullName = user.UserName ?? user.Email ?? string.Empty;
+					hasChanges = true;
+				}
+				if (string.IsNullOrWhiteSpace(profile.Email) && !string.IsNullOrWhiteSpace(user.Email))
+				{
+					profile.Email = user.Email;
+					hasChanges = true;
+				}
+				if (string.IsNullOrWhiteSpace(profile.PhoneNumber) && !string.IsNullOrWhiteSpace(user.PhoneNumber))
+				{
+					profile.PhoneNumber = user.PhoneNumber;
+					hasChanges = true;
+				}
+			}
+
+			if (hasChanges)
+			{
+				profile.UpdatedAt = DateTimeHelper.VietnamNow;
+				await context.SaveChangesAsync();
+			}
+
+			return profile;
+		}
+
 		public async Task<List<string>?> GetRolesByUserIdAsync(string userId)
 		{
 			var user = await userManager.FindByIdAsync(userId);
