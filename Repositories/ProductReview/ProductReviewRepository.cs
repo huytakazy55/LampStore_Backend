@@ -35,9 +35,9 @@ namespace LampStoreProjects.Repositories
 
         public async Task<ProductReviewModel?> AddAsync(string userId, ProductReviewModel model)
         {
-            // Check product exists
-            var productExists = await _context.Products!.AnyAsync(p => p.Id == model.ProductId);
-            if (!productExists) return null;
+            // Check product exists and keep the denormalized review counter in sync.
+            var product = await _context.Products!.FirstOrDefaultAsync(p => p.Id == model.ProductId);
+            if (product == null) return null;
 
             var review = new ProductReview
             {
@@ -50,6 +50,7 @@ namespace LampStoreProjects.Repositories
             };
 
             _context.ProductReviews!.Add(review);
+            product.ReviewCount += 1;
             await _context.SaveChangesAsync();
 
             // Get user name for response
