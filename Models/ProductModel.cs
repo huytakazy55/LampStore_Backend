@@ -24,6 +24,9 @@ namespace LampStoreProjects.Models
 
         public int ReviewCount { get; set; } = 0;
 
+        [Precision(5, 2)]
+        public decimal AverageRating { get; set; } = 0;
+
         public string Tags { get; set; } = string.Empty;
         
         public int ViewCount { get; set; } = 0;

@@ -59,7 +59,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpGet("{id}")]
-        [ResponseCache(NoStore = true)]
+        [ResponseCache(Duration = 900, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "id" })]
         public async Task<ActionResult<ProductModel>> GetProductById(Guid id)
         {
             // Kiểm tra cache trước
@@ -76,16 +76,17 @@ namespace LampStoreProjects.Controllers
                 return NotFound(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_NOT_FOUND));
             }
 
-            // Lưu vào cache với thời gian expire 15 phút
+            // Lưu vào cache 15 phút (chỉ data tĩnh, không có stats)
             await _cacheService.SetAsync(cacheKey, product, TimeSpan.FromMinutes(15));
             
             return Ok(product);
         }
 
         [HttpGet("slug/{slug}")]
-        [ResponseCache(NoStore = true)]
+        [ResponseCache(Duration = 900, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "slug" })]
         public async Task<ActionResult<ProductModel>> GetProductBySlug(string slug)
         {
+            // Kiểm tra cache trước
             var cacheKey = $"product_slug_{slug}";
             var cachedProduct = await _cacheService.GetAsync<ProductModel>(cacheKey);
             if (cachedProduct != null)
@@ -99,10 +100,21 @@ namespace LampStoreProjects.Controllers
                 return NotFound(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_NOT_FOUND));
             }
 
-            // Lưu vào cache với thời gian expire 15 phút
+            // Lưu vào cache 15 phút (chỉ data tĩnh, không có stats)
             await _cacheService.SetAsync(cacheKey, product, TimeSpan.FromMinutes(15));
             
             return Ok(product);
+        }
+
+        /// <summary>
+        /// Lấy thông tin realtime: số đánh giá, rating, lượt bán, tồn kho
+        /// </summary>
+        [HttpGet("{id}/stats")]
+        [ResponseCache(NoStore = true)]
+        public async Task<ActionResult<ProductStatsModel>> GetProductStats(Guid id)
+        {
+            var stats = await _productRepository.GetProductStatsAsync(id);
+            return Ok(stats);
         }
 
         [HttpGet("Variant/{id}")]

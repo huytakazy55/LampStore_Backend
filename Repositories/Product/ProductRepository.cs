@@ -12,6 +12,7 @@ namespace LampStoreProjects.Repositories
     {
         private readonly ApplicationDbContext _context = context;
         private readonly IMapper _mapper = mapper;
+        private static readonly string[] ExcludedSoldStatuses = { "Cancelled", "FailedDelivery", "Refunded" };
 
         public async Task<IEnumerable<ProductModel>> GetAllProductAsync()
         {
@@ -106,6 +107,8 @@ namespace LampStoreProjects.Repositories
                     .Select(pa => MapAddonProduct(pa.AddOnProduct))
                     .ToList();
             }
+
+
             
             return productModel;
         }
@@ -161,8 +164,41 @@ namespace LampStoreProjects.Repositories
                     .Select(pa => MapAddonProduct(pa.AddOnProduct))
                     .ToList();
             }
+
+
             
             return productModel;
+        }
+
+        public async Task<ProductStatsModel> GetProductStatsAsync(Guid productId)
+        {
+            var reviewQuery = _context.ProductReviews!
+                .Where(r => r.ProductId == productId);
+
+            var reviewCount = await reviewQuery.CountAsync();
+            var averageRating = reviewCount > 0
+                ? Math.Round(await reviewQuery.AverageAsync(r => r.Rating), 1)
+                : 0;
+
+            var sellCount = await _context.OrderItems!
+                .Where(oi => oi.ProductId == productId
+                    && oi.Order != null
+                    && !ExcludedSoldStatuses.Contains(oi.Order.Status))
+                .Select(oi => (int?)oi.Quantity)
+                .SumAsync() ?? 0;
+
+            var stock = await _context.ProductVariants!
+                .Where(v => v.ProductId == productId)
+                .Select(v => v.Stock)
+                .FirstOrDefaultAsync();
+
+            return new ProductStatsModel
+            {
+                ReviewCount = reviewCount,
+                AverageRating = averageRating,
+                SellCount = sellCount,
+                Stock = stock
+            };
         }
 
         private ProductModel MapAddonProduct(Product addon)
