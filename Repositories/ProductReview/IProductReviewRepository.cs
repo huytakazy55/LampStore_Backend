@@ -8,5 +8,6 @@ namespace LampStoreProjects.Repositories
         Task<ProductReviewModel?> AddAsync(string userId, ProductReviewModel model);
         Task<bool> HasPurchasedProductAsync(string userId, Guid productId);
         Task<bool> HasReviewedAsync(string userId, Guid productId);
+        Task<IEnumerable<ProductReviewModel>> GetRecentReviewsAsync(int limit);
     }
 }

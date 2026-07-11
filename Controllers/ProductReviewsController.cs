@@ -34,6 +34,17 @@ namespace LampStoreProjects.Controllers
         }
 
         /// <summary>
+        /// Lấy danh sách đánh giá mới nhất trên toàn hệ thống
+        /// </summary>
+        [HttpGet("recent")]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<ProductReviewModel>>> GetRecentReviews([FromQuery] int limit = 6)
+        {
+            var reviews = await _reviewRepository.GetRecentReviewsAsync(limit);
+            return Ok(reviews);
+        }
+
+        /// <summary>
         /// Gửi đánh giá sản phẩm (yêu cầu đăng nhập)
         /// </summary>
         [HttpPost]

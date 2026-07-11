@@ -80,5 +80,26 @@ namespace LampStoreProjects.Repositories
             return await _context.ProductReviews!
                 .AnyAsync(r => r.UserId == userId && r.ProductId == productId);
         }
+
+        public async Task<IEnumerable<ProductReviewModel>> GetRecentReviewsAsync(int limit)
+        {
+            return await _context.ProductReviews!
+                .Include(r => r.User)
+                .Include(r => r.Product)
+                .OrderByDescending(r => r.CreateAt)
+                .Take(limit)
+                .Select(r => new ProductReviewModel
+                {
+                    Id = r.Id,
+                    ProductId = r.ProductId,
+                    UserId = r.UserId,
+                    UserName = r.User != null ? r.User.UserName ?? "Ẩn danh" : "Ẩn danh",
+                    Rating = r.Rating,
+                    Comment = r.Comment,
+                    ProductName = r.Product != null ? r.Product.Name ?? "" : "",
+                    CreateAt = r.CreateAt
+                })
+                .ToListAsync();
+        }
     }
 }
