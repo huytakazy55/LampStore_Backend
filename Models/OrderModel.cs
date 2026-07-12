@@ -27,6 +27,7 @@ namespace LampStoreProjects.Models
 
         // Payment
         public string PaymentMethod { get; set; } = "cod";
+        public string PaymentStatus { get; set; } = "Unpaid";
         [Precision(18, 2)]
         public decimal TotalAmount { get; set; }
         [Precision(18, 2)]

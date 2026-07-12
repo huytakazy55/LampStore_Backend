@@ -40,12 +40,11 @@ namespace LampStoreProjects.Controllers
                     var order = await _context.Orders!.FirstOrDefaultAsync(o => o.OrderCode == orderCode);
                     if (order != null)
                     {
-                        // Update order status
-                        order.Status = "Processing"; // Move from Pending to Processing
-                        // You can also add a PaymentStatus field if you want, e.g., order.PaymentStatus = "Paid";
+                        // Update payment status (keep order Status as-is for admin to process)
+                        order.PaymentStatus = "Paid";
                         
                         await _context.SaveChangesAsync();
-                        Console.WriteLine($"[PayOS] Order {orderCode} paid successfully.");
+                        Console.WriteLine($"[PayOS] Order {orderCode} paid successfully. PaymentStatus -> Paid");
                     }
                     else
                     {

@@ -64,6 +64,7 @@ namespace LampStoreProjects.Repositories
                 GuestToken = orderModel.GuestToken,
                 OrderDate = DateTimeHelper.VietnamNow,
                 Status = "Pending",
+                PaymentStatus = orderModel.PaymentMethod == "cod" ? "COD" : "Unpaid",
                 FullName = orderModel.FullName,
                 Phone = orderModel.Phone,
                 Email = orderModel.Email,
@@ -94,6 +95,7 @@ namespace LampStoreProjects.Repositories
             orderModel.OrderCode = order.OrderCode;
             orderModel.OrderDate = order.OrderDate;
             orderModel.Status = order.Status;
+            orderModel.PaymentStatus = order.PaymentStatus;
             return orderModel;
         }
 
@@ -103,6 +105,17 @@ namespace LampStoreProjects.Repositories
             if (order != null)
             {
                 order.Status = status;
+                order.UpdatedAt = DateTimeHelper.VietnamNow;
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        public async Task UpdatePaymentStatusAsync(Guid id, string paymentStatus)
+        {
+            var order = await _context.Orders!.FindAsync(id);
+            if (order != null)
+            {
+                order.PaymentStatus = paymentStatus;
                 order.UpdatedAt = DateTimeHelper.VietnamNow;
                 await _context.SaveChangesAsync();
             }
@@ -141,6 +154,7 @@ namespace LampStoreProjects.Repositories
                 Ward = order.Ward,
                 Note = order.Note,
                 PaymentMethod = order.PaymentMethod,
+                PaymentStatus = order.PaymentStatus,
                 TotalAmount = order.TotalAmount,
                 ShippingFee = order.ShippingFee,
                 OrderItems = order.OrderItems?.Select(oi => new OrderItemModel

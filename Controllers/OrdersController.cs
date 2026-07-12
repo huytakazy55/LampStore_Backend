@@ -228,6 +228,31 @@ namespace LampStoreProjects.Controllers
             return Ok(new ApiSuccessResponse("Cập nhật trạng thái đơn hàng thành công.", new { status = model.Status }));
         }
 
+        [HttpPatch("{id}/payment-status")]
+        public async Task<ActionResult> UpdatePaymentStatus(Guid id, [FromBody] OrderStatusUpdateModel model)
+        {
+            var order = await _orderRepository.GetByIdAsync(id);
+            if (order == null)
+            {
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.ORDER_NOT_FOUND));
+            }
+
+            var validPaymentStatuses = new[] { "Unpaid", "Paid", "COD" };
+            if (!validPaymentStatuses.Contains(model.Status))
+            {
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.VALIDATION_FAILED, $"Trạng thái thanh toán hợp lệ: {string.Join(", ", validPaymentStatuses)}"));
+            }
+
+            // Only allow Unpaid -> Paid transition
+            if (order.PaymentStatus != "Unpaid" || model.Status != "Paid")
+            {
+                return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.VALIDATION_FAILED, "Chỉ có thể chuyển trạng thái từ 'Chưa thanh toán' sang 'Đã thanh toán'."));
+            }
+
+            await _orderRepository.UpdatePaymentStatusAsync(id, model.Status);
+            return Ok(new ApiSuccessResponse("Cập nhật trạng thái thanh toán thành công.", new { paymentStatus = model.Status }));
+        }
+
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteOrder(Guid id)
         {
