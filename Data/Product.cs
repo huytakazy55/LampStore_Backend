@@ -37,7 +37,7 @@ namespace LampStoreProjects.Data
         public ProductVariant? ProductVariant { get; set; }
         public ICollection<VariantType> VariantTypes { get; set; } = new List<VariantType>();
         public ICollection<ProductReview> ProductReviews { get; set; } = new List<ProductReview>();
-        public CartItem? CartItem { get; set; }
+        public ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
         public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
         public ICollection<ProductTag> ProductTags { get; set; } = new List<ProductTag>();
 
