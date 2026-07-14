@@ -152,6 +152,9 @@ builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
 builder.Services.AddScoped<IFlashSaleRepository, FlashSaleRepository>();
 
 builder.Services.AddScoped<IEmailService, EmailService>();
+
+builder.Services.AddScoped<IDiscountCodeRepository, DiscountCodeRepository>();
+
 builder.Services.AddScoped<IProductStoreManage, ProductStoreManage>();
 builder.Services.AddSingleton<ImageOptimizationService>();
 builder.Services.AddScoped<IImageUploadService, LocalImageService>();

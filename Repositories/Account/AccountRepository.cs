@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using LampStoreProjects.Data;
 using LampStoreProjects.Helpers;
@@ -112,6 +112,9 @@ namespace LampStoreProjects.Repositories
 						await roleManager.CreateAsync(new IdentityRole(AppRole.Customer));
 					}
 					await userManager.AddToRoleAsync(user, AppRole.Customer);
+					
+					// Generate welcome discount code
+					await GenerateWelcomeDiscountCodeAsync(user.Id);
 				}
 				else
 				{
@@ -218,6 +221,9 @@ namespace LampStoreProjects.Repositories
 						await roleManager.CreateAsync(new IdentityRole(AppRole.Customer));
 					}
 					await userManager.AddToRoleAsync(user, AppRole.Customer);
+					
+					// Generate welcome discount code
+					await GenerateWelcomeDiscountCodeAsync(user.Id);
 				}
 				else
 				{
@@ -309,6 +315,9 @@ namespace LampStoreProjects.Repositories
 				}
 
 				await userManager.AddToRoleAsync(user, AppRole.Customer);
+
+				// Generate welcome discount code
+				await GenerateWelcomeDiscountCodeAsync(user.Id);
 
 				// Xác nhận giao dịch thành công
 				await transaction.CommitAsync();
@@ -439,6 +448,34 @@ namespace LampStoreProjects.Repositories
 
 			var token = tokenHandler.CreateToken(tokenDescriptor);
 			return tokenHandler.WriteToken(token);
+		}
+
+		private async Task GenerateWelcomeDiscountCodeAsync(string userId)
+		{
+			var discountCode = new DiscountCode
+			{
+				Code = GenerateRandomCode(8),
+				DiscountType = "Percentage",
+				DiscountPercentage = 10,
+				DiscountAmount = 0,
+				MaxDiscountAmount = 50000,
+				MinOrderAmount = 0,
+				ExpiryDate = DateTime.UtcNow.AddDays(30),
+				IsUsed = false,
+				UserId = userId,
+				Quantity = 1,
+				Status = "Active"
+			};
+			await context.DiscountCodes!.AddAsync(discountCode);
+			await context.SaveChangesAsync();
+		}
+
+		private string GenerateRandomCode(int length)
+		{
+			const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+			var random = new Random();
+			return new string(Enumerable.Repeat(chars, length)
+				.Select(s => s[random.Next(s.Length)]).ToArray());
 		}
 
 		private async Task<string> CreateAndSaveRefreshTokenAsync(string userId)

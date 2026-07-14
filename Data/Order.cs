@@ -34,6 +34,11 @@ namespace LampStoreProjects.Data
         public decimal TotalAmount { get; set; }
         [Column(TypeName = "decimal(18,2)")]
         public decimal ShippingFee { get; set; }
+        
+        // Discount
+        public string? DiscountCode { get; set; }
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal DiscountAmount { get; set; }
 
         // Navigation
         public ICollection<Delivery>? Deliveries { get; set; }

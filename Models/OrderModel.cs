@@ -32,6 +32,11 @@ namespace LampStoreProjects.Models
         public decimal TotalAmount { get; set; }
         [Precision(18, 2)]
         public decimal ShippingFee { get; set; }
+        
+        // Discount
+        public string? DiscountCode { get; set; }
+        [Precision(18, 2)]
+        public decimal DiscountAmount { get; set; }
 
         // Order items
         public List<OrderItemModel>? OrderItems { get; set; }

@@ -76,6 +76,8 @@ namespace LampStoreProjects.Repositories
                 PaymentMethod = orderModel.PaymentMethod,
                 TotalAmount = orderModel.TotalAmount,
                 ShippingFee = orderModel.ShippingFee,
+                DiscountCode = orderModel.DiscountCode,
+                DiscountAmount = orderModel.DiscountAmount,
                 OrderItems = orderModel.OrderItems?.Select(oi => new OrderItem
                 {
                     Id = Guid.NewGuid(),
@@ -157,6 +159,8 @@ namespace LampStoreProjects.Repositories
                 PaymentStatus = order.PaymentStatus,
                 TotalAmount = order.TotalAmount,
                 ShippingFee = order.ShippingFee,
+                DiscountCode = order.DiscountCode,
+                DiscountAmount = order.DiscountAmount,
                 OrderItems = order.OrderItems?.Select(oi => new OrderItemModel
                 {
                     Id = oi.Id,

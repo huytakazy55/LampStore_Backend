@@ -21,12 +21,14 @@ namespace LampStoreProjects.Controllers
         private readonly IOrderRepository _orderRepository;
         private readonly IEmailService _emailService;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IDiscountCodeRepository _discountCodeRepository;
 
-        public OrdersController(IOrderRepository orderRepository, IEmailService emailService, UserManager<ApplicationUser> userManager)
+        public OrdersController(IOrderRepository orderRepository, IEmailService emailService, UserManager<ApplicationUser> userManager, IDiscountCodeRepository discountCodeRepository)
         {
             _orderRepository = orderRepository;
             _emailService = emailService;
             _userManager = userManager;
+            _discountCodeRepository = discountCodeRepository;
         }
 
         [HttpGet("my-orders")]
@@ -72,6 +74,17 @@ namespace LampStoreProjects.Controllers
             if (!string.IsNullOrEmpty(userId))
             {
                 orderModel.UserId = userId;
+            }
+
+            if (!string.IsNullOrEmpty(orderModel.DiscountCode) && !string.IsNullOrEmpty(userId))
+            {
+                var validCode = await _discountCodeRepository.ValidateDiscountCodeAsync(orderModel.DiscountCode, userId, orderModel.TotalAmount + orderModel.DiscountAmount);
+                if (validCode == null)
+                {
+                    return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.VALIDATION_FAILED, "Mã giảm giá không hợp lệ, đã hết hạn hoặc chưa đạt điều kiện."));
+                }
+                
+                await _discountCodeRepository.MarkDiscountCodeAsUsedAsync(orderModel.DiscountCode);
             }
 
             var created = await _orderRepository.CreateOrderAsync(orderModel);
@@ -222,6 +235,11 @@ namespace LampStoreProjects.Controllers
                 !allowedTransitions[currentStatus].Contains(model.Status))
             {
                 return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.ORDER_STATUS_TRANSITION_INVALID, $"Không thể chuyển từ '{currentStatus}' sang '{model.Status}'."));
+            }
+
+            if (model.Status == "Cancelled" && !string.IsNullOrEmpty(order.DiscountCode))
+            {
+                await _discountCodeRepository.RestoreDiscountCodeAsync(order.DiscountCode);
             }
 
             await _orderRepository.UpdateStatusAsync(id, model.Status);

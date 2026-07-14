@@ -34,6 +34,7 @@ namespace LampStoreProjects.Data
         public DbSet<FlashSale>? FlashSales { get; set; }
         public DbSet<FlashSaleItem>? FlashSaleItems { get; set; }
         public DbSet<ProductAddOn>? ProductAddOns { get; set; }
+        public DbSet<DiscountCode>? DiscountCodes { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -63,6 +64,7 @@ namespace LampStoreProjects.Data
             modelBuilder.Entity<SiteVisit>().ToTable("SiteVisits");
             modelBuilder.Entity<FlashSale>().ToTable("FlashSales");
             modelBuilder.Entity<FlashSaleItem>().ToTable("FlashSaleItems");
+            modelBuilder.Entity<DiscountCode>().ToTable("DiscountCodes");
 
             modelBuilder.Entity<Product>()
                 .HasIndex(p => p.Name)
@@ -456,6 +458,21 @@ namespace LampStoreProjects.Data
             modelBuilder.Entity<FlashSale>()
                 .HasIndex(f => new { f.IsActive, f.StartTime, f.EndTime })
                 .HasDatabaseName("IX_FlashSales_Active_Time");
+
+            modelBuilder.Entity<DiscountCode>()
+                .HasIndex(dc => dc.Code)
+                .IsUnique()
+                .HasDatabaseName("IX_DiscountCodes_Code");
+
+            modelBuilder.Entity<DiscountCode>()
+                .HasIndex(dc => dc.UserId)
+                .HasDatabaseName("IX_DiscountCodes_UserId");
+
+            modelBuilder.Entity<DiscountCode>()
+                .HasOne(dc => dc.User)
+                .WithMany()
+                .HasForeignKey(dc => dc.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
 
         public override int SaveChanges()
