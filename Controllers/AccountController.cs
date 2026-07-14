@@ -69,6 +69,50 @@ namespace LampStoreProjects.Controllers
                 return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.INTERNAL_ERROR));
             }
         }
+        [HttpPost("RequestSignUpOtp")]
+        public async Task<IActionResult> RequestSignUpOtp(SignUpModel signUpModel)
+        {
+            try
+            {
+                var result = await _accountRepository.RequestSignUpOtpAsync(signUpModel);
+
+                if (result.Succeeded)
+                {
+                    return Ok(new ApiSuccessResponse("Mã xác nhận OTP đã được gửi đến email của bạn."));
+                }
+
+                var errors = result.Errors.Select(e => e.Description);
+                return BadRequest(ApiErrorResponse.WithErrors(ErrorCodes.AUTH_REGISTER_FAILED, errors));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while requesting sign up OTP.");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.INTERNAL_ERROR));
+            }
+        }
+
+        [HttpPost("SignUpVerifyOtp")]
+        public async Task<IActionResult> SignUpVerifyOtp(SignUpVerifyOtpModel signUpVerifyOtpModel)
+        {
+            try
+            {
+                var result = await _accountRepository.SignUpVerifyOtpAsync(signUpVerifyOtpModel);
+
+                if (result.Succeeded)
+                {
+                    return Ok(new ApiSuccessResponse("Đăng ký tài khoản thành công."));
+                }
+
+                var errors = result.Errors.Select(e => e.Description);
+                return BadRequest(ApiErrorResponse.WithErrors(ErrorCodes.AUTH_REGISTER_FAILED, errors));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while verifying OTP and signing up.");
+                return StatusCode(500, ApiErrorResponse.FromCode(ErrorCodes.INTERNAL_ERROR));
+            }
+        }
+
         [HttpPost("SignUp")]
         public async Task<IActionResult> SignUp(SignUpModel signUpModel)
         {

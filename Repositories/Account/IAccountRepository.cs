@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using LampStoreProjects.Models;
 using System.Security.Claims;
 using LampStoreProjects.Data;
@@ -8,6 +8,8 @@ namespace LampStoreProjects.Repositories
     public interface IAccountRepository
     {
         Task<IdentityResult> SignUpAsync(SignUpModel model);
+        Task<IdentityResult> RequestSignUpOtpAsync(SignUpModel model);
+        Task<IdentityResult> SignUpVerifyOtpAsync(SignUpVerifyOtpModel model);
         Task<TokenResponseModel?> SignInAsync(SignInModel model);
         Task<TokenResponseModel?> GoogleSignInAsync(GoogleSignInModel model);
         Task<TokenResponseModel?> FacebookSignInAsync(FacebookSignInModel model);

@@ -60,7 +60,7 @@ namespace LampStoreProjects.Services
                         .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
                         .header {{ background-color: #f8f9fa; padding: 20px; text-align: center; }}
                         .content {{ padding: 20px; }}
-                        .password-box {{ background-color: #e9ecef; padding: 15px; border-radius: 5px; margin: 20px 0; }}
+                        .password-box {{ background-color: #e9ecef; padding: 15px; border-radius: 5px; margin: 20px 0; text-align: center; }}
                         .footer {{ background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #6c757d; }}
                     </style>
                 </head>
@@ -74,7 +74,7 @@ namespace LampStoreProjects.Services
                             <p>Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.</p>
                             <p>Mật khẩu mới của bạn là:</p>
                             <div class='password-box'>
-                                <strong style='font-size: 18px; color: #dc3545;'>{newPassword}</strong>
+                                <strong style='font-size: 24px; letter-spacing: 2px; color: #dc3545;'>{newPassword}</strong>
                             </div>
                             <p><strong>Lưu ý quan trọng:</strong></p>
                             <ul>
@@ -83,6 +83,80 @@ namespace LampStoreProjects.Services
                                 <li>Không chia sẻ mật khẩu này với bất kỳ ai</li>
                             </ul>
                             <p>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng liên hệ với chúng tôi ngay lập tức.</p>
+                            <p>Trân trọng,<br>Đội ngũ CapyLumine</p>
+                        </div>
+                        <div class='footer'>
+                            <p>Email này được gửi tự động, vui lòng không trả lời.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>";
+        }
+
+        public async Task<bool> SendSignupOtpEmailAsync(string email, string username, string otp)
+        {
+            try
+            {
+                var smtpHost = _configuration["Email:SmtpHost"] ?? "smtp.gmail.com";
+                var smtpPort = int.Parse(_configuration["Email:SmtpPort"] ?? "587");
+                var smtpUser = _configuration["Email:SmtpUser"] ?? "khongthaydoi124@gmail.com";
+                var smtpPassword = _configuration["Email:SmtpPassword"] ?? "rwaa cexk nbif pvia";
+                var fromEmail = _configuration["Email:FromEmail"] ?? smtpUser;
+                var fromName = _configuration["Email:FromName"] ?? "Lamp Store";
+
+                using var client = new SmtpClient(smtpHost, smtpPort);
+                client.EnableSsl = true;
+                client.Credentials = new NetworkCredential(smtpUser, smtpPassword);
+
+                var mailMessage = new MailMessage
+                {
+                    From = new MailAddress(fromEmail, fromName),
+                    Subject = "Mã xác nhận đăng ký tài khoản - Lamp Store",
+                    Body = GenerateSignupOtpEmailBody(username, otp),
+                    IsBodyHtml = true
+                };
+
+                mailMessage.To.Add(email);
+
+                await client.SendMailAsync(mailMessage);
+                _logger.LogInformation($"Signup OTP email sent successfully to {email}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to send signup OTP email to {email}");
+                return false;
+            }
+        }
+
+        private string GenerateSignupOtpEmailBody(string username, string otp)
+        {
+            return $@"
+                <html>
+                <head>
+                    <style>
+                        body {{ font-family: Arial, sans-serif; }}
+                        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                        .header {{ background-color: #f8f9fa; padding: 20px; text-align: center; }}
+                        .content {{ padding: 20px; }}
+                        .otp-box {{ background-color: #e9ecef; padding: 15px; border-radius: 5px; margin: 20px 0; text-align: center; }}
+                        .footer {{ background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #6c757d; }}
+                    </style>
+                </head>
+                <body>
+                    <div class='container'>
+                        <div class='header'>
+                            <h2>Xác nhận đăng ký tài khoản - CapyLumine</h2>
+                        </div>
+                        <div class='content'>
+                            <p>Xin chào <strong>{username}</strong>,</p>
+                            <p>Cảm ơn bạn đã đăng ký tài khoản tại CapyLumine.</p>
+                            <p>Để hoàn tất quá trình đăng ký, vui lòng sử dụng mã xác nhận (OTP) gồm 6 chữ số dưới đây:</p>
+                            <div class='otp-box'>
+                                <strong style='font-size: 28px; letter-spacing: 5px; color: #0056b3;'>{otp}</strong>
+                            </div>
+                            <p>Mã này có hiệu lực trong vòng 5 phút. Vui lòng không chia sẻ mã này với bất kỳ ai.</p>
+                            <p>Nếu bạn không thực hiện yêu cầu đăng ký này, vui lòng bỏ qua email.</p>
                             <p>Trân trọng,<br>Đội ngũ CapyLumine</p>
                         </div>
                         <div class='footer'>

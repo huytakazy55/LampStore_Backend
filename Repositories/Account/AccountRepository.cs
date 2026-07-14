@@ -10,6 +10,7 @@ using System.Text;
 using System.Linq;
 using System;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using System.Threading.Tasks;
 
 namespace LampStoreProjects.Repositories
@@ -21,14 +22,16 @@ namespace LampStoreProjects.Repositories
 		private readonly RoleManager<IdentityRole> roleManager;
 		private readonly ApplicationDbContext context;
 		private readonly IEmailService emailService;
+		private readonly IMemoryCache memoryCache;
 
-		public AccountRepository(UserManager<ApplicationUser> userManager, IConfiguration configuration, RoleManager<IdentityRole> roleManager, ApplicationDbContext context, IEmailService emailService)
+		public AccountRepository(UserManager<ApplicationUser> userManager, IConfiguration configuration, RoleManager<IdentityRole> roleManager, ApplicationDbContext context, IEmailService emailService, IMemoryCache memoryCache)
 		{
 			this.userManager = userManager;
 			this.configuration = configuration;
 			this.roleManager = roleManager;
 			this.context = context;
 			this.emailService = emailService;
+			this.memoryCache = memoryCache;
 		}
 
 		public async Task<TokenResponseModel?> SignInAsync(SignInModel model)
@@ -255,6 +258,75 @@ namespace LampStoreProjects.Repositories
 				Console.WriteLine($"Facebook SignIn Error: {ex.Message}");
 				return null;
 			}
+		}
+
+		public async Task<IdentityResult> RequestSignUpOtpAsync(SignUpModel model)
+		{
+			if (string.IsNullOrEmpty(model.Email))
+			{
+				return IdentityResult.Failed(new IdentityError { Description = "Email là bắt buộc." });
+			}
+
+			if (string.IsNullOrEmpty(model.Username))
+			{
+				return IdentityResult.Failed(new IdentityError { Description = "Tên đăng nhập là bắt buộc." });
+			}
+
+			// Kiểm tra email đã tồn tại chưa
+			var existingUserByEmail = await userManager.FindByEmailAsync(model.Email);
+			if (existingUserByEmail != null)
+			{
+				return IdentityResult.Failed(new IdentityError { Description = "Email đã được sử dụng." });
+			}
+
+			// Kiểm tra username đã tồn tại chưa
+			var existingUserByName = await userManager.FindByNameAsync(model.Username);
+			if (existingUserByName != null)
+			{
+				return IdentityResult.Failed(new IdentityError { Description = "Tên đăng nhập đã được sử dụng." });
+			}
+
+			// Generate 6-digit OTP
+			var otp = new Random().Next(100000, 999999).ToString();
+
+			// Save to MemoryCache with 5 minutes expiration
+			var cacheKey = $"signup_otp_{model.Email}";
+			memoryCache.Set(cacheKey, otp, TimeSpan.FromMinutes(5));
+
+			// Send Email
+			var emailSent = await emailService.SendSignupOtpEmailAsync(model.Email, model.Username, otp);
+			
+			if (!emailSent)
+			{
+				return IdentityResult.Failed(new IdentityError { Description = "Không thể gửi email OTP. Vui lòng thử lại sau." });
+			}
+
+			return IdentityResult.Success;
+		}
+
+		public async Task<IdentityResult> SignUpVerifyOtpAsync(SignUpVerifyOtpModel model)
+		{
+			if (string.IsNullOrEmpty(model.Otp))
+			{
+				return IdentityResult.Failed(new IdentityError { Description = "Mã OTP là bắt buộc." });
+			}
+
+			var cacheKey = $"signup_otp_{model.Email}";
+			if (memoryCache.TryGetValue(cacheKey, out string? cachedOtp))
+			{
+				if (cachedOtp == model.Otp)
+				{
+					// Valid OTP, remove from cache and proceed with signup
+					memoryCache.Remove(cacheKey);
+					return await SignUpAsync(model);
+				}
+				else
+				{
+					return IdentityResult.Failed(new IdentityError { Description = "Mã OTP không chính xác." });
+				}
+			}
+			
+			return IdentityResult.Failed(new IdentityError { Description = "Mã OTP đã hết hạn hoặc không tồn tại." });
 		}
 
 		public async Task<IdentityResult> SignUpAsync(SignUpModel model)

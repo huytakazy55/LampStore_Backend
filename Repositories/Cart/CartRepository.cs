@@ -50,8 +50,19 @@ namespace LampStoreProjects.Repositories
                     UserId = userId,
                     CreatedAt = DateTimeHelper.VietnamNow
                 };
-                _context.Carts!.Add(cart);
-                await _context.SaveChangesAsync();
+                try
+                {
+                    _context.Carts!.Add(cart);
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateException)
+                {
+                    // Bỏ theo dõi đối tượng bị lỗi
+                    _context.Entry(cart).State = EntityState.Detached;
+                    // Lấy lại cart vừa được thread khác thêm vào
+                    cart = await _context.Carts!.FirstOrDefaultAsync(c => c.UserId == userId);
+                    if (cart == null) throw;
+                }
             }
 
             return _mapper.Map<CartModel>(cart);
