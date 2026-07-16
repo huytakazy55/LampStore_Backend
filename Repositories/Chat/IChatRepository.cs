@@ -5,6 +5,7 @@ namespace LampStoreProjects.Repositories.Chat
     public interface IChatRepository
     {
         // Chat operations
+        Task<LampStoreProjects.Data.Chat> GetOrCreateUserChatAsync(string userId, string userName);
         Task<LampStoreProjects.Data.Chat> CreateChatAsync(string userId, string subject, ChatPriority priority = ChatPriority.Normal);
         Task<LampStoreProjects.Data.Chat?> GetChatByIdAsync(Guid chatId);
         Task<IEnumerable<LampStoreProjects.Data.Chat>> GetChatsByUserIdAsync(string userId);
@@ -31,6 +32,7 @@ namespace LampStoreProjects.Repositories.Chat
         Task<Dictionary<ChatStatus, int>> GetChatStatisticsAsync();
 
         // Guest chat operations
+        Task<LampStoreProjects.Data.Chat> GetOrCreateGuestChatAsync(string guestToken, string guestName);
         Task<LampStoreProjects.Data.Chat> CreateGuestChatAsync(string guestToken, string guestName, string subject, ChatPriority priority = ChatPriority.Normal);
         Task<IEnumerable<LampStoreProjects.Data.Chat>> GetChatsByGuestTokenAsync(string guestToken);
         Task<int> ClaimGuestChatsAsync(string guestToken, string userId);

@@ -73,11 +73,12 @@ namespace LampStoreProjects.Controllers
             try
             {
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userName = User.FindFirst(ClaimTypes.Name)?.Value ?? "User";
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
 
-                var chats = await _chatRepository.GetChatsByUserIdAsync(userId);
-                return Ok(chats);
+                var chat = await _chatRepository.GetOrCreateUserChatAsync(userId, userName);
+                return Ok(new List<LampStoreProjects.Data.Chat> { chat });
             }
             catch (Exception ex)
             {
@@ -163,8 +164,15 @@ namespace LampStoreProjects.Controllers
                     return NotFound(ApiErrorResponse.FromCode(ErrorCodes.CHAT_NOT_FOUND));
 
                 // Kiểm tra quyền gửi tin nhắn
-                if (userRole != "Administrator" && chat.UserId != userId)
+                var guestToken = Request.Headers["X-Guest-Token"].FirstOrDefault();
+                if (userRole != "Administrator" && chat.UserId != userId && chat.GuestToken != guestToken)
                     return Forbid();
+
+                // Tự động mở lại chat nếu đang đóng
+                if (chat.Status == LampStoreProjects.Data.ChatStatus.Closed)
+                {
+                    await _chatRepository.UpdateChatStatusAsync(chatId, LampStoreProjects.Data.ChatStatus.Open);
+                }
 
                 var message = await _chatRepository.SendMessageAsync(chatId, userId, request.Content, request.Type);
 
@@ -466,8 +474,9 @@ namespace LampStoreProjects.Controllers
                 if (string.IsNullOrEmpty(guestToken))
                     return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.CHAT_GUEST_TOKEN_REQUIRED));
 
-                var chats = await _chatRepository.GetChatsByGuestTokenAsync(guestToken);
-                return Ok(chats);
+                var guestName = "Khách vãng lai";
+                var chat = await _chatRepository.GetOrCreateGuestChatAsync(guestToken, guestName);
+                return Ok(new List<LampStoreProjects.Data.Chat> { chat });
             }
             catch (Exception ex)
             {
@@ -514,6 +523,12 @@ namespace LampStoreProjects.Controllers
                 var chat = await _chatRepository.GetChatByIdAsync(chatId);
                 if (chat == null) return NotFound(ApiErrorResponse.FromCode(ErrorCodes.CHAT_NOT_FOUND));
                 if (chat.GuestToken != guestToken) return Forbid();
+
+                // Tự động mở lại chat nếu đang đóng
+                if (chat.Status == LampStoreProjects.Data.ChatStatus.Closed)
+                {
+                    await _chatRepository.UpdateChatStatusAsync(chatId, LampStoreProjects.Data.ChatStatus.Open);
+                }
 
                 // For guest messages, we save them with SenderId = null in the DB
                 var message = await _chatRepository.SendMessageAsync(chatId, null, request.Content, request.Type);

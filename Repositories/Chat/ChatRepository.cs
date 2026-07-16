@@ -15,6 +15,29 @@ namespace LampStoreProjects.Repositories.Chat
         }
 
         // Chat operations
+        public async Task<LampStoreProjects.Data.Chat> GetOrCreateUserChatAsync(string userId, string userName)
+        {
+            var chat = await _context.Chats!
+                .Include(c => c.User)
+                .Include(c => c.AssignedAdmin)
+                .FirstOrDefaultAsync(c => c.UserId == userId);
+
+            if (chat != null) return chat;
+
+            chat = new LampStoreProjects.Data.Chat
+            {
+                UserId = userId,
+                Subject = $"Chat của {userName}",
+                Priority = ChatPriority.Normal,
+                Status = ChatStatus.Open,
+                LastMessageAt = DateTimeHelper.VietnamNow
+            };
+
+            _context.Chats!.Add(chat);
+            await _context.SaveChangesAsync();
+
+            return await GetChatByIdAsync(chat.Id) ?? chat;
+        }
         public async Task<LampStoreProjects.Data.Chat> CreateChatAsync(string userId, string subject, ChatPriority priority = ChatPriority.Normal)
         {
             var chat = new LampStoreProjects.Data.Chat
@@ -252,6 +275,29 @@ namespace LampStoreProjects.Repositories.Chat
         }
 
         // Guest chat operations
+        public async Task<LampStoreProjects.Data.Chat> GetOrCreateGuestChatAsync(string guestToken, string guestName)
+        {
+            var chat = await _context.Chats!
+                .Include(c => c.AssignedAdmin)
+                .FirstOrDefaultAsync(c => c.GuestToken == guestToken);
+
+            if (chat != null) return chat;
+
+            chat = new LampStoreProjects.Data.Chat
+            {
+                GuestToken = guestToken,
+                GuestName = guestName,
+                Subject = $"Khách vãng lai {guestName}",
+                Priority = ChatPriority.Normal,
+                Status = ChatStatus.Open,
+                LastMessageAt = DateTimeHelper.VietnamNow
+            };
+
+            _context.Chats!.Add(chat);
+            await _context.SaveChangesAsync();
+
+            return await GetChatByIdAsync(chat.Id) ?? chat;
+        }
         public async Task<LampStoreProjects.Data.Chat> CreateGuestChatAsync(string guestToken, string guestName, string subject, ChatPriority priority = ChatPriority.Normal)
         {
             var chat = new LampStoreProjects.Data.Chat
@@ -287,11 +333,27 @@ namespace LampStoreProjects.Repositories.Chat
                 .Where(c => c.GuestToken == guestToken && c.UserId == null)
                 .ToListAsync();
 
+            if (!guestChats.Any()) return 0;
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            var userName = user?.UserName ?? "User";
+            var mainChat = await GetOrCreateUserChatAsync(userId, userName);
+
             foreach (var chat in guestChats)
             {
-                chat.UserId = userId;
-                chat.GuestToken = null; // Clear guest token after claiming
+                // Move messages to main chat
+                var messages = await _context.Messages!
+                    .Where(m => m.ChatId == chat.Id)
+                    .ToListAsync();
+                
+                foreach (var message in messages)
+                {
+                    message.ChatId = mainChat.Id;
+                }
             }
+
+            // Remove guest chats
+            _context.Chats!.RemoveRange(guestChats);
 
             await _context.SaveChangesAsync();
             return guestChats.Count;
