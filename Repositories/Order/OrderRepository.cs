@@ -22,6 +22,7 @@ namespace LampStoreProjects.Repositories
         public async Task<IEnumerable<OrderModel>> GetAllAsync()
         {
             var orders = await _context.Orders!
+                .AsNoTracking()
                 .Include(o => o.OrderItems!)
                     .ThenInclude(oi => oi.Product)
                 .OrderByDescending(o => o.OrderDate)
@@ -33,6 +34,7 @@ namespace LampStoreProjects.Repositories
         public async Task<IEnumerable<OrderModel>> GetByUserIdAsync(string userId)
         {
             var orders = await _context.Orders!
+                .AsNoTracking()
                 .Where(o => o.UserId == userId)
                 .Include(o => o.OrderItems!)
                     .ThenInclude(oi => oi.Product)
@@ -45,6 +47,7 @@ namespace LampStoreProjects.Repositories
         public async Task<OrderModel?> GetByIdAsync(Guid id)
         {
             var order = await _context.Orders!
+                .AsNoTracking()
                 .Include(o => o.OrderItems!)
                     .ThenInclude(oi => oi.Product)
                 .FirstOrDefaultAsync(o => o.Id == id);
@@ -178,6 +181,7 @@ namespace LampStoreProjects.Repositories
         public async Task<IEnumerable<OrderModel>> GetByGuestTokenAsync(string guestToken)
         {
             var orders = await _context.Orders!
+                .AsNoTracking()
                 .Where(o => o.GuestToken == guestToken)
                 .Include(o => o.OrderItems!)
                     .ThenInclude(oi => oi.Product)

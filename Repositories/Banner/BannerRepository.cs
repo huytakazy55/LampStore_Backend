@@ -20,6 +20,7 @@ namespace LampStoreProjects.Repositories
         public async Task<IEnumerable<BannerModel>> GetAllAsync()
         {
             var banners = await _context.Banners!
+                .AsNoTracking()
                 .OrderBy(b => b.Order)
                 .ThenBy(b => b.CreatedAt)
                 .ToListAsync();
@@ -29,6 +30,7 @@ namespace LampStoreProjects.Repositories
         public async Task<IEnumerable<BannerModel>> GetActiveBannersAsync()
         {
             var banners = await _context.Banners!
+                .AsNoTracking()
                 .Where(b => b.IsActive)
                 .OrderBy(b => b.Order)
                 .ThenBy(b => b.CreatedAt)

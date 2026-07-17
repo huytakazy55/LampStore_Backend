@@ -17,8 +17,7 @@ namespace LampStoreProjects.Repositories
         public async Task<IEnumerable<ProductModel>> GetAllProductAsync()
         {
             return await _context.Products!
-                .Include(p => p.Images)
-                .Include(p => p.ProductVariant)
+                .AsNoTracking()
                 .Select(p => new ProductModel
                 {
                     Id = p.Id,
@@ -61,6 +60,8 @@ namespace LampStoreProjects.Repositories
         public async Task<ProductModel> GetProductByIdAsync(Guid id)
         {
             var product = await _context.Products!
+                .AsNoTracking()
+                .AsSplitQuery()
                 .Include(l => l.Images)
                 .Include(l => l.ProductVariant)
                 .Include(l => l.VariantTypes)
@@ -116,6 +117,8 @@ namespace LampStoreProjects.Repositories
         public async Task<ProductModel> GetProductBySlugAsync(string slug)
         {
             var product = await _context.Products!
+                .AsNoTracking()
+                .AsSplitQuery()
                 .Include(l => l.Images)
                 .Include(l => l.ProductVariant)
                 .Include(l => l.VariantTypes)
@@ -173,6 +176,7 @@ namespace LampStoreProjects.Repositories
         public async Task<ProductStatsModel> GetProductStatsAsync(Guid productId)
         {
             var reviewQuery = _context.ProductReviews!
+                .AsNoTracking()
                 .Where(r => r.ProductId == productId);
 
             var reviewCount = await reviewQuery.CountAsync();
@@ -181,6 +185,7 @@ namespace LampStoreProjects.Repositories
                 : 0;
 
             var sellCount = await _context.OrderItems!
+                .AsNoTracking()
                 .Where(oi => oi.ProductId == productId
                     && oi.Order != null
                     && !ExcludedSoldStatuses.Contains(oi.Order.Status))
@@ -188,6 +193,7 @@ namespace LampStoreProjects.Repositories
                 .SumAsync() ?? 0;
 
             var stock = await _context.ProductVariants!
+                .AsNoTracking()
                 .Where(v => v.ProductId == productId)
                 .Select(v => v.Stock)
                 .FirstOrDefaultAsync();
@@ -262,13 +268,17 @@ namespace LampStoreProjects.Repositories
 
         public async Task<List<ProductVariantModel>> GetProductVariantByIdAsync(Guid id)
         {
-            var variants = await _context.ProductVariants!.Where(l => l.ProductId == id).ToListAsync();
+            var variants = await _context.ProductVariants!
+                .AsNoTracking()
+                .Where(l => l.ProductId == id)
+                .ToListAsync();
             return _mapper.Map<List<ProductVariantModel>>(variants);
         }
 
         public async Task<List<VariantTypeModel>> GetVariantTypeByIdAsync(Guid productId)
         {
             var varianttype = await _context.VariantTypes!
+            .AsNoTracking()
             .Where(l => l.ProductId == productId)
             .ToListAsync();
             return _mapper.Map<List<VariantTypeModel>>(varianttype);
@@ -277,6 +287,7 @@ namespace LampStoreProjects.Repositories
         public async Task<List<string>> GetVariantValueByIdAsync(Guid typeId)
         {
             var variantValues = await _context.VariantValues!
+                .AsNoTracking()
                 .Where(l => l.TypeId == typeId)
                 .Select(v => v.Value)
                 .ToListAsync();
@@ -287,7 +298,10 @@ namespace LampStoreProjects.Repositories
 
         public async Task<List<ProductImageModel>?> GetProductImageByIdAsync(Guid id)
         {
-            var images = await _context.ProductImages!.Where(x => x.ProductId == id).ToListAsync();
+            var images = await _context.ProductImages!
+                .AsNoTracking()
+                .Where(x => x.ProductId == id)
+                .ToListAsync();
             if (images.Count == 0)
             {
                 return null;

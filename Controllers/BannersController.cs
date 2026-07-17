@@ -14,19 +14,28 @@ namespace LampStoreProjects.Controllers
         private readonly IBannerRepository _bannerRepository;
         private readonly IWebHostEnvironment _environment;
         private readonly IImageUploadService _imageService;
+        private readonly ICacheService _cacheService;
 
-        public BannersController(IBannerRepository bannerRepository, IWebHostEnvironment environment, IImageUploadService imageService)
+        public BannersController(IBannerRepository bannerRepository, IWebHostEnvironment environment, IImageUploadService imageService, ICacheService cacheService)
         {
             _bannerRepository = bannerRepository;
             _environment = environment;
             _imageService = imageService;
+            _cacheService = cacheService;
         }
 
         // GET: api/banners
         [HttpGet]
         public async Task<ActionResult<IEnumerable<BannerModel>>> GetBanners()
         {
+            var cachedBanners = await _cacheService.GetAsync<IEnumerable<BannerModel>>(CacheKeys.AllBanners);
+            if (cachedBanners != null)
+            {
+                return Ok(cachedBanners);
+            }
+
             var banners = await _bannerRepository.GetAllAsync();
+            await _cacheService.SetAsync(CacheKeys.AllBanners, banners, TimeSpan.FromMinutes(15));
             return Ok(banners);
         }
 
@@ -34,7 +43,14 @@ namespace LampStoreProjects.Controllers
         [HttpGet("active")]
         public async Task<ActionResult<IEnumerable<BannerModel>>> GetActiveBanners()
         {
+            var cachedBanners = await _cacheService.GetAsync<IEnumerable<BannerModel>>(CacheKeys.ActiveBanners);
+            if (cachedBanners != null)
+            {
+                return Ok(cachedBanners);
+            }
+
             var banners = await _bannerRepository.GetActiveBannersAsync();
+            await _cacheService.SetAsync(CacheKeys.ActiveBanners, banners, TimeSpan.FromMinutes(15));
             return Ok(banners);
         }
 
@@ -61,6 +77,7 @@ namespace LampStoreProjects.Controllers
             }
 
             var createdBanner = await _bannerRepository.CreateAsync(banner);
+            await ClearBannerCacheAsync();
             return CreatedAtAction(nameof(GetBanner), new { id = createdBanner.Id }, createdBanner);
         }
 
@@ -85,6 +102,7 @@ namespace LampStoreProjects.Controllers
             }
 
             await _bannerRepository.UpdateAsync(banner);
+            await ClearBannerCacheAsync();
             return NoContent();
         }
 
@@ -99,6 +117,7 @@ namespace LampStoreProjects.Controllers
             }
 
             await _bannerRepository.DeleteAsync(id);
+            await ClearBannerCacheAsync();
             return NoContent();
         }
 
@@ -136,6 +155,12 @@ namespace LampStoreProjects.Controllers
             {
                 return StatusCode(500, ApiErrorResponse.FromException(ErrorCodes.INTERNAL_ERROR, ex));
             }
+        }
+
+        private async Task ClearBannerCacheAsync()
+        {
+            await _cacheService.RemoveAsync(CacheKeys.AllBanners);
+            await _cacheService.RemoveAsync(CacheKeys.ActiveBanners);
         }
     }
 }

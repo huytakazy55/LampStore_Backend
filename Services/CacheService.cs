@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace LampStoreProjects.Services
@@ -14,7 +15,7 @@ namespace LampStoreProjects.Services
     {
         private readonly IMemoryCache _memoryCache;
         private readonly ILogger<CacheService> _logger;
-        private readonly HashSet<string> _cacheKeys = new();
+        private static readonly ConcurrentDictionary<string, byte> CacheKeysTracker = new();
 
         public CacheService(IMemoryCache memoryCache, ILogger<CacheService> logger)
         {
@@ -56,12 +57,12 @@ namespace LampStoreProjects.Services
                 // Set callback để remove khỏi tracking khi cache expire
                 cacheOptions.RegisterPostEvictionCallback((key, value, reason, state) =>
                 {
-                    _cacheKeys.Remove(key.ToString() ?? string.Empty);
+                    CacheKeysTracker.TryRemove(key.ToString() ?? string.Empty, out _);
                     _logger.LogInformation("Cache expired for key: {Key}, Reason: {Reason}", key, reason);
                 });
 
                 _memoryCache.Set(key, value, cacheOptions);
-                _cacheKeys.Add(key);
+                CacheKeysTracker.TryAdd(key, 0);
 
                 _logger.LogInformation("Cache SET for key: {Key}, Expiration: {Expiration}", key, expiration);
                 
@@ -78,7 +79,7 @@ namespace LampStoreProjects.Services
             try
             {
                 _memoryCache.Remove(key);
-                _cacheKeys.Remove(key);
+                CacheKeysTracker.TryRemove(key, out _);
                 _logger.LogInformation("Cache REMOVED for key: {Key}", key);
                 
                 await Task.CompletedTask;
@@ -93,12 +94,12 @@ namespace LampStoreProjects.Services
         {
             try
             {
-                var keysToRemove = _cacheKeys.Where(key => key.Contains(pattern)).ToList();
+                var keysToRemove = CacheKeysTracker.Keys.Where(key => key.Contains(pattern)).ToList();
                 
                 foreach (var key in keysToRemove)
                 {
                     _memoryCache.Remove(key);
-                    _cacheKeys.Remove(key);
+                    CacheKeysTracker.TryRemove(key, out _);
                 }
                 
                 _logger.LogInformation("Cache REMOVED by pattern: {Pattern}, Count: {Count}", pattern, keysToRemove.Count);

@@ -20,6 +20,8 @@ namespace LampStoreProjects.Repositories
         public async Task<IEnumerable<FlashSaleModel>> GetAllAsync()
         {
             var flashSales = await _context.FlashSales!
+                .AsNoTracking()
+                .AsSplitQuery()
                 .Include(f => f.Items)
                 .OrderByDescending(f => f.CreatedAt)
                 .ToListAsync();
@@ -38,6 +40,8 @@ namespace LampStoreProjects.Repositories
         {
             var now = DateTimeHelper.VietnamNow;
             var flashSale = await _context.FlashSales!
+                .AsNoTracking()
+                .AsSplitQuery()
                 .Include(f => f.Items)
                 .Where(f => f.IsActive && f.EndTime > now)
                 .OrderBy(f => f.StartTime) // Get the earliest one (either currently running or next upcoming)
@@ -53,6 +57,8 @@ namespace LampStoreProjects.Repositories
         public async Task<FlashSaleModel?> GetByIdAsync(int id)
         {
             var flashSale = await _context.FlashSales!
+                .AsNoTracking()
+                .AsSplitQuery()
                 .Include(f => f.Items)
                 .FirstOrDefaultAsync(f => f.Id == id);
             
@@ -152,17 +158,20 @@ namespace LampStoreProjects.Repositories
         /// </summary>
         private async Task<ICollection<FlashSaleItemModel>> MapItemsWithProductData(ICollection<FlashSaleItem> items)
         {
+            var productIds = items.Select(i => i.ProductId).Distinct().ToList();
+            var products = await _context.Products!
+                .AsNoTracking()
+                .Include(p => p.Images)
+                .Include(p => p.ProductVariant)
+                .Where(p => productIds.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id);
+
             var result = new List<FlashSaleItemModel>();
             foreach (var item in items.OrderBy(i => i.Order))
             {
                 var model = _mapper.Map<FlashSaleItemModel>(item);
                 
-                var product = await _context.Products!
-                    .Include(p => p.Images)
-                    .Include(p => p.ProductVariant)
-                    .FirstOrDefaultAsync(p => p.Id == item.ProductId);
-                
-                if (product != null)
+                if (products.TryGetValue(item.ProductId, out var product))
                 {
                     model.ProductName = product.Name;
                     model.ProductSlug = product.Slug;

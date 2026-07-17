@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using LampStoreProjects.Data;
+using LampStoreProjects.Extensions;
 using LampStoreProjects.Repositories;
 using LampStoreProjects.Services;
 using LampStoreProjects.Hubs;
@@ -166,6 +167,8 @@ builder.Services.AddMemoryCache();
 
 // Add Response Caching
 builder.Services.AddResponseCaching();
+
+builder.Services.AddLampStoreRateLimiting();
 
 // Add SignalR
 builder.Services.AddSignalR();
@@ -386,6 +389,7 @@ app.UseStaticFiles(new StaticFileOptions
     }
 });
 app.UseRouting();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 // Map SignalR Hub

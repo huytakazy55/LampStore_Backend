@@ -22,7 +22,9 @@ namespace LampStoreProjects.Repositories
 
         public async Task<IEnumerable<CategoryModel>> GetAllAsync()
         {
-            var categories = await _context.Categories!.ToListAsync();
+            var categories = await _context.Categories!
+                .AsNoTracking()
+                .ToListAsync();
             return _mapper.Map<IEnumerable<CategoryModel>>(categories);
         }
 
@@ -34,7 +36,9 @@ namespace LampStoreProjects.Repositories
 
         public async Task<CategoryModel> GetBySlugAsync(string slug)
         {
-            var category = await _context.Categories!.FirstOrDefaultAsync(c => c.Slug == slug);
+            var category = await _context.Categories!
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Slug == slug);
             return _mapper.Map<CategoryModel>(category);
         }
 

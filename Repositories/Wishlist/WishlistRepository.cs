@@ -17,6 +17,7 @@ namespace LampStoreProjects.Repositories
         public async Task<IEnumerable<WishlistItemModel>> GetByUserIdAsync(string userId)
         {
             return await _context.WishlistItems!
+                .AsNoTracking()
                 .Where(w => w.UserId == userId)
                 .Include(w => w.Product)
                     .ThenInclude(p => p!.Images)
@@ -46,6 +47,7 @@ namespace LampStoreProjects.Repositories
         public async Task<IEnumerable<Guid>> GetWishlistProductIdsAsync(string userId)
         {
             return await _context.WishlistItems!
+                .AsNoTracking()
                 .Where(w => w.UserId == userId)
                 .Select(w => w.ProductId)
                 .ToListAsync();
@@ -55,12 +57,15 @@ namespace LampStoreProjects.Repositories
         {
             // Check if already exists
             var exists = await _context.WishlistItems!
+                .AsNoTracking()
                 .AnyAsync(w => w.UserId == userId && w.ProductId == productId);
 
             if (exists) return false;
 
             // Check if product exists
-            var productExists = await _context.Products!.AnyAsync(p => p.Id == productId);
+            var productExists = await _context.Products!
+                .AsNoTracking()
+                .AnyAsync(p => p.Id == productId);
             if (!productExists) return false;
 
             var wishlistItem = new WishlistItem
@@ -91,6 +96,7 @@ namespace LampStoreProjects.Repositories
         public async Task<bool> IsInWishlistAsync(string userId, Guid productId)
         {
             return await _context.WishlistItems!
+                .AsNoTracking()
                 .AnyAsync(w => w.UserId == userId && w.ProductId == productId);
         }
     }
