@@ -598,6 +598,9 @@ namespace LampStoreProjects.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("VideoPath")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("ViewCount")
                         .HasColumnType("int");
 

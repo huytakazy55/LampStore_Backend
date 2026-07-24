@@ -41,6 +41,7 @@ namespace LampStoreProjects.Models
         public DateTime CreatedAt { get; set; } = DateTimeHelper.VietnamNow;
         public DateTime? UpdatedAt { get; set; }
         public bool Status { get; set; } = false;
+        public string? VideoPath { get; set; }
         public ICollection<ProductImageModel> Images { get; set; } = new List<ProductImageModel>();
         public ICollection<ProductTagModel> ProductTags { get; set; } = new List<ProductTagModel>();
         public ProductVariantModel? Variant { get; set; }

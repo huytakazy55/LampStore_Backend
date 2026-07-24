@@ -10,28 +10,36 @@ namespace LampStoreProjects.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IX_CartItems_ProductId",
-                table: "CartItems");
+            migrationBuilder.Sql(
+                """
+                IF EXISTS (
+                    SELECT 1
+                    FROM sys.indexes
+                    WHERE name = N'IX_CartItems_ProductId'
+                      AND object_id = OBJECT_ID(N'[CartItems]')
+                )
+                    DROP INDEX [IX_CartItems_ProductId] ON [CartItems];
 
-            migrationBuilder.CreateIndex(
-                name: "IX_CartItems_ProductId",
-                table: "CartItems",
-                column: "ProductId");
+                CREATE INDEX [IX_CartItems_ProductId] ON [CartItems] ([ProductId]);
+                """);
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IX_CartItems_ProductId",
-                table: "CartItems");
+            migrationBuilder.Sql(
+                """
+                IF EXISTS (
+                    SELECT 1
+                    FROM sys.indexes
+                    WHERE name = N'IX_CartItems_ProductId'
+                      AND object_id = OBJECT_ID(N'[CartItems]')
+                )
+                    DROP INDEX [IX_CartItems_ProductId] ON [CartItems];
 
-            migrationBuilder.CreateIndex(
-                name: "IX_CartItems_ProductId",
-                table: "CartItems",
-                column: "ProductId",
-                unique: true,
-                filter: "[ProductId] IS NOT NULL");
+                CREATE UNIQUE INDEX [IX_CartItems_ProductId]
+                    ON [CartItems] ([ProductId])
+                    WHERE [ProductId] IS NOT NULL;
+                """);
         }
     }
 }

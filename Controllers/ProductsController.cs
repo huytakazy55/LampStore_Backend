@@ -223,6 +223,16 @@ namespace LampStoreProjects.Controllers
                 }
             }
 
+            var productForVideo = await _context.Products!.FirstOrDefaultAsync(p => p.Id == id);
+            if (productForVideo != null && !string.IsNullOrEmpty(productForVideo.VideoPath) && !productForVideo.VideoPath.StartsWith("http"))
+            {
+                var videoPath = Path.Combine(webRootPath, productForVideo.VideoPath.TrimStart('/'));
+                if (System.IO.File.Exists(videoPath))
+                {
+                    System.IO.File.Delete(videoPath);
+                }
+            }
+
             await _productRepository.DeleteProductAsync(id);
             
             // Xóa cache
@@ -356,6 +366,133 @@ namespace LampStoreProjects.Controllers
             {
                 return StatusCode(500, ApiErrorResponse.FromException(ErrorCodes.INTERNAL_ERROR, ex));
             }
+        }
+
+        [HttpPost("{productId}/video")]
+        [RequestSizeLimit(21 * 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 21 * 1024 * 1024)]
+        public async Task<ActionResult> UploadVideo(Guid productId, [FromForm] IFormFile videoFile, CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (videoFile == null || videoFile.Length == 0)
+                {
+                    return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_NO_FILE, "Vui lòng chọn file video."));
+                }
+
+                var product = await _productRepository.GetProductByIdAsync(productId);
+                if (product == null)
+                {
+                    return NotFound(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_NOT_FOUND));
+                }
+
+                // Validate file type
+                var fileExtension = Path.GetExtension(videoFile.FileName).ToLowerInvariant();
+                var allowedVideoTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    [".mp4"] = "video/mp4",
+                    [".webm"] = "video/webm"
+                };
+                if (!allowedVideoTypes.TryGetValue(fileExtension, out var expectedContentType) ||
+                    !string.Equals(videoFile.ContentType, expectedContentType, StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_INVALID_FILE_TYPE, "Chỉ hỗ trợ định dạng .mp4 hoặc .webm"));
+                }
+
+                if (videoFile.Length > 20 * 1024 * 1024)
+                {
+                    return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_FILE_TOO_LARGE, "Kích thước video không được vượt quá 20MB."));
+                }
+
+                // Tạo thư mục uploads nếu chưa có
+                var uploadsDir = Path.Combine(_env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), "VideoImport");
+                if (!Directory.Exists(uploadsDir))
+                {
+                    Directory.CreateDirectory(uploadsDir);
+                }
+
+                // Tạo tên file unique
+                var fileName = $"{Guid.NewGuid()}{fileExtension}";
+                var filePath = Path.Combine(uploadsDir, fileName);
+
+                await using (var stream = new FileStream(filePath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, true))
+                {
+                    await videoFile.CopyToAsync(stream, cancellationToken);
+                }
+
+                // Lưu path tương đối vào DB
+                var relativePath = $"/VideoImport/{fileName}";
+
+                // Fetch product entity to update
+                var productEntity = await _context.Products!.FirstOrDefaultAsync(p => p.Id == productId);
+                if (productEntity != null)
+                {
+                    // Xóa video cũ nếu có
+                    if (!string.IsNullOrEmpty(productEntity.VideoPath) && !productEntity.VideoPath.StartsWith("http"))
+                    {
+                        var oldFilePath = Path.Combine(_env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), productEntity.VideoPath.TrimStart('/'));
+                        if (System.IO.File.Exists(oldFilePath))
+                        {
+                            System.IO.File.Delete(oldFilePath);
+                        }
+                    }
+
+                    productEntity.VideoPath = relativePath;
+                    try
+                    {
+                        await _context.SaveChangesAsync(cancellationToken);
+                    }
+                    catch
+                    {
+                        if (System.IO.File.Exists(filePath))
+                        {
+                            System.IO.File.Delete(filePath);
+                        }
+                        throw;
+                    }
+                }
+
+                // Xóa cache
+                await _cacheService.RemoveAsync(CacheKeys.AllProducts);
+                await _cacheService.RemoveAsync(CacheKeys.ProductById(productId));
+
+                return Ok(new { success = true, message = "Upload video thành công!", videoPath = relativePath });
+            }
+            catch (System.Exception ex)
+            {
+                return StatusCode(500, ApiErrorResponse.FromException(ErrorCodes.INTERNAL_ERROR, ex));
+            }
+        }
+
+        [HttpDelete("{productId}/video")]
+        public async Task<ActionResult> DeleteProductVideo(Guid productId)
+        {
+            var productEntity = await _context.Products!.FirstOrDefaultAsync(p => p.Id == productId);
+            if (productEntity == null)
+            {
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_NOT_FOUND));
+            }
+
+            if (!string.IsNullOrEmpty(productEntity.VideoPath))
+            {
+                if (!productEntity.VideoPath.StartsWith("http"))
+                {
+                    var webRootPath = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                    var filePath = Path.Combine(webRootPath, productEntity.VideoPath.TrimStart('/'));
+                    if (System.IO.File.Exists(filePath))
+                    {
+                        System.IO.File.Delete(filePath);
+                    }
+                }
+                productEntity.VideoPath = null;
+                await _context.SaveChangesAsync();
+
+                // Xóa cache
+                await _cacheService.RemoveAsync(CacheKeys.AllProducts);
+                await _cacheService.RemoveAsync(CacheKeys.ProductById(productId));
+            }
+
+            return Ok(new ApiSuccessResponse("Xóa video sản phẩm thành công."));
         }
 
         [HttpPost("import")]

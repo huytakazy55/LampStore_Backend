@@ -32,6 +32,7 @@ namespace LampStoreProjects.Data
         public Category? Category { get; set; }
 
         public bool Status { get; set; } = true;
+        public string? VideoPath { get; set; }
 
         public ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();
         public ProductVariant? ProductVariant { get; set; }
