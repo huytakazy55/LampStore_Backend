@@ -26,17 +26,28 @@ namespace LampStoreProjects.Controllers
         }
 
         // GET: api/banners
+        // Admin management listing (all banners, including inactive). The public storefront
+        // uses GetActiveBanners below instead.
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<BannerModel>>> GetBanners()
+        [Authorize(Roles = AppRole.Admin)]
+        public async Task<ActionResult<IEnumerable<BannerModel>>> GetBanners([FromQuery] int page = 1, [FromQuery] int pageSize = 50, [FromQuery] string? search = null)
         {
-            var cachedBanners = await _cacheService.GetAsync<IEnumerable<BannerModel>>(CacheKeys.AllBanners);
+            if (page < 1) page = 1;
+            pageSize = Math.Clamp(pageSize, 1, 100);
+
+            search = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
+            var totalCount = await _bannerRepository.CountAsync(search);
+            Response.Headers["X-Total-Count"] = totalCount.ToString();
+
+            var cacheKey = $"{CacheKeys.AllBanners}_{page}_{pageSize}_{search?.ToLowerInvariant() ?? "all"}";
+            var cachedBanners = await _cacheService.GetAsync<IEnumerable<BannerModel>>(cacheKey);
             if (cachedBanners != null)
             {
                 return Ok(cachedBanners);
             }
 
-            var banners = await _bannerRepository.GetAllAsync();
-            await _cacheService.SetAsync(CacheKeys.AllBanners, banners, TimeSpan.FromMinutes(15));
+            var banners = await _bannerRepository.GetAllAsync(page, pageSize, search);
+            await _cacheService.SetAsync(cacheKey, banners, TimeSpan.FromMinutes(15));
             return Ok(banners);
         }
 
@@ -164,7 +175,7 @@ namespace LampStoreProjects.Controllers
 
         private async Task ClearBannerCacheAsync()
         {
-            await _cacheService.RemoveAsync(CacheKeys.AllBanners);
+            await _cacheService.RemoveByPatternAsync(CacheKeys.AllBanners); // removes all paginated "banners_all_*" cache entries too
             await _cacheService.RemoveAsync(CacheKeys.ActiveBanners);
         }
     }

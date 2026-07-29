@@ -22,9 +22,16 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<DeliveryModel>>> GetDeliveries()
+        public async Task<ActionResult<IEnumerable<DeliveryModel>>> GetDeliveries([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null)
         {
-            var deliveries = await _deliveryRepository.GetAllAsync();
+            if (page < 1) page = 1;
+            pageSize = Math.Clamp(pageSize, 1, 100);
+
+            search = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
+            var totalCount = await _deliveryRepository.CountAsync(search);
+            Response.Headers["X-Total-Count"] = totalCount.ToString();
+
+            var deliveries = await _deliveryRepository.GetAllAsync(page, pageSize, search);
             return Ok(deliveries);
         }
 

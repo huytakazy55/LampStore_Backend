@@ -29,20 +29,28 @@ namespace LampStoreProjects.Controllers
 
         [HttpGet]
         [ResponseCache(NoStore = true)]
-        public async Task<ActionResult<IEnumerable<CategoryModel>>> GetCategories()
+        public async Task<ActionResult<IEnumerable<CategoryModel>>> GetCategories([FromQuery] int page = 1, [FromQuery] int pageSize = 50, [FromQuery] string? search = null)
         {
-            // Kiểm tra cache trước
-            var cachedCategories = await _cacheService.GetAsync<IEnumerable<CategoryModel>>(CacheKeys.AllCategories);
+            if (page < 1) page = 1;
+            pageSize = Math.Clamp(pageSize, 1, 100);
+
+            search = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
+            var totalCount = await _categoryRepository.CountAsync(search);
+            Response.Headers["X-Total-Count"] = totalCount.ToString();
+
+            // Kiểm tra cache trước (key theo page/pageSize để tránh trả nhầm dữ liệu trang khác)
+            var cacheKey = $"{CacheKeys.AllCategories}_{page}_{pageSize}_{search?.ToLowerInvariant() ?? "all"}";
+            var cachedCategories = await _cacheService.GetAsync<IEnumerable<CategoryModel>>(cacheKey);
             if (cachedCategories != null)
             {
                 return Ok(cachedCategories);
             }
 
-            var categories = await _categoryRepository.GetAllAsync();
-            
+            var categories = await _categoryRepository.GetAllAsync(page, pageSize, search);
+
             // Lưu vào cache với thời gian expire 15 phút
-            await _cacheService.SetAsync(CacheKeys.AllCategories, categories, TimeSpan.FromMinutes(15));
-            
+            await _cacheService.SetAsync(cacheKey, categories, TimeSpan.FromMinutes(15));
+
             return Ok(categories);
         }
 
@@ -73,7 +81,7 @@ namespace LampStoreProjects.Controllers
         public async Task<ActionResult> CreateCategory(CategoryModel categoryModel)
         {
             await _categoryRepository.AddAsync(categoryModel);
-            await _cacheService.RemoveAsync(CacheKeys.AllCategories);
+            await _cacheService.RemoveByPatternAsync(CacheKeys.AllCategories); // removes all paginated "categories_all_*" cache entries too
             return CreatedAtAction(nameof(GetCategory), new { id = categoryModel.Id }, categoryModel);
         }
 
@@ -88,7 +96,7 @@ namespace LampStoreProjects.Controllers
             await _categoryRepository.UpdateAsync(categoryModel);
 
             // Xóa cache
-            await _cacheService.RemoveAsync(CacheKeys.AllCategories);
+            await _cacheService.RemoveByPatternAsync(CacheKeys.AllCategories); // removes all paginated "categories_all_*" cache entries too
 
             return NoContent();
         }
@@ -98,7 +106,7 @@ namespace LampStoreProjects.Controllers
         public async Task<ActionResult> DeleteCategory(Guid id)
         {
             await _categoryRepository.DeleteAsync(id);
-            await _cacheService.RemoveAsync(CacheKeys.AllCategories);
+            await _cacheService.RemoveByPatternAsync(CacheKeys.AllCategories); // removes all paginated "categories_all_*" cache entries too
             return NoContent();
         }
 
@@ -107,7 +115,7 @@ namespace LampStoreProjects.Controllers
         public async Task<ActionResult> BulkDeleteCategories(List<Guid> ids)
         {
             await _categoryRepository.BulkDeleteAsync(ids);
-            await _cacheService.RemoveAsync(CacheKeys.AllCategories);
+            await _cacheService.RemoveByPatternAsync(CacheKeys.AllCategories); // removes all paginated "categories_all_*" cache entries too
             return NoContent();
         }
 
@@ -146,7 +154,7 @@ namespace LampStoreProjects.Controllers
                 var imageUrl = await _imageService.UploadImageAsync(file, "ImageImport");
 
                 // Xóa cache danh mục
-                await _cacheService.RemoveAsync(CacheKeys.AllCategories);
+                await _cacheService.RemoveByPatternAsync(CacheKeys.AllCategories); // removes all paginated "categories_all_*" cache entries too
 
                 return Ok(new { imageUrl = imageUrl });
             }

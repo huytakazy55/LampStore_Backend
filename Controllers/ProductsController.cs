@@ -46,6 +46,9 @@ namespace LampStoreProjects.Controllers
             if (page < 1) page = 1;
             pageSize = Math.Clamp(pageSize, 1, 100);
 
+            var totalCount = await _productRepository.CountAllProductsAsync();
+            Response.Headers["X-Total-Count"] = totalCount.ToString();
+
             // Kiểm tra cache trước (key theo page/pageSize để tránh trả nhầm dữ liệu trang khác)
             var cacheKey = $"{CacheKeys.AllProducts}_{page}_{pageSize}";
             var cachedProducts = await _cacheService.GetAsync<IEnumerable<ProductModel>>(cacheKey);
@@ -610,6 +613,7 @@ namespace LampStoreProjects.Controllers
                 var cached = await _cacheService.GetAsync<SearchResultModel>(cacheKey);
                 if (cached != null)
                 {
+                    Response.Headers["X-Total-Count"] = cached.TotalCount.ToString();
                     return Ok(cached);
                 }
 
@@ -617,6 +621,7 @@ namespace LampStoreProjects.Controllers
 
                 await _cacheService.SetAsync(cacheKey, searchResult, TimeSpan.FromSeconds(60));
 
+                Response.Headers["X-Total-Count"] = searchResult.TotalCount.ToString();
                 return Ok(searchResult);
             }
             catch (Exception ex)

@@ -20,7 +20,8 @@ namespace LampStoreProjects.Repositories
         Task<UserProfile?> GetUserProfileAsync(string userId);
         Task<UserProfile?> SyncUserProfileFromAccountAsync(string userId);
         Task<IdentityUser?> GetUserAccountAsync(string userId);
-        Task<IEnumerable<IdentityUser>> GetAllUsersAsync();
+        Task<IEnumerable<IdentityUser>> GetAllUsersAsync(int page = 1, int pageSize = 20);
+        Task<int> CountUsersAsync();
         Task<List<string>?> GetRolesByUserIdAsync(string userId);
         Task LogoutAsync(string userId);
         Task<string?> ForgotPasswordAsync(ForgotPasswordModel model);

@@ -342,14 +342,21 @@ namespace LampStoreProjects.Controllers
 
         [Authorize(Roles = AppRole.Admin)]
         [HttpGet("GetAllUserLogin")]
-        public async Task<IActionResult> GetAllUserLogin()
+        public async Task<IActionResult> GetAllUserLogin([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
-            var users = await _accountRepository.GetAllUsersAsync();
+            if (page < 1) page = 1;
+            pageSize = Math.Clamp(pageSize, 1, 100);
+
+            var totalCount = await _accountRepository.CountUsersAsync();
+
+            var users = await _accountRepository.GetAllUsersAsync(page, pageSize);
 
             if (users == null || !users.Any())
             {
                 return NotFound(ApiErrorResponse.FromCode(ErrorCodes.AUTH_NO_USERS_FOUND));
             }
+
+            Response.Headers["X-Total-Count"] = totalCount.ToString();
 
             return Ok(users);
         }

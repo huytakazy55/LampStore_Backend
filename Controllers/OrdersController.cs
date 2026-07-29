@@ -48,8 +48,19 @@ namespace LampStoreProjects.Controllers
         {
             if (page < 1) page = 1;
             pageSize = Math.Clamp(pageSize, 1, 100);
+
+            var totalCount = await _orderRepository.CountAsync();
+            Response.Headers["X-Total-Count"] = totalCount.ToString();
+
             var orders = await _orderRepository.GetAllAsync(page, pageSize);
             return Ok(orders);
+        }
+
+        [HttpGet("stats")]
+        [Authorize(Roles = AppRole.Admin)]
+        public async Task<ActionResult<OrderStatsModel>> GetStats()
+        {
+            return Ok(await _orderRepository.GetStatsAsync());
         }
 
         [HttpGet("{id}")]

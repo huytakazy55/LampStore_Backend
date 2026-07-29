@@ -475,9 +475,21 @@ namespace LampStoreProjects.Repositories
 			return await userManager.FindByIdAsync(userId);
 		}
 
-		public async Task<IEnumerable<IdentityUser>> GetAllUsersAsync()
+		public async Task<IEnumerable<IdentityUser>> GetAllUsersAsync(int page = 1, int pageSize = 20)
 		{
-			return await context.Users.ToListAsync();
+			if (page < 1) page = 1;
+			pageSize = Math.Clamp(pageSize, 1, 100);
+
+			return await context.Users
+				.OrderBy(u => u.UserName)
+				.Skip((page - 1) * pageSize)
+				.Take(pageSize)
+				.ToListAsync();
+		}
+
+		public async Task<int> CountUsersAsync()
+		{
+			return await context.Users.CountAsync();
 		}
 
 		public async Task LogoutAsync(string userId)

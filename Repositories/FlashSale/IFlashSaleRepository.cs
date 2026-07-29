@@ -4,7 +4,8 @@ namespace LampStoreProjects.Repositories
 {
     public interface IFlashSaleRepository
     {
-        Task<IEnumerable<FlashSaleModel>> GetAllAsync();
+        Task<IEnumerable<FlashSaleModel>> GetAllAsync(int page = 1, int pageSize = 20);
+        Task<int> CountAsync();
         Task<FlashSaleModel?> GetActiveAsync();
         Task<FlashSaleModel?> GetByIdAsync(int id);
         Task<FlashSaleModel> CreateAsync(FlashSaleModel flashSale);

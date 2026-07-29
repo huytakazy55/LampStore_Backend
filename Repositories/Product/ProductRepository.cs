@@ -14,6 +14,11 @@ namespace LampStoreProjects.Repositories
         private readonly IMapper _mapper = mapper;
         private static readonly string[] ExcludedSoldStatuses = { "Cancelled", "FailedDelivery", "Refunded" };
 
+        public async Task<int> CountAllProductsAsync()
+        {
+            return await _context.Products!.CountAsync();
+        }
+
         public async Task<IEnumerable<ProductModel>> GetAllProductAsync(int page = 1, int pageSize = 100)
         {
             if (page < 1) page = 1;

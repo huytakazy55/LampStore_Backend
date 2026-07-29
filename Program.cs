@@ -106,13 +106,14 @@ builder.Services.AddCors(options =>
                 policyBuilder.WithOrigins(allowedOrigins)
                     .AllowAnyHeader()
                     .AllowAnyMethod()
-                    .AllowCredentials();
+                    .AllowCredentials()
+                    .WithExposedHeaders("X-Total-Count");
             }
             else
             {
                 // Development: Cho phép localhost
                 policyBuilder.WithOrigins(
-                    "http://localhost:3000", 
+                    "http://localhost:3000",
                     "https://localhost:3000",
                     "http://localhost:80",
                     "http://frontend:80", // Docker service name
@@ -121,7 +122,8 @@ builder.Services.AddCors(options =>
                 )
                 .AllowAnyHeader()
                 .AllowAnyMethod()
-                .AllowCredentials();
+                .AllowCredentials()
+                .WithExposedHeaders("X-Total-Count");
             }
         });
 });

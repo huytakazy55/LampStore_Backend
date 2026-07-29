@@ -18,10 +18,19 @@ namespace LampStoreProjects.Controllers
         }
 
         // GET: api/flashsales
+        // Admin management listing (all flash sales, past/future/inactive included).
+        // The public storefront uses GetActive() below instead.
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<FlashSaleModel>>> GetAll()
+        [Authorize(Roles = AppRole.Admin)]
+        public async Task<ActionResult<IEnumerable<FlashSaleModel>>> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
-            var flashSales = await _flashSaleRepository.GetAllAsync();
+            if (page < 1) page = 1;
+            pageSize = Math.Clamp(pageSize, 1, 100);
+
+            var totalCount = await _flashSaleRepository.CountAsync();
+            Response.Headers["X-Total-Count"] = totalCount.ToString();
+
+            var flashSales = await _flashSaleRepository.GetAllAsync(page, pageSize);
             return Ok(flashSales);
         }
 

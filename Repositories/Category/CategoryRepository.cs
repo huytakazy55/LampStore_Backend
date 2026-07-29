@@ -20,12 +20,35 @@ namespace LampStoreProjects.Repositories
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<CategoryModel>> GetAllAsync()
+        public async Task<IEnumerable<CategoryModel>> GetAllAsync(int page = 1, int pageSize = 50, string? search = null)
         {
-            var categories = await _context.Categories!
-                .AsNoTracking()
+            if (page < 1) page = 1;
+            pageSize = Math.Clamp(pageSize, 1, 100);
+
+            var query = _context.Categories!.AsNoTracking();
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim();
+                query = query.Where(c => c.Name.Contains(keyword) || c.Description.Contains(keyword));
+            }
+
+            var categories = await query
+                .OrderBy(c => c.Name)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
             return _mapper.Map<IEnumerable<CategoryModel>>(categories);
+        }
+
+        public async Task<int> CountAsync(string? search = null)
+        {
+            var query = _context.Categories!.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim();
+                query = query.Where(c => c.Name.Contains(keyword) || c.Description.Contains(keyword));
+            }
+            return await query.CountAsync();
         }
 
         public async Task<CategoryModel> GetByIdAsync(Guid id)

@@ -44,6 +44,29 @@ namespace LampStoreProjects.Repositories
             return orders.Select(o => MapOrderToModel(o)).ToList();
         }
 
+        public async Task<int> CountAsync()
+        {
+            return await _context.Orders!.CountAsync();
+        }
+
+        public async Task<OrderStatsModel> GetStatsAsync()
+        {
+            var orders = _context.Orders!.AsNoTracking();
+            return new OrderStatsModel
+            {
+                Total = await orders.CountAsync(),
+                Pending = await orders.CountAsync(o => o.Status == "Pending"),
+                Unpaid = await orders.CountAsync(o => o.PaymentStatus == "Unpaid"),
+                Shipping = await orders.CountAsync(o => o.Status == "Shipping"),
+                Completed = await orders.CountAsync(o => o.Status == "Completed"),
+                FailedDelivery = await orders.CountAsync(o => o.Status == "FailedDelivery"),
+                ReturnRequested = await orders.CountAsync(o => o.Status == "ReturnRequested"),
+                Revenue = await orders
+                    .Where(o => o.Status == "Completed")
+                    .SumAsync(o => (decimal?)o.TotalAmount) ?? 0m
+            };
+        }
+
         public async Task<IEnumerable<OrderModel>> GetByUserIdAsync(string userId)
         {
             var orders = await _context.Orders!

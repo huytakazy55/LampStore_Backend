@@ -8,6 +8,7 @@ namespace LampStoreProjects.Repositories
     public interface IProductRepository
     {
         Task<IEnumerable<ProductModel>> GetAllProductAsync(int page = 1, int pageSize = 100);
+        Task<int> CountAllProductsAsync();
         Task<ProductModel> GetProductByIdAsync(Guid id);
         Task<ProductModel> GetProductBySlugAsync(string slug);
         Task<List<ProductVariantModel>> GetProductVariantByIdAsync(Guid id);

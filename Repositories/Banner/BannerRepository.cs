@@ -3,6 +3,7 @@ using LampStoreProjects.Helpers;
 using LampStoreProjects.Models;
 using Microsoft.EntityFrameworkCore;
 using AutoMapper;
+using System;
 
 namespace LampStoreProjects.Repositories
 {
@@ -17,14 +18,38 @@ namespace LampStoreProjects.Repositories
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<BannerModel>> GetAllAsync()
+        public async Task<IEnumerable<BannerModel>> GetAllAsync(int page = 1, int pageSize = 50, string? search = null)
         {
-            var banners = await _context.Banners!
-                .AsNoTracking()
+            if (page < 1) page = 1;
+            pageSize = Math.Clamp(pageSize, 1, 100);
+
+            var query = _context.Banners!.AsNoTracking();
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim();
+                query = query.Where(b => b.Title.Contains(keyword) ||
+                    (b.Description != null && b.Description.Contains(keyword)));
+            }
+
+            var banners = await query
                 .OrderBy(b => b.Order)
                 .ThenBy(b => b.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
             return _mapper.Map<IEnumerable<BannerModel>>(banners);
+        }
+
+        public async Task<int> CountAsync(string? search = null)
+        {
+            var query = _context.Banners!.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim();
+                query = query.Where(b => b.Title.Contains(keyword) ||
+                    (b.Description != null && b.Description.Contains(keyword)));
+            }
+            return await query.CountAsync();
         }
 
         public async Task<IEnumerable<BannerModel>> GetActiveBannersAsync()

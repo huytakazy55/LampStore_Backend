@@ -18,10 +18,35 @@ namespace LampStoreProjects.Repositories
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<TagModel>> GetAllAsync()
+        public async Task<IEnumerable<TagModel>> GetAllAsync(int page = 1, int pageSize = 50, string? search = null)
         {
-            var tags = await _context.Tags!.ToListAsync();
+            if (page < 1) page = 1;
+            pageSize = Math.Clamp(pageSize, 1, 100);
+
+            var query = _context.Tags!.AsNoTracking();
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim();
+                query = query.Where(t => t.Name.Contains(keyword) || t.Description.Contains(keyword));
+            }
+
+            var tags = await query
+                .OrderBy(t => t.Name)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
             return _mapper.Map<IEnumerable<TagModel>>(tags);
+        }
+
+        public async Task<int> CountAsync(string? search = null)
+        {
+            var query = _context.Tags!.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim();
+                query = query.Where(t => t.Name.Contains(keyword) || t.Description.Contains(keyword));
+            }
+            return await query.CountAsync();
         }
 
         public async Task<TagModel> GetByIdAsync(Guid id)

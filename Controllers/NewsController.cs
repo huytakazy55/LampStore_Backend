@@ -13,18 +13,33 @@ namespace LampStoreProjects.Controllers
     public class NewsController(ApplicationDbContext context, IImageUploadService imageService) : ControllerBase
     {
         // GET: api/News
+        // NOTE on pagination defaults: this endpoint is shared by the public storefront
+        // (activeOnly=true, no page/pageSize passed today — it expects the full active list
+        // in one call) and the admin news management screen (which passes its own explicit
+        // page/pageSize). To avoid silently truncating the public listing if active-news
+        // count grows past a typical "page", the default pageSize here is 50 rather than the
+        // usual 20 used elsewhere. Admin callers that explicitly pass page/pageSize are
+        // unaffected by this default.
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<NewsDto>>> GetNews([FromQuery] bool activeOnly = true)
+        public async Task<ActionResult<IEnumerable<NewsDto>>> GetNews([FromQuery] bool activeOnly = true, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
         {
+            if (page < 1) page = 1;
+            pageSize = Math.Clamp(pageSize, 1, 100);
+
             var query = context.News!.AsQueryable();
-            
+
             if (activeOnly)
             {
                 query = query.Where(n => n.IsActive);
             }
 
+            var totalCount = await query.CountAsync();
+            Response.Headers["X-Total-Count"] = totalCount.ToString();
+
             var newsList = await query
                 .OrderByDescending(n => n.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .Select(n => new NewsDto
                 {
                     Id = n.Id,
