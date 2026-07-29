@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -7,8 +8,10 @@ using LampStoreProjects.Helpers;
 
 namespace LampStoreProjects.Controllers
 {
+    // Admin/back-office only — delivery records span all customers' orders.
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = AppRole.Admin)]
     public class DeliveriesController : ControllerBase
     {
         private readonly IDeliveryRepository _deliveryRepository;

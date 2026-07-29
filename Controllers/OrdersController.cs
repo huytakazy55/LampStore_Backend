@@ -43,13 +43,17 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<OrderModel>>> GetOrders()
+        [Authorize(Roles = AppRole.Admin)]
+        public async Task<ActionResult<IEnumerable<OrderModel>>> GetOrders([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
         {
-            var orders = await _orderRepository.GetAllAsync();
+            if (page < 1) page = 1;
+            pageSize = Math.Clamp(pageSize, 1, 100);
+            var orders = await _orderRepository.GetAllAsync(page, pageSize);
             return Ok(orders);
         }
 
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<ActionResult<OrderModel>> GetOrder(Guid id)
         {
             var order = await _orderRepository.GetByIdAsync(id);
@@ -57,6 +61,13 @@ namespace LampStoreProjects.Controllers
             {
                 return NotFound(ApiErrorResponse.FromCode(ErrorCodes.ORDER_NOT_FOUND));
             }
+
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!User.IsInRole(AppRole.Admin) && (string.IsNullOrEmpty(currentUserId) || order.UserId != currentUserId))
+            {
+                return Forbid();
+            }
+
             return Ok(order);
         }
 
@@ -76,18 +87,14 @@ namespace LampStoreProjects.Controllers
                 orderModel.UserId = userId;
             }
 
-            if (!string.IsNullOrEmpty(orderModel.DiscountCode) && !string.IsNullOrEmpty(userId))
+            // Server-side pricing, discount validation and stock decrement all happen
+            // atomically inside CreateOrderAsync — never trust client-supplied prices/totals.
+            var creationResult = await _orderRepository.CreateOrderAsync(orderModel);
+            if (!creationResult.Success || creationResult.Order == null)
             {
-                var validCode = await _discountCodeRepository.ValidateDiscountCodeAsync(orderModel.DiscountCode, userId, orderModel.TotalAmount + orderModel.DiscountAmount);
-                if (validCode == null)
-                {
-                    return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.VALIDATION_FAILED, "Mã giảm giá không hợp lệ, đã hết hạn hoặc chưa đạt điều kiện."));
-                }
-                
-                await _discountCodeRepository.MarkDiscountCodeAsUsedAsync(orderModel.DiscountCode);
+                return BadRequest(ApiErrorResponse.FromCode(creationResult.ErrorCode ?? ErrorCodes.VALIDATION_FAILED, creationResult.ErrorDetail));
             }
-
-            var created = await _orderRepository.CreateOrderAsync(orderModel);
+            var created = creationResult.Order;
 
             // Send emails asynchronously (fire and forget to not block response)
             var storeUrl = Request.Headers.Origin.FirstOrDefault() ?? "https://capylumine.com";
@@ -149,7 +156,14 @@ namespace LampStoreProjects.Controllers
             // Ensure no userId is set for guest orders
             orderModel.UserId = null;
 
-            var created = await _orderRepository.CreateOrderAsync(orderModel);
+            // Server-side pricing, discount validation (guest gets same validation as
+            // authenticated users now) and stock decrement all happen atomically here.
+            var creationResult = await _orderRepository.CreateOrderAsync(orderModel);
+            if (!creationResult.Success || creationResult.Order == null)
+            {
+                return BadRequest(ApiErrorResponse.FromCode(creationResult.ErrorCode ?? ErrorCodes.VALIDATION_FAILED, creationResult.ErrorDetail));
+            }
+            var created = creationResult.Order;
 
             // Send confirmation email + admin notification asynchronously
             var storeUrlGuest = Request.Headers.Origin.FirstOrDefault() ?? "https://capylumine.com";
@@ -204,6 +218,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPatch("{id}/status")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult> UpdateOrderStatus(Guid id, [FromBody] OrderStatusUpdateModel model)
         {
             var order = await _orderRepository.GetByIdAsync(id);
@@ -247,6 +262,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPatch("{id}/payment-status")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult> UpdatePaymentStatus(Guid id, [FromBody] OrderStatusUpdateModel model)
         {
             var order = await _orderRepository.GetByIdAsync(id);
@@ -272,6 +288,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult> DeleteOrder(Guid id)
         {
             var order = await _orderRepository.GetByIdAsync(id);

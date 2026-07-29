@@ -127,6 +127,7 @@ namespace LampStoreProjects.Controllers
 
         // POST: api/News
         [HttpPost]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult<NewsDto>> PostNews(NewsCreateDto dto)
         {
             var news = new News
@@ -162,6 +163,7 @@ namespace LampStoreProjects.Controllers
 
         // PUT: api/News/5
         [HttpPut("{id}")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<IActionResult> PutNews(Guid id, NewsUpdateDto dto)
         {
             var news = await context.News!.FindAsync(id);
@@ -200,6 +202,7 @@ namespace LampStoreProjects.Controllers
 
         // DELETE: api/News/5
         [HttpDelete("{id}")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<IActionResult> DeleteNews(Guid id)
         {
             var news = await context.News!.FindAsync(id);
@@ -221,6 +224,7 @@ namespace LampStoreProjects.Controllers
 
         // POST: api/News/upload
         [HttpPost("upload")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult<object>> UploadImage([FromForm] IFormFile file)
         {
             if (file == null || file.Length == 0)

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using LampStoreProjects.Data;
 using LampStoreProjects.Repositories;
 using LampStoreProjects.Models;
@@ -69,6 +70,7 @@ namespace LampStoreProjects.Controllers
 
         // POST: api/banners
         [HttpPost]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult<BannerModel>> CreateBanner([FromBody] BannerModel banner)
         {
             if (!ModelState.IsValid)
@@ -83,6 +85,7 @@ namespace LampStoreProjects.Controllers
 
         // PUT: api/banners/5
         [HttpPut("{id}")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<IActionResult> UpdateBanner(int id, [FromBody] BannerModel banner)
         {
             if (id != banner.Id)
@@ -108,6 +111,7 @@ namespace LampStoreProjects.Controllers
 
         // DELETE: api/banners/5
         [HttpDelete("{id}")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<IActionResult> DeleteBanner(int id)
         {
             var banner = await _bannerRepository.GetByIdAsync(id);
@@ -123,6 +127,7 @@ namespace LampStoreProjects.Controllers
 
         // POST: api/banners/upload
         [HttpPost("upload")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult<string>> UploadImage([FromForm] IFormFile file)
         {
             if (file == null || file.Length == 0)

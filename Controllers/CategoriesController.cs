@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -68,6 +69,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult> CreateCategory(CategoryModel categoryModel)
         {
             await _categoryRepository.AddAsync(categoryModel);
@@ -76,6 +78,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult> UpdateCategory(Guid id, CategoryModel categoryModel)
         {
             if (id != categoryModel.Id)
@@ -91,6 +94,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult> DeleteCategory(Guid id)
         {
             await _categoryRepository.DeleteAsync(id);
@@ -99,6 +103,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpDelete("bulk")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult> BulkDeleteCategories(List<Guid> ids)
         {
             await _categoryRepository.BulkDeleteAsync(ids);
@@ -108,6 +113,7 @@ namespace LampStoreProjects.Controllers
 
         // POST: api/categories/upload
         [HttpPost("upload")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult<string>> UploadImage([FromForm] IFormFile file)
         {
             if (file == null || file.Length == 0)

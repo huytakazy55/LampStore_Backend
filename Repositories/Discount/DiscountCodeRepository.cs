@@ -39,15 +39,28 @@ namespace LampStoreProjects.Repositories
 
         public async Task<bool> MarkDiscountCodeAsUsedAsync(string code)
         {
-            var discountCode = await _context.DiscountCodes!.FirstOrDefaultAsync(dc => dc.Code == code);
-            if (discountCode != null && discountCode.Quantity > 0)
+            // Atomic conditional decrement — avoids the read-then-write race where two
+            // concurrent requests both read Quantity > 0 and both decrement, over-redeeming
+            // a limited discount code. ExecuteUpdateAsync issues a single UPDATE ... WHERE
+            // Quantity > 0, so only one of the concurrent requests can succeed per unit left.
+            var rows = await _context.DiscountCodes!
+                .Where(d => d.Code == code && d.Quantity > 0)
+                .ExecuteUpdateAsync(s => s.SetProperty(d => d.Quantity, d => d.Quantity - 1));
+
+            if (rows == 0)
             {
-                discountCode.Quantity--;
-                if (discountCode.Quantity == 0) discountCode.IsUsed = true;
-                await _context.SaveChangesAsync();
-                return true;
+                return false; // Already exhausted — caller must reject the order
             }
-            return false;
+
+            // Best-effort secondary flag; not part of the atomicity guarantee above.
+            var discountCode = await _context.DiscountCodes!.FirstOrDefaultAsync(dc => dc.Code == code);
+            if (discountCode != null && discountCode.Quantity == 0 && !discountCode.IsUsed)
+            {
+                discountCode.IsUsed = true;
+                await _context.SaveChangesAsync();
+            }
+
+            return true;
         }
 
         public async Task<bool> RestoreDiscountCodeAsync(string code)

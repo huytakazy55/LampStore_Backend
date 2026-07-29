@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using LampStoreProjects.Services;
 using System;
 using Microsoft.AspNetCore.Authorization;
+using LampStoreProjects.Helpers;
 using System.Net;
 
 namespace LampStoreProjects.Controllers
@@ -36,7 +37,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpGet("overview")]
-        // [Authorize(Roles = "Admin")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<IActionResult> GetOverview()
         {
             var data = await _analyticsService.GetDashboardOverviewAsync();
@@ -44,6 +45,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpGet("sales-overview")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<IActionResult> GetSalesOverview()
         {
             var data = await _analyticsService.GetSalesOverviewAsync();
@@ -51,6 +53,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpGet("visitor-locations")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<IActionResult> GetVisitorLocations([FromQuery] int days = 30, [FromQuery] int limit = 100)
         {
             var data = await _analyticsService.GetVisitorLocationsAsync(days, limit);

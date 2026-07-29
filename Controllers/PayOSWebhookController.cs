@@ -16,11 +16,16 @@ namespace LampStoreProjects.Controllers
     {
         private readonly PayOSClient _payOSClient;
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<PayOSWebhookController> _logger;
 
-        public PayOSWebhookController(PayOSClient payOSClient, ApplicationDbContext context)
+        // Statuses for which a replayed/duplicate webhook must NOT re-apply side effects.
+        private static readonly string[] TerminalStatuses = { "Refunded", "Cancelled" };
+
+        public PayOSWebhookController(PayOSClient payOSClient, ApplicationDbContext context, ILogger<PayOSWebhookController> logger)
         {
             _payOSClient = payOSClient;
             _context = context;
+            _logger = logger;
         }
 
         [HttpPost]
@@ -40,15 +45,26 @@ namespace LampStoreProjects.Controllers
                     var order = await _context.Orders!.FirstOrDefaultAsync(o => o.OrderCode == orderCode);
                     if (order != null)
                     {
+                        // Idempotency guard: if the order is already in a terminal state (or
+                        // already marked Paid), a replayed/duplicate webhook must not re-apply
+                        // side effects — just log and return success without reprocessing.
+                        if (order.PaymentStatus == "Paid" || TerminalStatuses.Contains(order.Status))
+                        {
+                            _logger.LogInformation(
+                                "[PayOS] Ignoring duplicate/replayed webhook for order {OrderCode}: PaymentStatus={PaymentStatus}, Status={Status}",
+                                orderCode, order.PaymentStatus, order.Status);
+                            return Ok(new { success = true });
+                        }
+
                         // Update payment status (keep order Status as-is for admin to process)
                         order.PaymentStatus = "Paid";
-                        
+
                         await _context.SaveChangesAsync();
-                        Console.WriteLine($"[PayOS] Order {orderCode} paid successfully. PaymentStatus -> Paid");
+                        _logger.LogInformation("[PayOS] Order {OrderCode} paid successfully. PaymentStatus -> Paid", orderCode);
                     }
                     else
                     {
-                        Console.WriteLine($"[PayOS] Order with code {orderCode} not found.");
+                        _logger.LogWarning("[PayOS] Order with code {OrderCode} not found.", orderCode);
                     }
                 }
 
@@ -56,8 +72,8 @@ namespace LampStoreProjects.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[PayOS] Webhook Error: {ex.Message}");
-                // Return 200 to prevent PayOS from retrying if it's a verification failure we don't care about, 
+                _logger.LogError(ex, "[PayOS] Webhook Error");
+                // Return 200 to prevent PayOS from retrying if it's a verification failure we don't care about,
                 // or return BadRequest if we want them to know it failed.
                 return Ok(new { success = false, message = "Webhook processing failed." });
             }

@@ -74,6 +74,14 @@ namespace LampStoreProjects.Data
                 .HasIndex(p => new { p.Status, p.CategoryId })
                 .HasDatabaseName("IX_Products_Status_CategoryId");
 
+            // NOTE: if the target database currently has duplicate/blank Product.Slug
+            // values, this migration will fail to apply until they are de-duplicated —
+            // check before running it against production data.
+            modelBuilder.Entity<Product>()
+                .HasIndex(p => p.Slug)
+                .IsUnique()
+                .HasDatabaseName("IX_Products_Slug");
+
             modelBuilder.Entity<Order>()
                 .HasIndex(o => new { o.UserId, o.Status })
                 .HasDatabaseName("IX_Orders_UserId_Status");

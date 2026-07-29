@@ -307,6 +307,7 @@ namespace LampStoreProjects.Controllers
             });
         }
 
+        [Authorize(Roles = AppRole.Admin)]
         [HttpGet("role/{userId}")]
         public async Task<IActionResult> GetRoleById(string userId)
         {
@@ -339,7 +340,7 @@ namespace LampStoreProjects.Controllers
             return Ok(user);
         }
 
-        [Authorize]
+        [Authorize(Roles = AppRole.Admin)]
         [HttpGet("GetAllUserLogin")]
         public async Task<IActionResult> GetAllUserLogin()
         {
@@ -433,7 +434,7 @@ namespace LampStoreProjects.Controllers
             return Ok(menus);
         }
 
-        [Authorize]
+        [Authorize(Roles = AppRole.Admin)]
         [HttpPost("LockUser/{userId}")]
         public async Task<IActionResult> LockUser(string userId)
         {
@@ -452,7 +453,7 @@ namespace LampStoreProjects.Controllers
             return NotFound(ApiErrorResponse.FromCode(ErrorCodes.AUTH_USER_NOT_FOUND));
         }
 
-        [Authorize]
+        [Authorize(Roles = AppRole.Admin)]
         [HttpPost("UnLockUser/{userId}")]
         public async Task<IActionResult> UnlockUser(string userId)
         {

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -7,8 +8,13 @@ using LampStoreProjects.Helpers;
 
 namespace LampStoreProjects.Controllers
 {
+    // Legacy raw CRUD with no per-user scoping (returns/mutates arbitrary users' cart
+    // items by Id). Real customer-facing cart operations go through CartsController's
+    // "my/*" endpoints, which are properly scoped to the authenticated user. This
+    // controller is restricted to admins.
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = AppRole.Admin)]
     public class CartItemsController : ControllerBase
     {
         private readonly ICartItemRepository _cartitemRepository;

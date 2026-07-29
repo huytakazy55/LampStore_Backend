@@ -6,10 +6,10 @@ namespace LampStoreProjects.Repositories
 {
     public interface IOrderRepository
     {
-        Task<IEnumerable<OrderModel>> GetAllAsync();
+        Task<IEnumerable<OrderModel>> GetAllAsync(int page = 1, int pageSize = 50);
         Task<IEnumerable<OrderModel>> GetByUserIdAsync(string userId);
         Task<OrderModel?> GetByIdAsync(Guid id);
-        Task<OrderModel> CreateOrderAsync(OrderModel orderModel);
+        Task<OrderCreationResult> CreateOrderAsync(OrderModel orderModel);
         Task UpdateStatusAsync(Guid id, string status);
         Task UpdatePaymentStatusAsync(Guid id, string paymentStatus);
         Task DeleteAsync(Guid id);

@@ -22,9 +22,14 @@ namespace LampStoreProjects.Controllers
             _cartitemRepository = cartitemRepository;
         }
 
-        // ===== Existing CRUD endpoints =====
+        // ===== Existing CRUD endpoints (legacy — kept for admin/back-office use) =====
+
+        private string? GetCallerId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        private bool IsAdmin() => User.IsInRole(Helpers.AppRole.Admin);
 
         [HttpGet]
+        [Authorize(Roles = Helpers.AppRole.Admin)]
         public async Task<ActionResult<IEnumerable<CartModel>>> GetCarts()
         {
             var carts = await _cartRepository.GetAllAsync();
@@ -32,6 +37,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<ActionResult<CartModel>> GetCart(Guid id)
         {
             var cart = await _cartRepository.GetByIdAsync(id);
@@ -39,30 +45,72 @@ namespace LampStoreProjects.Controllers
             {
                 return NotFound(ApiErrorResponse.FromCode(ErrorCodes.CART_NOT_FOUND));
             }
+
+            var callerId = GetCallerId();
+            if (!IsAdmin() && (string.IsNullOrEmpty(callerId) || cart.UserId != callerId))
+            {
+                return Forbid();
+            }
+
             return Ok(cart);
         }
 
         [HttpPost]
+        [Authorize]
         public async Task<ActionResult> CreateCart(CartModel cartModel)
         {
+            var callerId = GetCallerId();
+            if (string.IsNullOrEmpty(callerId)) return Unauthorized(ApiErrorResponse.FromCode(ErrorCodes.UNAUTHORIZED));
+
+            // Never trust a client-supplied UserId — the cart always belongs to the caller.
+            cartModel.UserId = callerId;
+
             await _cartRepository.AddAsync(cartModel);
             return CreatedAtAction(nameof(GetCart), new { id = cartModel.Id }, cartModel);
         }
 
         [HttpPut("{id}")]
+        [Authorize]
         public async Task<ActionResult> UpdateCart(Guid id, CartModel cartModel)
         {
             if (id != cartModel.Id)
             {
                 return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.CART_ID_MISMATCH));
             }
+
+            var existing = await _cartRepository.GetByIdAsync(id);
+            if (existing == null)
+            {
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.CART_NOT_FOUND));
+            }
+
+            var callerId = GetCallerId();
+            if (!IsAdmin() && (string.IsNullOrEmpty(callerId) || existing.UserId != callerId))
+            {
+                return Forbid();
+            }
+
+            cartModel.UserId = existing.UserId;
             await _cartRepository.UpdateAsync(cartModel);
             return NoContent();
         }
 
         [HttpDelete("{id}")]
+        [Authorize]
         public async Task<ActionResult> DeleteCart(Guid id)
         {
+            var existing = await _cartRepository.GetByIdAsync(id);
+            if (existing == null)
+            {
+                return NotFound(ApiErrorResponse.FromCode(ErrorCodes.CART_NOT_FOUND));
+            }
+
+            var callerId = GetCallerId();
+            if (!IsAdmin() && (string.IsNullOrEmpty(callerId) || existing.UserId != callerId))
+            {
+                return Forbid();
+            }
+
             await _cartRepository.DeleteAsync(id);
             return NoContent();
         }

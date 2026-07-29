@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -7,8 +8,12 @@ using LampStoreProjects.Helpers;
 
 namespace LampStoreProjects.Controllers
 {
+    // Legacy raw CRUD with no per-user scoping (returns/mutates arbitrary users' order
+    // items by Id). Real order data goes through OrdersController, which is properly
+    // scoped/authorized. This controller is restricted to admins.
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = AppRole.Admin)]
     public class OrderItemsController : ControllerBase
     {
         private readonly IOrderItemRepository _orderitemRepository;

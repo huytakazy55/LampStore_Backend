@@ -14,10 +14,17 @@ namespace LampStoreProjects.Repositories
         private readonly IMapper _mapper = mapper;
         private static readonly string[] ExcludedSoldStatuses = { "Cancelled", "FailedDelivery", "Refunded" };
 
-        public async Task<IEnumerable<ProductModel>> GetAllProductAsync()
+        public async Task<IEnumerable<ProductModel>> GetAllProductAsync(int page = 1, int pageSize = 100)
         {
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 100;
+            if (pageSize > 100) pageSize = 100;
+
             return await _context.Products!
                 .AsNoTracking()
+                .OrderBy(p => p.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .Select(p => new ProductModel
                 {
                     Id = p.Id,
@@ -656,6 +663,7 @@ namespace LampStoreProjects.Repositories
         public async Task<SearchResultModel> AdvancedSearchAsync(SearchCriteriaModel criteria)
         {
             var query = _context.Products!
+                .AsNoTracking()
                 .Include(p => p.Images)
                 .Include(p => p.ProductVariant)
                 .Include(p => p.Category)
@@ -717,6 +725,10 @@ namespace LampStoreProjects.Repositories
 
             // 7. Đếm tổng số sản phẩm
             var totalCount = await query.CountAsync();
+
+            // Defense in depth: clamp page size here too, regardless of what the caller passed.
+            if (criteria.Page < 1) criteria.Page = 1;
+            criteria.PageSize = Math.Clamp(criteria.PageSize, 1, 100);
 
             // 8. Áp dụng phân trang
             var products = await query

@@ -1,5 +1,10 @@
 bin/
 obj/
 appsettings.json
+# NOTE: appsettings.Development.json is already tracked in git history (contains real
+# local dev secrets). Adding it here only prevents NEW commits of untracked copies —
+# it does NOT untrack the existing file. Run `git rm --cached appsettings.Development.json`
+# yourself if you want to stop tracking it (left to your judgement, see audit report).
+appsettings.Development.json
 # agents
 .agents

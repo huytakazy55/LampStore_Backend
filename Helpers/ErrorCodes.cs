@@ -67,6 +67,13 @@ namespace LampStoreProjects.Helpers
         public const string ORDER_GUEST_TOKEN_REQUIRED = "ORDER_002";
         public const string ORDER_INVALID_STATUS = "ORDER_003";
         public const string ORDER_STATUS_TRANSITION_INVALID = "ORDER_004";
+        public const string ORDER_EMPTY = "ORDER_005";
+        public const string ORDER_ITEM_INVALID = "ORDER_006";
+        public const string ORDER_PRODUCT_UNAVAILABLE = "ORDER_007";
+        public const string ORDER_OUT_OF_STOCK = "ORDER_008";
+        public const string ORDER_DISCOUNT_INVALID = "ORDER_009";
+        public const string ORDER_DISCOUNT_EXHAUSTED = "ORDER_010";
+        public const string ORDER_PRICE_MISMATCH = "ORDER_011";
 
         // ══════════════════════════════════════════════════════════
         // GIỎ HÀNG (CART)
@@ -220,6 +227,13 @@ namespace LampStoreProjects.Helpers
             [ORDER_GUEST_TOKEN_REQUIRED] = "GuestToken là bắt buộc cho đơn hàng khách vãng lai.",
             [ORDER_INVALID_STATUS] = "Trạng thái đơn hàng không hợp lệ.",
             [ORDER_STATUS_TRANSITION_INVALID] = "Không thể chuyển trạng thái đơn hàng. Trạng thái phải được cập nhật theo thứ tự.",
+            [ORDER_EMPTY] = "Đơn hàng không có sản phẩm nào.",
+            [ORDER_ITEM_INVALID] = "Sản phẩm trong đơn hàng không hợp lệ.",
+            [ORDER_PRODUCT_UNAVAILABLE] = "Sản phẩm không còn tồn tại hoặc đã ngừng kinh doanh.",
+            [ORDER_OUT_OF_STOCK] = "Sản phẩm đã hết hàng hoặc không đủ số lượng.",
+            [ORDER_DISCOUNT_INVALID] = "Mã giảm giá không hợp lệ, đã hết hạn hoặc chưa đạt điều kiện.",
+            [ORDER_DISCOUNT_EXHAUSTED] = "Mã giảm giá vừa hết lượt sử dụng. Vui lòng thử lại.",
+            [ORDER_PRICE_MISMATCH] = "Giá sản phẩm đã thay đổi. Vui lòng làm mới giỏ hàng và thử lại.",
 
             // ── Giỏ hàng ──
             [CART_NOT_FOUND] = "Không tìm thấy giỏ hàng.",

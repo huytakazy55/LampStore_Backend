@@ -55,13 +55,14 @@ namespace LampStoreProjects.Extensions
                 return $"user:{userId}";
             }
 
-            var forwardedFor = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
-            var ipAddress = forwardedFor?.Split(',').FirstOrDefault()?.Trim();
-
-            if (string.IsNullOrWhiteSpace(ipAddress))
-            {
-                ipAddress = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-            }
+            // SECURITY: do NOT read the raw X-Forwarded-For header here — it is
+            // client-controlled and trivially spoofable (a caller can send a fresh
+            // random value per request to get a fresh rate-limit bucket every time).
+            // Use context.Connection.RemoteIpAddress instead: UseForwardedHeaders()
+            // (configured in Program.cs) only rewrites this value from X-Forwarded-For
+            // when the request came through a proxy listed in the "TrustedProxies"
+            // config — so for direct/untrusted traffic this is always the real TCP peer.
+            var ipAddress = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
             return $"ip:{ipAddress}";
         }

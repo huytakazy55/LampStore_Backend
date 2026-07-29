@@ -129,8 +129,33 @@ builder.Services.AddCors(options =>
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    options.KnownNetworks.Clear();
-    options.KnownProxies.Clear();
+
+    // SECURITY: previously KnownNetworks/KnownProxies were unconditionally cleared,
+    // which makes ForwardedHeadersMiddleware accept X-Forwarded-For from ANY caller
+    // (not just a real reverse proxy) — trivially spoofable and used to bypass the
+    // per-IP rate limiter in RateLimitExtensions.cs. We now only trust X-Forwarded-For
+    // from proxies explicitly listed in the "TrustedProxies" config section. When that
+    // list is empty (the safe default), KnownNetworks/KnownProxies stay at their
+    // built-in defaults (loopback only), so XFF from arbitrary internet clients is
+    // ignored and RemoteIpAddress keeps reflecting the real TCP peer.
+    //
+    // IMPORTANT (ops): when this app runs behind a real reverse proxy/load balancer in
+    // production, populate "TrustedProxies" in appsettings with that proxy's IP(s) —
+    // otherwise all traffic behind the LB will appear to come from one IP address
+    // (a safe, if inconvenient, degradation vs. the spoofing vulnerability).
+    var trustedProxies = builder.Configuration.GetSection("TrustedProxies").Get<string[]>();
+    if (trustedProxies != null && trustedProxies.Length > 0)
+    {
+        options.KnownNetworks.Clear();
+        options.KnownProxies.Clear();
+        foreach (var proxy in trustedProxies)
+        {
+            if (System.Net.IPAddress.TryParse(proxy, out var proxyIp))
+            {
+                options.KnownProxies.Add(proxyIp);
+            }
+        }
+    }
 });
 
 builder.Services.AddSingleton<IWebHostEnvironment>(builder.Environment);
@@ -163,14 +188,25 @@ builder.Services.AddScoped<ICacheService, CacheService>();
 builder.Services.AddHttpClient<IAnalyticsService, AnalyticsService>();
 
 // Add Memory Cache
+// NOTE: IMemoryCache is single-instance/in-process only. If this app is ever scaled
+// to multiple instances behind a load balancer, this cache (and CacheService) will
+// become inconsistent across instances — migrate to IDistributedCache (e.g. Redis)
+// at that point.
 builder.Services.AddMemoryCache();
 
 // Add Response Caching
 builder.Services.AddResponseCaching();
 
+// Response compression (gzip/br) for JSON API responses — cheap win for payload size.
+builder.Services.AddResponseCompression(o => o.EnableForHttps = true);
+
 builder.Services.AddLampStoreRateLimiting();
 
 // Add SignalR
+// NOTE: SignalR's default backplane is also single-instance/in-process only. If this
+// app is ever scaled to multiple instances, add a Redis backplane
+// (AddStackExchangeRedisBackplane) so chat messages/notifications reach clients
+// connected to a different instance.
 builder.Services.AddSignalR();
 
 builder.Services.AddAutoMapper(typeof(Program));
@@ -190,7 +226,9 @@ builder.Services.AddControllers()
     {
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
-        options.JsonSerializerOptions.WriteIndented = true;
+        // Pretty-printing is only useful for local debugging; it's wasted bytes on every
+        // production response, and works against response compression too.
+        options.JsonSerializerOptions.WriteIndented = builder.Environment.IsDevelopment();
     });
 
 builder.Services.AddAuthorization();
@@ -204,7 +242,7 @@ builder.Services.AddSwaggerGen(c =>
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Error()
     .WriteTo.Console(new JsonFormatter()) // Hiển thị log dạng JSON trong console
-    .WriteTo.File(new JsonFormatter(), "Logs/errors.json", rollingInterval: RollingInterval.Day) // Ghi log JSON vào file
+    .WriteTo.File(new JsonFormatter(), "Logs/errors.json", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 30) // Ghi log JSON vào file, giữ tối đa 30 file
     .CreateLogger();
 
 builder.Host.UseSerilog();
@@ -220,61 +258,79 @@ using (var scope = app.Services.CreateScope())
         context.Database.Migrate();
         Log.Information("Database migration applied successfully");
 
-        // Seed product slugs for existing data
+        // Seed product slugs for existing data.
+        // Perf: load ALL existing slugs into an in-memory HashSet ONCE, then do
+        // uniqueness checks against that set only (no per-row DB round-trip inside
+        // the loop), adding each newly generated slug to the set as we go.
         var productsWithoutSlug = context.Products.Where(p => string.IsNullOrEmpty(p.Slug)).ToList();
         if (productsWithoutSlug.Any())
         {
+            var existingProductSlugs = new HashSet<string>(
+                context.Products.Where(p => !string.IsNullOrEmpty(p.Slug)).Select(p => p.Slug!),
+                StringComparer.OrdinalIgnoreCase);
+
             foreach (var p in productsWithoutSlug)
             {
                 var baseSlug = LampStoreProjects.Helpers.SlugHelper.GenerateSlug(p.Name);
                 var slug = baseSlug;
                 int counter = 1;
-                while (context.Products.Any(x => x.Slug == slug && x.Id != p.Id) || productsWithoutSlug.Any(x => x.Slug == slug && x.Id != p.Id))
+                while (existingProductSlugs.Contains(slug))
                 {
                     slug = $"{baseSlug}-{counter}";
                     counter++;
                 }
                 p.Slug = slug;
+                existingProductSlugs.Add(slug);
             }
             context.SaveChanges();
             Log.Information($"Seeded slugs for {productsWithoutSlug.Count} products.");
         }
 
-        // Seed category slugs for existing data
+        // Seed category slugs for existing data (same in-memory HashSet approach).
         var categoriesWithoutSlug = context.Categories.Where(c => string.IsNullOrEmpty(c.Slug)).ToList();
         if (categoriesWithoutSlug.Any())
         {
+            var existingCategorySlugs = new HashSet<string>(
+                context.Categories.Where(c => !string.IsNullOrEmpty(c.Slug)).Select(c => c.Slug!),
+                StringComparer.OrdinalIgnoreCase);
+
             foreach (var c in categoriesWithoutSlug)
             {
                 var baseSlug = LampStoreProjects.Helpers.SlugHelper.GenerateSlug(c.Name);
                 var slug = baseSlug;
                 int counter = 1;
-                while (context.Categories.Any(x => x.Slug == slug && x.Id != c.Id) || categoriesWithoutSlug.Any(x => x.Slug == slug && x.Id != c.Id))
+                while (existingCategorySlugs.Contains(slug))
                 {
                     slug = $"{baseSlug}-{counter}";
                     counter++;
                 }
                 c.Slug = slug;
+                existingCategorySlugs.Add(slug);
             }
             context.SaveChanges();
             Log.Information($"Seeded slugs for {categoriesWithoutSlug.Count} categories.");
         }
 
-        // Seed news slugs for existing data
+        // Seed news slugs for existing data (same in-memory HashSet approach).
         var newsWithoutSlug = context.News.Where(n => string.IsNullOrEmpty(n.Slug)).ToList();
         if (newsWithoutSlug.Any())
         {
+            var existingNewsSlugs = new HashSet<string>(
+                context.News.Where(n => !string.IsNullOrEmpty(n.Slug)).Select(n => n.Slug!),
+                StringComparer.OrdinalIgnoreCase);
+
             foreach (var n in newsWithoutSlug)
             {
                 var baseSlug = LampStoreProjects.Helpers.SlugHelper.GenerateSlug(n.Title);
                 var slug = baseSlug;
                 int counter = 1;
-                while (context.News.Any(x => x.Slug == slug && x.Id != n.Id) || newsWithoutSlug.Any(x => x.Slug == slug && x.Id != n.Id))
+                while (existingNewsSlugs.Contains(slug))
                 {
                     slug = $"{baseSlug}-{counter}";
                     counter++;
                 }
                 n.Slug = slug;
+                existingNewsSlugs.Add(slug);
             }
             context.SaveChanges();
             Log.Information($"Seeded slugs for {newsWithoutSlug.Count} news articles.");
@@ -366,6 +422,10 @@ else
 app.UseForwardedHeaders();
 app.UseCors(apiCorsPolicy);
 app.UseHttpsRedirection();
+
+// Response compression must run before response caching/static files so compressed
+// bytes are what gets cached/served.
+app.UseResponseCompression();
 
 // Use Response Caching
 app.UseResponseCaching();

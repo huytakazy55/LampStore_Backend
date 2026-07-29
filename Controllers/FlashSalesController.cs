@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using LampStoreProjects.Repositories;
 using LampStoreProjects.Models;
 using LampStoreProjects.Helpers;
@@ -50,6 +51,7 @@ namespace LampStoreProjects.Controllers
 
         // POST: api/flashsales
         [HttpPost]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult<FlashSaleModel>> Create([FromBody] FlashSaleModel flashSale)
         {
             if (!ModelState.IsValid)
@@ -63,6 +65,7 @@ namespace LampStoreProjects.Controllers
 
         // PUT: api/flashsales/5
         [HttpPut("{id}")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<IActionResult> Update(int id, [FromBody] FlashSaleModel flashSale)
         {
             if (id != flashSale.Id)
@@ -82,6 +85,7 @@ namespace LampStoreProjects.Controllers
 
         // DELETE: api/flashsales/5
         [HttpDelete("{id}")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _flashSaleRepository.DeleteAsync(id);
@@ -91,6 +95,7 @@ namespace LampStoreProjects.Controllers
 
         // POST: api/flashsales/5/items
         [HttpPost("{id}/items")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult<FlashSaleItemModel>> AddItem(int id, [FromBody] FlashSaleItemModel item)
         {
             var flashSale = await _flashSaleRepository.GetByIdAsync(id);
@@ -102,6 +107,7 @@ namespace LampStoreProjects.Controllers
 
         // PUT: api/flashsales/5/items/3
         [HttpPut("{id}/items/{itemId}")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult<FlashSaleItemModel>> UpdateItem(int id, int itemId, [FromBody] FlashSaleItemModel item)
         {
             var result = await _flashSaleRepository.UpdateItemAsync(id, itemId, item);
@@ -111,6 +117,7 @@ namespace LampStoreProjects.Controllers
 
         // DELETE: api/flashsales/5/items/3
         [HttpDelete("{id}/items/{itemId}")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<IActionResult> RemoveItem(int id, int itemId)
         {
             var result = await _flashSaleRepository.RemoveItemAsync(id, itemId);

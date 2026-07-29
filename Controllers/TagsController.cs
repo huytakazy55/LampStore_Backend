@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -37,6 +38,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult> CreateTag(TagModel tagModel)
         {
             await _tagRepository.AddAsync(tagModel);
@@ -44,6 +46,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult> UpdateTag(Guid id, TagModel tagModel)
         {
             if (id != tagModel.Id)
@@ -55,6 +58,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult> DeleteTag(Guid id)
         {
             await _tagRepository.DeleteAsync(id);
@@ -62,6 +66,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpDelete("bulk")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult> BulkDeleteTags(List<Guid> ids)
         {
             await _tagRepository.BulkDeleteAsync(ids);

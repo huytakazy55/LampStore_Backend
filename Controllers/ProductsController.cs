@@ -12,6 +12,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using LampStoreProjects.DTOs;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.AspNetCore.Authorization;
 
 namespace LampStoreProjects.Controllers
 {
@@ -40,21 +41,25 @@ namespace LampStoreProjects.Controllers
 
         [HttpGet]
         [ResponseCache(NoStore = true)]
-        public async Task<ActionResult<IEnumerable<ProductModel>>> GetAllProducts()
+        public async Task<ActionResult<IEnumerable<ProductModel>>> GetAllProducts([FromQuery] int page = 1, [FromQuery] int pageSize = 100)
         {
-            // Kiểm tra cache trước
-            var cachedProducts = await _cacheService.GetAsync<IEnumerable<ProductModel>>(CacheKeys.AllProducts);
+            if (page < 1) page = 1;
+            pageSize = Math.Clamp(pageSize, 1, 100);
+
+            // Kiểm tra cache trước (key theo page/pageSize để tránh trả nhầm dữ liệu trang khác)
+            var cacheKey = $"{CacheKeys.AllProducts}_{page}_{pageSize}";
+            var cachedProducts = await _cacheService.GetAsync<IEnumerable<ProductModel>>(cacheKey);
             if (cachedProducts != null)
             {
                 return Ok(cachedProducts);
             }
 
             // Nếu không có cache, lấy từ database
-            var products = await _productRepository.GetAllProductAsync();
-            
+            var products = await _productRepository.GetAllProductAsync(page, pageSize);
+
             // Lưu vào cache với thời gian expire 10 phút
-            await _cacheService.SetAsync(CacheKeys.AllProducts, products, TimeSpan.FromMinutes(10));
-            
+            await _cacheService.SetAsync(cacheKey, products, TimeSpan.FromMinutes(10));
+
             return Ok(products);
         }
 
@@ -164,6 +169,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult<ProductModel>> CreateProduct([FromBody] ProductCreateDto productDto)
         {
             try
@@ -176,9 +182,10 @@ namespace LampStoreProjects.Controllers
                 var createdProduct = await _productRepository.CreateProductAsync(productDto);
                 
                 // Xóa cache liên quan sau khi tạo sản phẩm mới
-                await _cacheService.RemoveAsync(CacheKeys.AllProducts);
+                await _cacheService.RemoveByPatternAsync(CacheKeys.AllProducts); // removes all paginated "products_all_*" cache entries too
                 await _cacheService.RemoveByPatternAsync($"products_category_{createdProduct.CategoryId}");
-                
+                await _cacheService.RemoveByPatternAsync("search_");
+
                 return CreatedAtAction(nameof(GetProductById), new { id = createdProduct.Id }, createdProduct);
             }
             catch (Exception ex)
@@ -188,24 +195,43 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult<ProductModel>> UpdateProduct(Guid Id, [FromBody] ProductUpdateDto productDto)
         {
             if (Id != productDto.Id)
             {
                 return BadRequest(ApiErrorResponse.FromCode(ErrorCodes.PRODUCT_ID_MISMATCH));
             }
-            
-            await _productRepository.UpdateProductAsync(Id, productDto);
-            
+
+            // Capture the old slug before updating so we can invalidate its cache entry too
+            // (the product's slug may change when its Name changes).
+            var oldProduct = await _productRepository.GetProductByIdAsync(Id);
+            var oldSlug = oldProduct?.Slug;
+
+            var updated = await _productRepository.UpdateProductAsync(Id, productDto);
+
             // Xóa cache liên quan sau khi cập nhật sản phẩm
-            await _cacheService.RemoveAsync(CacheKeys.AllProducts);
+            await _cacheService.RemoveByPatternAsync(CacheKeys.AllProducts); // removes all paginated "products_all_*" cache entries too
             await _cacheService.RemoveAsync(CacheKeys.ProductById(Id));
             await _cacheService.RemoveByPatternAsync($"products_category_");
-            
+            if (!string.IsNullOrEmpty(oldSlug))
+            {
+                await _cacheService.RemoveAsync($"product_slug_{oldSlug}");
+            }
+            if (!string.IsNullOrEmpty(updated?.Slug) && updated.Slug != oldSlug)
+            {
+                await _cacheService.RemoveAsync($"product_slug_{updated.Slug}");
+            }
+            // Search results are cached by exact query+filter combination (unbounded key
+            // space), so invalidate all of them on any product write rather than trying to
+            // guess which search permutations were affected.
+            await _cacheService.RemoveByPatternAsync("search_");
+
             return NoContent();
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult> DeleteProduct(Guid id)
         {
             // Xóa file ảnh vật lý trước khi xóa sản phẩm
@@ -234,17 +260,23 @@ namespace LampStoreProjects.Controllers
             }
 
             await _productRepository.DeleteProductAsync(id);
-            
+
             // Xóa cache
-            await _cacheService.RemoveAsync(CacheKeys.AllProducts);
+            await _cacheService.RemoveByPatternAsync(CacheKeys.AllProducts); // removes all paginated "products_all_*" cache entries too
             await _cacheService.RemoveAsync(CacheKeys.ProductById(id));
             await _cacheService.RemoveByPatternAsync($"products_category_");
             await _cacheService.RemoveByPatternAsync($"product_images_{id}");
-            
+            if (!string.IsNullOrEmpty(productForVideo?.Slug))
+            {
+                await _cacheService.RemoveAsync($"product_slug_{productForVideo.Slug}");
+            }
+            await _cacheService.RemoveByPatternAsync("search_");
+
             return NoContent();
         }
 
         [HttpDelete("image/{imageId}")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult> DeleteProductImage(Guid imageId)
         {
             var productImage = await _context.ProductImages!.FirstOrDefaultAsync(x => x.Id == imageId);
@@ -270,6 +302,7 @@ namespace LampStoreProjects.Controllers
 
         // Upload nhanh ảnh từ modal tạo/sửa option (không lưu DB)
         [HttpPost("UploadVariantImage")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult<object>> UploadVariantImage([FromForm] IFormFile file)
         {
             if (file == null || file.Length == 0)
@@ -291,6 +324,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPost("{productId}/images")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult> UploadImages(Guid productId, [FromForm] List<IFormFile> imageFiles)
         {
             const int MAX_IMAGES = 5;
@@ -357,7 +391,7 @@ namespace LampStoreProjects.Controllers
                 await _context.SaveChangesAsync();
                 
                 // Xóa cache
-                await _cacheService.RemoveAsync(CacheKeys.AllProducts);
+                await _cacheService.RemoveByPatternAsync(CacheKeys.AllProducts); // removes all paginated "products_all_*" cache entries too
                 await _cacheService.RemoveAsync(CacheKeys.ProductById(productId));
 
                 return Ok(new ApiSuccessResponse("Upload ảnh thành công!"));
@@ -369,6 +403,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPost("{productId}/video")]
+        [Authorize(Roles = AppRole.Admin)]
         [RequestSizeLimit(21 * 1024 * 1024)]
         [RequestFormLimits(MultipartBodyLengthLimit = 21 * 1024 * 1024)]
         public async Task<ActionResult> UploadVideo(Guid productId, [FromForm] IFormFile videoFile, CancellationToken cancellationToken)
@@ -453,7 +488,7 @@ namespace LampStoreProjects.Controllers
                 }
 
                 // Xóa cache
-                await _cacheService.RemoveAsync(CacheKeys.AllProducts);
+                await _cacheService.RemoveByPatternAsync(CacheKeys.AllProducts); // removes all paginated "products_all_*" cache entries too
                 await _cacheService.RemoveAsync(CacheKeys.ProductById(productId));
 
                 return Ok(new { success = true, message = "Upload video thành công!", videoPath = relativePath });
@@ -465,6 +500,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpDelete("{productId}/video")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult> DeleteProductVideo(Guid productId)
         {
             var productEntity = await _context.Products!.FirstOrDefaultAsync(p => p.Id == productId);
@@ -488,7 +524,7 @@ namespace LampStoreProjects.Controllers
                 await _context.SaveChangesAsync();
 
                 // Xóa cache
-                await _cacheService.RemoveAsync(CacheKeys.AllProducts);
+                await _cacheService.RemoveByPatternAsync(CacheKeys.AllProducts); // removes all paginated "products_all_*" cache entries too
                 await _cacheService.RemoveAsync(CacheKeys.ProductById(productId));
             }
 
@@ -496,6 +532,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPost("import")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<IActionResult> ImportProducts([FromBody] List<ProductCreateDto> products)
         {
             try
@@ -511,7 +548,8 @@ namespace LampStoreProjects.Controllers
                 }
 
                 // Xóa cache
-                await _cacheService.RemoveAsync(CacheKeys.AllProducts);
+                await _cacheService.RemoveByPatternAsync(CacheKeys.AllProducts); // removes all paginated "products_all_*" cache entries too
+                await _cacheService.RemoveByPatternAsync("search_");
 
                 return Ok(new ApiSuccessResponse("Import sản phẩm thành công."));
             }
@@ -522,10 +560,12 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpDelete("bulk")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult> BulkDeleteProducts(List<Guid> ids)
         {
             await _productRepository.BulkDeleteAsync(ids);
-            await _cacheService.RemoveAsync(CacheKeys.AllProducts);
+            await _cacheService.RemoveByPatternAsync(CacheKeys.AllProducts); // removes all paginated "products_all_*" cache entries too
+            await _cacheService.RemoveByPatternAsync("search_");
             return NoContent();
         }
 
@@ -545,6 +585,9 @@ namespace LampStoreProjects.Controllers
         {
             try
             {
+                if (page < 1) page = 1;
+                pageSize = Math.Clamp(pageSize, 1, 100);
+
                 var criteria = new SearchCriteriaModel
                 {
                     Keyword = keyword,
@@ -559,12 +602,21 @@ namespace LampStoreProjects.Controllers
                     SortOrder = sortOrder
                 };
 
-                var searchResult = await _productRepository.AdvancedSearchAsync(criteria);
-                
-                // Lưu vào cache với key động
+                // Search results are cached per exact query+filter combination. This key
+                // space is unbounded, so we keep the TTL short (60s) and also proactively
+                // invalidate all "search_*" keys on any product write (see CreateProduct/
+                // UpdateProduct/DeleteProduct/BulkDeleteProducts).
                 var cacheKey = $"search_{keyword}_{minPrice}_{maxPrice}_{categoryId}_{string.Join(",", tags ?? new List<string>())}_{status}_{page}_{pageSize}_{sortBy}_{sortOrder}";
-                await _cacheService.SetAsync(cacheKey, searchResult, TimeSpan.FromMinutes(10));
-                
+                var cached = await _cacheService.GetAsync<SearchResultModel>(cacheKey);
+                if (cached != null)
+                {
+                    return Ok(cached);
+                }
+
+                var searchResult = await _productRepository.AdvancedSearchAsync(criteria);
+
+                await _cacheService.SetAsync(cacheKey, searchResult, TimeSpan.FromSeconds(60));
+
                 return Ok(searchResult);
             }
             catch (Exception ex)
@@ -574,6 +626,7 @@ namespace LampStoreProjects.Controllers
         }
 
         [HttpPost("recompress-images")]
+        [Authorize(Roles = AppRole.Admin)]
         public async Task<ActionResult> RecompressAllImages([FromQuery] int quality = 55, [FromQuery] int maxWidth = 800)
         {
             try
@@ -612,7 +665,7 @@ namespace LampStoreProjects.Controllers
                 }
 
                 // Xóa cache ảnh
-                await _cacheService.RemoveAsync(CacheKeys.AllProducts);
+                await _cacheService.RemoveByPatternAsync(CacheKeys.AllProducts); // removes all paginated "products_all_*" cache entries too
 
                 return Ok(new
                 {
