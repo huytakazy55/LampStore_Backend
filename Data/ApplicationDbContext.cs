@@ -35,6 +35,7 @@ namespace LampStoreProjects.Data
         public DbSet<FlashSaleItem>? FlashSaleItems { get; set; }
         public DbSet<ProductAddOn>? ProductAddOns { get; set; }
         public DbSet<DiscountCode>? DiscountCodes { get; set; }
+        public DbSet<IdempotencyKey>? IdempotencyKeys { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -65,6 +66,8 @@ namespace LampStoreProjects.Data
             modelBuilder.Entity<FlashSale>().ToTable("FlashSales");
             modelBuilder.Entity<FlashSaleItem>().ToTable("FlashSaleItems");
             modelBuilder.Entity<DiscountCode>().ToTable("DiscountCodes");
+            modelBuilder.Entity<IdempotencyKey>().ToTable("IdempotencyKeys");
+            modelBuilder.Entity<IdempotencyKey>().HasKey(k => k.RequestKey);
 
             modelBuilder.Entity<Product>()
                 .HasIndex(p => p.Name)
@@ -85,6 +88,14 @@ namespace LampStoreProjects.Data
             modelBuilder.Entity<Order>()
                 .HasIndex(o => new { o.UserId, o.Status })
                 .HasDatabaseName("IX_Orders_UserId_Status");
+
+            // Prevents two concurrently-created orders from ever ending up with the same
+            // OrderCode (payOS webhook and admin lookups both key off this field, so a
+            // collision would let a payment webhook mark the wrong order as Paid).
+            modelBuilder.Entity<Order>()
+                .HasIndex(o => o.OrderCode)
+                .IsUnique()
+                .HasDatabaseName("IX_Orders_OrderCode");
 
             modelBuilder.Entity<CartItem>()
                 .HasIndex(ci => new { ci.CartId, ci.ProductId })

@@ -30,6 +30,9 @@ namespace LampStoreProjects.Data
         // Payment
         public string PaymentMethod { get; set; } = "cod";
         public string PaymentStatus { get; set; } = "Unpaid";
+        // Persisted so a replayed/idempotent order-creation request can return the same
+        // payOS checkout link instead of generating a second payment link.
+        public string? CheckoutUrl { get; set; }
         [Column(TypeName = "decimal(18,2)")]
         public decimal TotalAmount { get; set; }
         [Column(TypeName = "decimal(18,2)")]

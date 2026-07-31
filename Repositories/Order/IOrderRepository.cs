@@ -11,9 +11,10 @@ namespace LampStoreProjects.Repositories
         Task<OrderStatsModel> GetStatsAsync();
         Task<IEnumerable<OrderModel>> GetByUserIdAsync(string userId);
         Task<OrderModel?> GetByIdAsync(Guid id);
-        Task<OrderCreationResult> CreateOrderAsync(OrderModel orderModel);
+        Task<OrderCreationResult> CreateOrderAsync(OrderModel orderModel, string? idempotencyKey = null);
         Task UpdateStatusAsync(Guid id, string status);
         Task UpdatePaymentStatusAsync(Guid id, string paymentStatus);
+        Task SetCheckoutUrlAsync(Guid id, string checkoutUrl);
         Task DeleteAsync(Guid id);
         Task<IEnumerable<OrderModel>> GetByGuestTokenAsync(string guestToken);
         Task<int> ClaimGuestOrdersAsync(string guestToken, string userId);

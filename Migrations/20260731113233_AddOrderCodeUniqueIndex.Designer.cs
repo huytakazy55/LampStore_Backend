@@ -4,6 +4,7 @@ using LampStoreProjects.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LampStoreProjects.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260731113233_AddOrderCodeUniqueIndex")]
+    partial class AddOrderCodeUniqueIndex
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -508,23 +511,6 @@ namespace LampStoreProjects.Migrations
                     b.ToTable("FlashSaleItems", (string)null);
                 });
 
-            modelBuilder.Entity("LampStoreProjects.Data.IdempotencyKey", b =>
-                {
-                    b.Property<string>("RequestKey")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("OrderId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("RequestKey");
-
-                    b.ToTable("IdempotencyKeys", (string)null);
-                });
-
             modelBuilder.Entity("LampStoreProjects.Data.Message", b =>
                 {
                     b.Property<Guid>("Id")
@@ -631,9 +617,6 @@ namespace LampStoreProjects.Migrations
 
                     b.Property<string>("Address")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CheckoutUrl")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("City")

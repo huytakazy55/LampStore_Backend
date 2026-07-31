@@ -74,6 +74,7 @@ namespace LampStoreProjects.Helpers
         public const string ORDER_DISCOUNT_INVALID = "ORDER_009";
         public const string ORDER_DISCOUNT_EXHAUSTED = "ORDER_010";
         public const string ORDER_PRICE_MISMATCH = "ORDER_011";
+        public const string ORDER_DUPLICATE_REQUEST_IN_PROGRESS = "ORDER_012";
 
         // ══════════════════════════════════════════════════════════
         // GIỎ HÀNG (CART)
@@ -234,6 +235,7 @@ namespace LampStoreProjects.Helpers
             [ORDER_DISCOUNT_INVALID] = "Mã giảm giá không hợp lệ, đã hết hạn hoặc chưa đạt điều kiện.",
             [ORDER_DISCOUNT_EXHAUSTED] = "Mã giảm giá vừa hết lượt sử dụng. Vui lòng thử lại.",
             [ORDER_PRICE_MISMATCH] = "Giá sản phẩm đã thay đổi. Vui lòng làm mới giỏ hàng và thử lại.",
+            [ORDER_DUPLICATE_REQUEST_IN_PROGRESS] = "Yêu cầu đặt hàng này đang được xử lý. Vui lòng đợi trong giây lát rồi thử lại.",
 
             // ── Giỏ hàng ──
             [CART_NOT_FOUND] = "Không tìm thấy giỏ hàng.",

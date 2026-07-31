@@ -98,14 +98,28 @@ namespace LampStoreProjects.Controllers
                 orderModel.UserId = userId;
             }
 
+            var idempotencyKey = Request.Headers["Idempotency-Key"].FirstOrDefault();
+
             // Server-side pricing, discount validation and stock decrement all happen
             // atomically inside CreateOrderAsync — never trust client-supplied prices/totals.
-            var creationResult = await _orderRepository.CreateOrderAsync(orderModel);
+            var creationResult = await _orderRepository.CreateOrderAsync(orderModel, idempotencyKey);
             if (!creationResult.Success || creationResult.Order == null)
             {
+                if (creationResult.ErrorCode == ErrorCodes.ORDER_DUPLICATE_REQUEST_IN_PROGRESS)
+                {
+                    return Conflict(ApiErrorResponse.FromCode(creationResult.ErrorCode));
+                }
                 return BadRequest(ApiErrorResponse.FromCode(creationResult.ErrorCode ?? ErrorCodes.VALIDATION_FAILED, creationResult.ErrorDetail));
             }
             var created = creationResult.Order;
+
+            // A replayed request (same Idempotency-Key as a prior successful call) maps
+            // back to the order/payment link that call already created — don't send a
+            // second confirmation email or open a second payOS payment request for it.
+            if (creationResult.IsReplay)
+            {
+                return CreatedAtAction(nameof(GetOrder), new { id = created.Id }, created);
+            }
 
             // Send emails asynchronously (fire and forget to not block response)
             var storeUrl = Request.Headers.Origin.FirstOrDefault() ?? "https://capylumine.com";
@@ -135,6 +149,10 @@ namespace LampStoreProjects.Controllers
 
                     var createPayment = await payOSClient.PaymentRequests.CreateAsync(paymentData);
                     created.CheckoutUrl = createPayment.CheckoutUrl;
+                    if (created.Id.HasValue)
+                    {
+                        await _orderRepository.SetCheckoutUrlAsync(created.Id.Value, createPayment.CheckoutUrl);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -167,14 +185,28 @@ namespace LampStoreProjects.Controllers
             // Ensure no userId is set for guest orders
             orderModel.UserId = null;
 
+            var idempotencyKeyGuest = Request.Headers["Idempotency-Key"].FirstOrDefault();
+
             // Server-side pricing, discount validation (guest gets same validation as
             // authenticated users now) and stock decrement all happen atomically here.
-            var creationResult = await _orderRepository.CreateOrderAsync(orderModel);
+            var creationResult = await _orderRepository.CreateOrderAsync(orderModel, idempotencyKeyGuest);
             if (!creationResult.Success || creationResult.Order == null)
             {
+                if (creationResult.ErrorCode == ErrorCodes.ORDER_DUPLICATE_REQUEST_IN_PROGRESS)
+                {
+                    return Conflict(ApiErrorResponse.FromCode(creationResult.ErrorCode));
+                }
                 return BadRequest(ApiErrorResponse.FromCode(creationResult.ErrorCode ?? ErrorCodes.VALIDATION_FAILED, creationResult.ErrorDetail));
             }
             var created = creationResult.Order;
+
+            // A replayed request (same Idempotency-Key as a prior successful call) maps
+            // back to the order/payment link that call already created — don't send a
+            // second confirmation email or open a second payOS payment request for it.
+            if (creationResult.IsReplay)
+            {
+                return CreatedAtAction(nameof(GetOrder), new { id = created.Id }, created);
+            }
 
             // Send confirmation email + admin notification asynchronously
             var storeUrlGuest = Request.Headers.Origin.FirstOrDefault() ?? "https://capylumine.com";
@@ -204,6 +236,10 @@ namespace LampStoreProjects.Controllers
 
                     var createPayment = await payOSClient.PaymentRequests.CreateAsync(paymentData);
                     created.CheckoutUrl = createPayment.CheckoutUrl;
+                    if (created.Id.HasValue)
+                    {
+                        await _orderRepository.SetCheckoutUrlAsync(created.Id.Value, createPayment.CheckoutUrl);
+                    }
                 }
                 catch (Exception ex)
                 {

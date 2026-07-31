@@ -2,6 +2,7 @@ using AutoMapper;
 using LampStoreProjects.Data;
 using LampStoreProjects.Models;
 using LampStoreProjects.Helpers;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -104,7 +105,7 @@ namespace LampStoreProjects.Repositories
         ///    more than a small rounding tolerance, the order is rejected instead of
         ///    silently overridden (prices likely changed between add-to-cart and checkout).
         /// </summary>
-        public async Task<OrderCreationResult> CreateOrderAsync(OrderModel orderModel)
+        public async Task<OrderCreationResult> CreateOrderAsync(OrderModel orderModel, string? idempotencyKey = null)
         {
             if (orderModel.OrderItems == null || orderModel.OrderItems.Count == 0)
             {
@@ -118,6 +119,45 @@ namespace LampStoreProjects.Repositories
                 await using var transaction = await _context.Database.BeginTransactionAsync();
 
                 var now = DateTimeHelper.VietnamNow;
+
+                // Idempotency guard: reserve the client-supplied key before doing any
+                // work. A retried/duplicate request (double-submit, network retry,
+                // duplicate tab) collides on the unique key and is routed back to the
+                // original order instead of creating — and paying for — a second one.
+                IdempotencyKey? idempotencyRow = null;
+                if (!string.IsNullOrWhiteSpace(idempotencyKey))
+                {
+                    idempotencyRow = new IdempotencyKey { RequestKey = idempotencyKey, CreatedAt = now };
+                    _context.IdempotencyKeys!.Add(idempotencyRow);
+                    try
+                    {
+                        await _context.SaveChangesAsync();
+                    }
+                    catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+                    {
+                        await transaction.RollbackAsync();
+
+                        var existing = await _context.IdempotencyKeys!
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(k => k.RequestKey == idempotencyKey);
+
+                        if (existing?.OrderId != null)
+                        {
+                            var existingOrder = await GetByIdAsync(existing.OrderId.Value);
+                            if (existingOrder != null)
+                            {
+                                return OrderCreationResult.Replay(existingOrder);
+                            }
+                        }
+
+                        // Key exists but no OrderId yet — the original request that owns
+                        // this key is still mid-flight (very rare: near-simultaneous
+                        // double-submit). Ask the client to retry shortly rather than
+                        // racing it.
+                        return OrderCreationResult.Fail(ErrorCodes.ORDER_DUPLICATE_REQUEST_IN_PROGRESS);
+                    }
+                }
+
                 var serverItems = new List<OrderItem>();
                 decimal subtotal = 0m;
 
@@ -258,11 +298,10 @@ namespace LampStoreProjects.Repositories
                     return OrderCreationResult.Fail(ErrorCodes.ORDER_PRICE_MISMATCH);
                 }
 
-                var orderCode = long.Parse(now.ToString("yyMMddHHmmss") + new Random().Next(10, 99).ToString());
                 var order = new Order
                 {
                     Id = Guid.NewGuid(),
-                    OrderCode = orderCode,
+                    OrderCode = GenerateOrderCode(now),
                     UserId = orderModel.UserId,
                     GuestToken = orderModel.GuestToken,
                     OrderDate = now,
@@ -284,8 +323,30 @@ namespace LampStoreProjects.Repositories
                     OrderItems = serverItems
                 };
 
+                if (idempotencyRow != null)
+                {
+                    idempotencyRow.OrderId = order.Id;
+                }
+
                 _context.Orders!.Add(order);
-                await _context.SaveChangesAsync();
+
+                // OrderCode is unique in the DB; on the (very unlikely) chance two orders
+                // generate the same code in the same second, regenerate and retry the
+                // insert instead of failing the whole checkout.
+                const int maxOrderCodeAttempts = 5;
+                for (var attempt = 1; ; attempt++)
+                {
+                    try
+                    {
+                        await _context.SaveChangesAsync();
+                        break;
+                    }
+                    catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex) && attempt < maxOrderCodeAttempts)
+                    {
+                        order.OrderCode = GenerateOrderCode(DateTimeHelper.VietnamNow);
+                    }
+                }
+
                 await transaction.CommitAsync();
 
                 orderModel.Id = order.Id;
@@ -335,6 +396,19 @@ namespace LampStoreProjects.Repositories
             }
         }
 
+        public async Task SetCheckoutUrlAsync(Guid id, string checkoutUrl)
+        {
+            await _context.Orders!
+                .Where(o => o.Id == id)
+                .ExecuteUpdateAsync(s => s.SetProperty(o => o.CheckoutUrl, checkoutUrl));
+        }
+
+        private static long GenerateOrderCode(DateTime now) =>
+            long.Parse(now.ToString("yyMMddHHmmss") + Random.Shared.Next(10, 99).ToString());
+
+        private static bool IsUniqueConstraintViolation(DbUpdateException ex) =>
+            ex.InnerException is SqlException sqlEx && (sqlEx.Number == 2601 || sqlEx.Number == 2627);
+
         public async Task DeleteAsync(Guid id)
         {
             var order = await _context.Orders!
@@ -359,6 +433,7 @@ namespace LampStoreProjects.Repositories
                 GuestToken = order.GuestToken,
                 OrderDate = order.OrderDate,
                 Status = order.Status,
+                CheckoutUrl = order.CheckoutUrl,
                 FullName = order.FullName,
                 Phone = order.Phone,
                 Email = order.Email,
