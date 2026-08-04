@@ -456,6 +456,10 @@ namespace LampStoreProjects.Data
                 .HasIndex(sv => sv.VisitedAt)
                 .HasDatabaseName("IX_SiteVisits_VisitedAt");
 
+            modelBuilder.Entity<SiteVisit>()
+                .HasIndex(sv => sv.IpAddress)
+                .HasDatabaseName("IX_SiteVisits_IpAddress");
+
             // FlashSale relationships
             modelBuilder.Entity<FlashSaleItem>()
                 .HasOne(i => i.FlashSale)

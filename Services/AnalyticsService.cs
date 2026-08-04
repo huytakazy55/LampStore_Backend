@@ -1,6 +1,7 @@
 using LampStoreProjects.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,12 +17,14 @@ namespace LampStoreProjects.Services
         private readonly ApplicationDbContext _context;
         private readonly HttpClient _httpClient;
         private readonly IMemoryCache _cache;
+        private readonly ILogger<AnalyticsService> _logger;
 
-        public AnalyticsService(ApplicationDbContext context, HttpClient httpClient, IMemoryCache cache)
+        public AnalyticsService(ApplicationDbContext context, HttpClient httpClient, IMemoryCache cache, ILogger<AnalyticsService> logger)
         {
             _context = context;
             _httpClient = httpClient;
             _cache = cache;
+            _logger = logger;
         }
 
         public async Task TrackVisitAsync(string sessionId, string ipAddress, string path, Guid? productId)
@@ -50,11 +53,14 @@ namespace LampStoreProjects.Services
                 }
             }
 
-            // Với trang thường (không phải sản phẩm): chỉ ghi 1 lần/session/path
+            // Với trang thường (không phải sản phẩm): chỉ ghi 1 lần/session/path/ngày
+            // (trước đây không giới hạn theo ngày nên chỉ ghi 1 lần duy nhất mãi mãi,
+            // làm số liệu Lượt truy cập/Truy cập gần nhất trên bản đồ bị đánh giá thấp)
             if (!isProductPage)
             {
+                var today = DateTime.UtcNow.Date;
                 var alreadyTracked = await _context.SiteVisits
-                    .AnyAsync(v => v.SessionId == sessionId && v.Path == path);
+                    .AnyAsync(v => v.SessionId == sessionId && v.Path == path && v.VisitedAt >= today);
                 if (alreadyTracked)
                     return;
             }
@@ -267,8 +273,10 @@ namespace LampStoreProjects.Services
 
                 return new
                 {
+                    // NOTE: intentionally not exposing the raw IP to the client — only the
+                    // masked form. Sending both defeated the point of masking (visible in
+                    // the network response even though the UI only rendered the masked one).
                     ipAddress = MaskIp(ip),
-                    rawIpAddress = ip,
                     g.VisitCount,
                     g.UniqueVisitors,
                     g.FirstVisit,
@@ -355,10 +363,15 @@ namespace LampStoreProjects.Services
                         _cache.Set(CacheKey(ip), item, TimeSpan.FromHours(12));
                     }
                 }
+                else
+                {
+                    _logger.LogWarning("ip-api.com geolocation request failed with status {StatusCode}", response.StatusCode);
+                }
             }
-            catch
+            catch (Exception ex)
             {
                 // Keep analytics usable even when the external geo provider is unavailable.
+                _logger.LogWarning(ex, "ip-api.com geolocation request threw an exception");
             }
 
             return results;
@@ -405,7 +418,16 @@ namespace LampStoreProjects.Services
                 };
             }
 
-            return !ip.IsIPv6LinkLocal && !ip.IsIPv6SiteLocal && !ip.IsIPv6Multicast;
+            // IPAddress.IsIPv6SiteLocal only covers the deprecated fec0::/10 range. Modern
+            // private IPv6 deployments use Unique Local Addresses (fc00::/7), which is not
+            // covered by any built-in IPAddress property, so it must be checked explicitly.
+            return !ip.IsIPv6LinkLocal && !ip.IsIPv6SiteLocal && !ip.IsIPv6Multicast && !IsIPv6UniqueLocal(ip);
+        }
+
+        private static bool IsIPv6UniqueLocal(IPAddress ip)
+        {
+            var firstByte = ip.GetAddressBytes()[0];
+            return (firstByte & 0xFE) == 0xFC;
         }
 
         private static string MaskIp(string ipAddress)

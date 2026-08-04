@@ -60,78 +60,28 @@ namespace LampStoreProjects.Controllers
             return Ok(data);
         }
 
+        // SECURITY: do NOT read raw client headers (X-Forwarded-For, CF-Connecting-IP, etc.)
+        // here — they are client-controlled and trivially spoofable, letting any caller
+        // inject a fake location into the visitor map or hide their real IP. Use
+        // HttpContext.Connection.RemoteIpAddress instead: UseForwardedHeaders() (configured
+        // in Program.cs) only rewrites this value from X-Forwarded-For when the request came
+        // through a proxy listed in the "TrustedProxies" config, so for direct/untrusted
+        // traffic this always reflects the real TCP peer. Matches GetRateLimitPartitionKey
+        // in RateLimitExtensions.cs.
         private string GetClientIpAddress()
         {
-            var candidateHeaders = new[]
-            {
-                "CF-Connecting-IP",
-                "True-Client-IP",
-                "X-Real-IP",
-                "X-Forwarded-For"
-            };
-
-            foreach (var header in candidateHeaders)
-            {
-                if (!Request.Headers.TryGetValue(header, out var values))
-                {
-                    continue;
-                }
-
-                foreach (var value in values)
-                {
-                    var ips = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                    var publicIp = ips.FirstOrDefault(IsPublicIp);
-                    if (!string.IsNullOrWhiteSpace(publicIp))
-                    {
-                        return publicIp;
-                    }
-
-                    var firstValidIp = ips.FirstOrDefault(ip => IPAddress.TryParse(NormalizeIp(ip), out _));
-                    if (!string.IsNullOrWhiteSpace(firstValidIp))
-                    {
-                        return NormalizeIp(firstValidIp);
-                    }
-                }
-            }
-
-            return HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-        }
-
-        private static string NormalizeIp(string ipAddress)
-        {
-            if (string.IsNullOrWhiteSpace(ipAddress))
+            var ip = HttpContext.Connection.RemoteIpAddress;
+            if (ip == null)
             {
                 return "unknown";
             }
 
-            var ip = ipAddress.Trim();
-            return ip.StartsWith("::ffff:", StringComparison.OrdinalIgnoreCase)
-                ? ip.Substring("::ffff:".Length)
-                : ip;
-        }
-
-        private static bool IsPublicIp(string ipAddress)
-        {
-            ipAddress = NormalizeIp(ipAddress);
-            if (!IPAddress.TryParse(ipAddress, out var ip) || IPAddress.IsLoopback(ip))
+            if (ip.IsIPv4MappedToIPv6)
             {
-                return false;
+                ip = ip.MapToIPv4();
             }
 
-            var bytes = ip.GetAddressBytes();
-            if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-            {
-                return bytes[0] switch
-                {
-                    10 => false,
-                    172 when bytes[1] >= 16 && bytes[1] <= 31 => false,
-                    192 when bytes[1] == 168 => false,
-                    169 when bytes[1] == 254 => false,
-                    _ => true
-                };
-            }
-
-            return !ip.IsIPv6LinkLocal && !ip.IsIPv6SiteLocal && !ip.IsIPv6Multicast;
+            return ip.ToString();
         }
     }
 }
