@@ -6,6 +6,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace LampStoreProjects.Repositories
@@ -160,6 +161,7 @@ namespace LampStoreProjects.Repositories
 
                 var serverItems = new List<OrderItem>();
                 decimal subtotal = 0m;
+                double totalWeightGrams = 0;
 
                 foreach (var oi in orderModel.OrderItems)
                 {
@@ -172,6 +174,7 @@ namespace LampStoreProjects.Repositories
                     var productId = oi.ProductId.Value;
                     var product = await _context.Products!
                         .Include(p => p.ProductVariant)
+                        .Include(p => p.VariantTypes).ThenInclude(vt => vt.Values)
                         .FirstOrDefaultAsync(p => p.Id == productId);
 
                     if (product == null || product.ProductVariant == null)
@@ -213,6 +216,24 @@ namespace LampStoreProjects.Repositories
                     {
                         unitPrice = variant.DiscountPrice > 0 ? variant.DiscountPrice : variant.Price;
                     }
+
+                    // Selected variant options (e.g. color, size) can each carry their own
+                    // AdditionalPrice. The client's SelectedOptions JSON also carries an
+                    // additionalPrice field, but that's client-supplied and untrusted — only
+                    // the *choice* (type name + value) is taken from it; the price itself is
+                    // always re-looked-up from the VariantValue record in the DB.
+                    foreach (var (typeName, valueName) in ParseSelectedOptionValues(oi.SelectedOptions))
+                    {
+                        var matchedValue = product.VariantTypes?
+                            .FirstOrDefault(vt => vt.Name == typeName)?
+                            .Values?.FirstOrDefault(vv => vv.Value == valueName);
+                        if (matchedValue != null)
+                        {
+                            unitPrice += matchedValue.AdditionalPrice;
+                        }
+                    }
+
+                    totalWeightGrams += variant.Weight * oi.Quantity;
 
                     // Atomic conditional decrement of real inventory (applies whether or not
                     // this was a flash-sale purchase — flash sale units still come from stock).
@@ -280,11 +301,10 @@ namespace LampStoreProjects.Repositories
                     appliedDiscountCode = orderModel.DiscountCode;
                 }
 
-                // NOTE: there is currently no server-side delivery-method/fee rate table in
-                // this codebase (Delivery/DeliveryModel only tracks DeliveryDate/DeliveryStatus,
-                // not a fee). Until one exists we can only sanity-check the client-supplied
-                // shipping fee (reject negative values) rather than fully recompute it.
-                var shippingFee = orderModel.ShippingFee < 0 ? 0 : orderModel.ShippingFee;
+                // Shipping fee is fully server-computed from the order's real weight and
+                // subtotal (mirrors the tiered rate table the checkout page displays) —
+                // the client-supplied ShippingFee is never trusted for pricing.
+                var shippingFee = CalculateShippingFee(subtotal, totalWeightGrams);
 
                 var serverTotal = subtotal + shippingFee - discountAmount;
                 if (serverTotal < 0) serverTotal = 0;
@@ -405,6 +425,52 @@ namespace LampStoreProjects.Repositories
 
         private static long GenerateOrderCode(DateTime now) =>
             long.Parse(now.ToString("yyMMddHHmmss") + Random.Shared.Next(10, 99).ToString());
+
+        // Mirrors the tiered rate table in the Next.js checkout page (app/checkout/page.jsx
+        // calculateShippingFee) — kept in sync manually since there's no shared source of
+        // truth between the two codebases yet.
+        private static decimal CalculateShippingFee(decimal subtotal, double weightInGrams)
+        {
+            if (subtotal >= 500000m) return 0m;
+            if (weightInGrams <= 0) return 15000m;
+            if (weightInGrams <= 500) return 15000m;
+            if (weightInGrams <= 1000) return 25000m;
+            if (weightInGrams <= 2000) return 35000m;
+            if (weightInGrams <= 5000) return 50000m;
+            return 70000m;
+        }
+
+        // Extracts only the {typeName: valueName} choices out of the client's SelectedOptions
+        // JSON (shape: {"TypeName": {"value": "...", "additionalPrice": ...}}). The
+        // additionalPrice field in that JSON is client-supplied and deliberately ignored here —
+        // callers must re-look-up the authoritative price from the VariantValue record.
+        private static Dictionary<string, string> ParseSelectedOptionValues(string? selectedOptionsJson)
+        {
+            var result = new Dictionary<string, string>();
+            if (string.IsNullOrWhiteSpace(selectedOptionsJson)) return result;
+
+            try
+            {
+                using var doc = JsonDocument.Parse(selectedOptionsJson);
+                if (doc.RootElement.ValueKind != JsonValueKind.Object) return result;
+
+                foreach (var prop in doc.RootElement.EnumerateObject())
+                {
+                    if (prop.Value.ValueKind == JsonValueKind.Object &&
+                        prop.Value.TryGetProperty("value", out var valueEl) &&
+                        valueEl.ValueKind == JsonValueKind.String)
+                    {
+                        result[prop.Name] = valueEl.GetString() ?? string.Empty;
+                    }
+                }
+            }
+            catch (JsonException)
+            {
+                // Malformed selected-options payload — treat as no options selected.
+            }
+
+            return result;
+        }
 
         private static bool IsUniqueConstraintViolation(DbUpdateException ex) =>
             ex.InnerException is SqlException sqlEx && (sqlEx.Number == 2601 || sqlEx.Number == 2627);
